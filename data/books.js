@@ -116,5 +116,43 @@ window.BOOKS = [
       { no: 9, title: "통계를 조작하는 법", programs: [] },
       { no: 10, title: "통계에 되묻는 법", programs: [] }
     ]
+  },
+  {
+    id: "why-machines-learn",
+    dir: "books/why-machines-learn",
+    cover: "cover.webp",
+    title: "기계는 왜 학습하는가",
+    original: "Why Machines Learn",
+    author: "아닐 아난타스와미",
+    translator: "노승영",
+    publisher: "까치",
+    subject: "인공지능 · 수학",
+    intro: "퍼셉트론에서 심층 신경망, 오늘날의 인공지능까지. AI를 움직이는 수학(선형대수·미적분·확률·최적화)을 장마다 직접 만져 보며 따라가는 프로그램을 연결했다.",
+    // 목차는 번역본(까치, 2025) 그대로. page = 장이 시작하는 쪽. 프롤로그(9쪽)·에필로그(425쪽)는 장이 아니라 생략
+    chapters: [
+      {
+        no: 1, title: "패턴을 찾고 말 테다", page: 15,
+        programs: [
+          {
+            id: "artificial-neuron-lab", title: "인공 뉴런 실험실",
+            file: "programs/인공 뉴런 실험실.html",
+            type: "실험", session: "", pages: "22~31쪽",
+            summary: "MCP 뉴런(뉴로드)으로 AND·OR·NOT·XOR을 만들어 보고, 퍼셉트론이 틀린 점을 만날 때마다 선을 고쳐 가는 과정을 6단계로 따라가기",
+            concepts: ["뉴런", "뉴로드", "논리 게이트", "XOR", "퍼셉트론", "가중치", "편향", "선형 분리"]
+          }
+        ]
+      },
+      { no: 2,  title: "여기에선 모두가 숫자에 불과하다", page: 34,  programs: [] },
+      { no: 3,  title: "그릇의 바닥", page: 72,  programs: [] },
+      { no: 4,  title: "십중팔구", page: 103, programs: [] },
+      { no: 5,  title: "유유상종", page: 152, programs: [] },
+      { no: 6,  title: "행렬에는 마법이 있다", page: 184, programs: [] },
+      { no: 7,  title: "커널 밧줄 탈출쇼", page: 213, programs: [] },
+      { no: 8,  title: "물리학의 소소한 도움으로", page: 249, programs: [] },
+      { no: 9,  title: "심층 학습의 발목을 잡은 사람(실은 아님)", page: 285, programs: [] },
+      { no: 10, title: "오래된 신화를 깨뜨린 알고리즘", page: 310, programs: [] },
+      { no: 11, title: "기계의 눈", page: 354, programs: [] },
+      { no: 12, title: "미지의 땅", page: 391, programs: [] }
+    ]
   }
 ];

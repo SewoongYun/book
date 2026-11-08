@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>인공 뉴런 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25;
+    --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F;
+    --blue:#93B3E8; --blue-soft:#1E2A3F;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+  --red:#FF6F80; --red-soft:#3B1D25;
+  --amber:#E8B34E; --amber-soft:#3A2F16;
+  --slate:#9AA8BF; --slate-soft:#28323F;
+  --blue:#93B3E8; --blue-soft:#1E2A3F;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+.top{margin-bottom:12px}
+.book{font-size:13px;color:var(--muted);letter-spacing:.02em;margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4.4vw,34px);line-height:1.2;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:640px){.stepper{grid-template-columns:repeat(3,minmax(0,1fr))}.stepper .sl{font-size:13px}.stepper button{padding:7px 8px;gap:6px}}
+
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:26px 22px;padding-inline:clamp(18px,4vw,38px);display:flex;flex-direction:column;gap:20px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3.6vw,28px);line-height:1.3;margin:4px 0 0}
+.lead{margin:0;max-width:64ch}
+h3{font-size:15px;font-weight:700;margin:0 0 6px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:25px;line-height:1.15;margin:0;transform:rotate(-2deg);transform-origin:left center}
+.bq{margin:0;border-left:3px solid var(--red);padding:4px 0 4px 16px}
+.bq p{font-family:var(--f-display);font-weight:700;font-size:clamp(17px,2.6vw,20px);line-height:1.55;margin:0}
+.bq cite{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:4px}
+.scene{background:var(--paper);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scene p{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14.5px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.hint{font-size:13.5px;color:var(--muted);margin:0}
+
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figcaption{font-size:14px;font-weight:700}
+figcaption .lg{font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+.svgbox{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--sheet)}
+.svgbox svg{display:block;width:100%;height:auto}
+.svgbox.wide svg{min-width:380px}
+svg text{font-family:var(--f-body)}
+
+/* mapping table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--rule)}
+thead th{font-size:12.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+table.map td{text-align:left}
+table.map td:first-child{white-space:nowrap}
+.tag{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700;font-size:13.5px}
+.tag.in{background:var(--amber-soft);color:var(--amber)}
+.tag.mid{background:var(--blue-soft);color:var(--blue)}
+.tag.out{background:var(--red-soft);color:var(--red)}
+tr.cur td{background:var(--amber-soft)}
+td.ok{color:var(--blue);font-weight:700}
+td.bad{color:var(--red);font-weight:700}
+td.dim{color:var(--muted)}
+td.veto{color:var(--red)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted)}
+.tg{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14.5px;min-width:96px}
+.tg:disabled{opacity:.4;cursor:not-allowed}
+.tg[aria-pressed="true"]{background:var(--amber-soft);border-color:var(--amber);color:var(--ink)}
+.tg.inh[aria-pressed="true"]{background:var(--red-soft);border-color:var(--red)}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:var(--sheet);padding:8px 13px;cursor:pointer;font-weight:500;font-size:14.5px;border-left:1px solid var(--ink);font-family:var(--f-num)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.badge{display:inline-block;font-weight:700;border-radius:4px;padding:3px 10px;font-size:14px;background:var(--slate-soft);color:var(--ink)}
+.badge.hot{background:var(--ink);color:var(--sheet)}
+.summary{margin:0;font-weight:500}
+.summary b{color:var(--red)}
+
+/* formula */
+.formula{border:2px solid var(--ink);border-radius:4px;padding:14px 18px;display:grid;gap:8px}
+.formula .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.fx{font-family:var(--f-num);font-size:15.5px;margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.fx .k{font-family:var(--f-body);font-size:13px;color:var(--muted);min-width:4.5em}
+.cases{display:inline-grid;border-left:2px solid var(--ink);padding-left:8px;line-height:1.5}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.card{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.card p{margin:0}
+.card .ct{font-weight:700}
+.card .cs{font-size:14.5px;color:var(--muted)}
+
+/* neurode svg */
+.nd-box{stroke-width:1.2}
+.nd-box.on{fill:var(--amber-soft);stroke:var(--amber)}
+.nd-box.off{fill:var(--paper);stroke:var(--rule)}
+.nd-box.neg.on{fill:var(--red-soft);stroke:var(--red)}
+.nd-w{stroke:var(--rule);stroke-width:2;fill:none}
+.nd-w.on{stroke:var(--amber)}
+.nd-w.neg{stroke-dasharray:6 4}
+.nd-w.neg.on{stroke:var(--red)}
+.nd-neu{fill:var(--sheet);stroke:var(--ink);stroke-width:1.6}
+.nd-div{stroke:var(--ink);stroke-width:1.2}
+.nd-lamp.on{fill:var(--amber);stroke:var(--amber)}
+.nd-lamp.off{fill:var(--paper);stroke:var(--rule);stroke-width:1.5}
+.ah{fill:var(--muted)}
+.t-lab{font-size:13px;fill:var(--ink)}
+.t-big{font-family:var(--f-num);font-size:17px;font-weight:600;fill:var(--ink)}
+.t-sm{font-size:12px;fill:var(--muted)}
+.t-wt{font-family:var(--f-num);font-size:12px;fill:var(--muted)}
+.t-wt.neg{fill:var(--red);font-weight:600}
+.t-gf{font-family:var(--f-display);font-size:18px;font-weight:800;fill:var(--ink)}
+.t-pass{font-size:12.5px;font-weight:700;fill:var(--blue)}
+.t-fail{font-size:12.5px;font-weight:700;fill:var(--muted)}
+.t-lampv{font-family:var(--f-num);font-size:15px;font-weight:600}
+.t-lampv.on{fill:var(--sheet)} .t-lampv.off{fill:var(--muted)}
+/* neuron schematic */
+.ns-in{stroke:var(--amber);stroke-width:3;fill:none;stroke-linecap:round}
+.ns-body{fill:var(--blue-soft);stroke:var(--blue);stroke-width:2}
+.ns-out{stroke:var(--red);stroke-width:3;fill:none;stroke-linecap:round}
+.ns-lab-in{font-size:13px;font-weight:700;fill:var(--amber)}
+.ns-lab-mid{font-size:13px;font-weight:700;fill:var(--blue)}
+.ns-lab-out{font-size:13px;font-weight:700;fill:var(--red)}
+/* circuit */
+.cw{stroke:var(--muted);stroke-width:1.6;fill:none;stroke-linecap:round}
+.cdot{fill:var(--muted)}
+.cbulb.on{fill:var(--amber);stroke:var(--amber)}
+.cbulb.off{fill:none;stroke:var(--muted);stroke-width:1.6}
+/* number line */
+.nl-ax{stroke:var(--muted);stroke-width:1.2}
+.nl-0{fill:var(--slate)} .nl-1{fill:var(--red)}
+.nl-cut{stroke:var(--ink);stroke-width:1.4;stroke-dasharray:5 4}
+
+/* wrap-up */
+.law{border:2px solid var(--ink);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.law .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.law p{margin:0}
+.law ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 14px}
+.recall b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:4px 10px;padding:12px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:14.5px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:13.5px;width:max-content}
+details[open] summary{margin-bottom:4px}
+.ans{background:var(--paper);padding:10px 12px;border-radius:4px}
+.mine{margin:0;font-size:14.5px;color:var(--muted)}
+.mine b{color:var(--ink)}
+
+/* sliders, tiles, plots */
+.sliders{display:grid;gap:6px;margin-top:10px;max-width:520px}
+.sl-row{display:grid;grid-template-columns:4em 1fr 4.6em;align-items:center;gap:10px}
+.sl-k{font-family:var(--f-num);font-weight:600}
+.sl-v{text-align:right;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:8px 12px;min-width:0}
+.tile .k{font-size:12.5px;color:var(--muted);display:block}
+.tile .v{font-weight:600;font-size:22px;line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+.pl-pos{fill:var(--red-soft)} .pl-neg{fill:var(--slate-soft)}
+.pl-ax{stroke:var(--muted);stroke-width:1;fill:none}
+.pl-grid{stroke:var(--rule);stroke-width:.8}
+.pl-line{stroke:var(--ink);stroke-width:2}
+.pt-p{fill:var(--red)} .pt-n{fill:var(--slate)}
+.pt-bad{fill:none;stroke:var(--ink);stroke-width:1.6}
+.pt-cur{fill:none;stroke:var(--amber);stroke-width:2.4}
+.pt-star{fill:var(--amber);stroke:var(--ink);stroke-width:1}
+.t-tick{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
+
+.calc{background:var(--paper);border-radius:4px;padding:12px 14px;display:grid;gap:5px;font-size:14.5px}
+.calc p{margin:0}
+.c-head{font-weight:700}
+.c-step{font-family:var(--f-num);color:var(--red);font-weight:600;margin-right:6px}
+.c-eq{font-family:var(--f-num);font-size:14px;padding-left:1.6em;overflow-wrap:anywhere}
+.c-ok{color:var(--blue);font-weight:700}
+.c-bad{color:var(--red);font-weight:700}
+.c-note{border-top:1px solid var(--rule);padding-top:6px;color:var(--muted);font-size:14px}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.navbtn{border:1px solid var(--rule);background:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">「패턴을 찾고 말 테다」 22~31쪽 · MCP 뉴런에서 퍼셉트론까지</p>
+    <h1>인공 뉴런 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="학습 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">뉴로드</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">AND·OR</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">NOT</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">XOR</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">퍼셉트론</span></button></li>
+    <li><button id="st6" data-go="6"><span class="sn">6</span><span class="sl">학습</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 6 · 신경세포에서 뉴로드로</p>
+      <h2 id="h1s">뇌세포 하나를 아주 단순한 계산기로 바꾸면?</h2>
+    </div>
+
+    <div class="scene">
+      <p>1943년, 신경과학자 <b>매컬러</b>와 10대 수학 천재 <b>피츠</b>는 신경세포가 하는 일을 ‘켜짐(1)’과 ‘꺼짐(0)’만으로 흉내 내는 계산 모형을 만들었다.</p>
+      <p>이 인공 신경세포를 <b>뉴로드</b>(neurode = neuron 신경세포 + node 분기점)라고 부른다.</p>
+    </div>
+
+    <figure>
+      <figcaption>생물학적 신경세포 <span class="lg">신호는 왼쪽에서 오른쪽으로 흐른다</span></figcaption>
+      <div class="svgbox">
+        <svg viewBox="0 0 400 180" role="img" aria-label="가지돌기, 세포체, 축삭돌기, 축삭말단으로 이루어진 신경세포 그림">
+          <path class="ns-in" d="M20 50 L60 75 L92 92"/><path class="ns-in" d="M40 30 L60 75"/>
+          <path class="ns-in" d="M18 100 L90 100"/>
+          <path class="ns-in" d="M20 150 L60 125 L92 108"/><path class="ns-in" d="M42 165 L60 125"/>
+          <ellipse class="ns-body" cx="122" cy="100" rx="32" ry="26"/>
+          <path class="ns-out" d="M154 100 L300 100"/>
+          <path class="ns-out" d="M300 100 L345 70"/><path class="ns-out" d="M300 100 L352 100"/><path class="ns-out" d="M300 100 L345 130"/>
+          <text class="ns-lab-in" x="50" y="18" text-anchor="middle">가지돌기</text>
+          <text class="ns-lab-mid" x="122" y="148" text-anchor="middle">세포체</text>
+          <text class="ns-lab-out" x="228" y="88" text-anchor="middle">축삭돌기</text>
+          <text class="ns-lab-out" x="340" y="160" text-anchor="middle">축삭말단</text>
+        </svg>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>뉴로드 <span class="lg">책 23쪽 그림과 같은 구조</span></figcaption>
+      <div class="svgbox">
+        <svg viewBox="0 0 400 170" role="img" aria-label="입력 x1, x2가 g와 f로 나뉜 원으로 들어가 출력 y가 나오는 뉴로드 그림">
+          <defs><marker id="m1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah"/></marker></defs>
+          <text class="ns-lab-in" x="30" y="62" text-anchor="middle">x1</text>
+          <text class="ns-lab-in" x="30" y="114" text-anchor="middle">x2</text>
+          <line class="ns-in" x1="46" y1="58" x2="148" y2="62" marker-end="url(#m1)"/>
+          <line class="ns-in" x1="46" y1="110" x2="148" y2="106" marker-end="url(#m1)"/>
+          <circle class="ns-body" cx="205" cy="85" r="56"/>
+          <line class="nd-div" x1="205" y1="29" x2="205" y2="141"/>
+          <text class="t-gf" x="180" y="91" text-anchor="middle">g</text>
+          <text class="t-gf" x="230" y="91" text-anchor="middle">f</text>
+          <line class="ns-out" x1="263" y1="85" x2="350" y2="85" marker-end="url(#m1)"/>
+          <text class="ns-lab-out" x="370" y="90" text-anchor="middle">y</text>
+          <text class="t-sm" x="180" y="160" text-anchor="middle">g: 더하기</text>
+          <text class="t-sm" x="236" y="160" text-anchor="middle">f: 판정하기</text>
+        </svg>
+      </div>
+    </figure>
+
+    <div class="tablebox">
+      <table class="map">
+        <thead><tr><th>신경세포</th><th>뉴로드</th><th>하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag in">가지돌기</span></td><td>입력 x1, x2</td><td>다른 세포에서 오는 신호를 받는다. 신호는 0 또는 1뿐이다.</td></tr>
+          <tr><td><span class="tag mid">세포체</span></td><td>g와 f</td><td>받은 신호를 모두 더하고(g), 합이 기준 θ를 넘는지 판정한다(f).</td></tr>
+          <tr><td><span class="tag out">축삭돌기·말단</span></td><td>출력 y</td><td>판정 결과(0 또는 1)를 다음 세포로 보낸다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="bq">
+      <p>“입력을 더한 뒤 합이 임곗값 θ(세타)보다 크거나 같은지 검사하면 된다.”</p>
+      <cite>23~24쪽</cite>
+    </blockquote>
+
+    <div>
+      <h3>예상해 보자: 0과 1만 다루는 이 단순한 장치로 무엇을 할 수 있을까?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 예상">
+        <button class="chip" data-v="거의 아무것도 못 한다" aria-pressed="false">거의 아무것도 못 한다</button>
+        <button class="chip" data-v="간단한 판단 정도는 한다" aria-pressed="false">간단한 판단 정도는 한다</button>
+        <button class="chip" data-v="컴퓨터가 하는 계산을 전부 할 수 있다" aria-pressed="false">컴퓨터가 하는 계산을 전부 할 수 있다</button>
+      </div>
+      <p class="hint" style="margin-top:6px">고른 답은 STEP 6에서 다시 확인한다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · AND·OR 만들기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 6 · AND·OR 만들기</p>
+      <h2 id="h2s">θ 하나만 바꿨을 뿐인데 기능이 바뀐다</h2>
+    </div>
+    <p class="lead">입력 스위치를 켜고 끄면서 θ를 바꿔 보자. 표가 어떤 규칙이 되는지 보고, 그 규칙의 이름을 맞혀 본다.</p>
+
+    <div class="formula">
+      <span class="t">뉴로드의 계산 규칙 (24쪽)</span>
+      <p class="fx"><span class="k">① 더하기</span>g(x) = x1 + x2</p>
+      <p class="fx"><span class="k">② 판정하기</span>f(z) = <span class="cases"><span>0, &nbsp;z &lt; θ</span><span>1, &nbsp;z ≥ θ</span></span></p>
+      <p class="fx"><span class="k">③ 출력</span>y = f(g(x)) &nbsp;<span style="font-family:var(--f-body);font-size:13px;color:var(--muted)">← 합성함수!</span></p>
+    </div>
+
+    <div class="controls">
+      <button class="tg" id="a2x1" aria-pressed="false">x1 = 0</button>
+      <button class="tg" id="a2x2" aria-pressed="false">x2 = 0</button>
+      <span class="ctl-label" style="margin-left:6px">임곗값 θ</span>
+      <div class="seg" role="group" aria-label="임곗값" id="th2">
+        <button data-th="0" aria-pressed="false">0</button>
+        <button data-th="1" aria-pressed="false">1</button>
+        <button data-th="2" aria-pressed="true">2</button>
+        <button data-th="3" aria-pressed="false">3</button>
+      </div>
+    </div>
+
+    <figure>
+      <figcaption>뉴로드 계산 과정</figcaption>
+      <div class="svgbox" id="nd2"></div>
+    </figure>
+
+    <div>
+      <h3>θ = <span class="num" id="th2v">2</span>일 때의 진리표 &nbsp;<span class="badge hot" id="gate2">AND</span></h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>x1</th><th>x2</th><th>합 g</th><th>출력 y</th></tr></thead>
+          <tbody id="tt2"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:6px" id="gate2txt"></p>
+    </div>
+
+    <figure>
+      <figcaption>전기 회로로 보기 <span class="lg">스위치 = 입력, 전구 = 출력</span></figcaption>
+      <div class="svgbox" id="circ2"></div>
+    </figure>
+
+    <div class="two">
+      <div class="card"><p class="ct">AND (θ = 2) · 둘 다 1이어야 1</p><p class="cs">금고 열쇠 2개를 모두 꽂아야 열린다. 회로로는 스위치를 한 줄로 이은 <b>직렬 연결</b>이다.</p></div>
+      <div class="card"><p class="ct">OR (θ = 1) · 하나만 1이어도 1</p><p class="cs">자동문은 안쪽·바깥쪽 센서 중 하나만 감지해도 열린다. 회로로는 길이 두 갈래인 <b>병렬 연결</b>이다.</p></div>
+    </div>
+
+    <p class="pen">θ는 ‘얼마나 깐깐하게 켜 줄지’를 정하는 기준!</p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 억제성과 NOT →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 6 · 억제성 입력과 NOT</p>
+      <h2 id="h3s">“안 돼!”라고 말하는 입력</h2>
+    </div>
+    <p class="lead">25쪽에서는 입력을 <b>억제성(inhibitory)</b>으로 만들 수 있다고 한다. 억제성 입력은 더하기 전에 <b>−1을 곱한다</b>. 그래서 이 입력이 1이면 합이 오히려 1 줄어든다.</p>
+
+    <div class="scene">
+      <p>학교 출입 게이트를 떠올려 보자. 학생증을 찍으면(흥분성 입력) 문이 열린다.</p>
+      <p>그런데 <b>분실 신고된 카드</b>라는 신호(억제성 입력)가 함께 들어오면, 다른 조건과 상관없이 문이 안 열린다.</p>
+    </div>
+
+    <div class="controls">
+      <button class="tg" id="a3x1" aria-pressed="false">x1 = 0</button>
+      <button class="tg" id="a3x2" aria-pressed="false">x2 = 0</button>
+      <button class="tg inh" id="a3inh" aria-pressed="true">x2 억제성 (×−1) 켜짐</button>
+    </div>
+    <div class="controls">
+      <span class="ctl-label">임곗값 θ</span>
+      <div class="seg" role="group" aria-label="임곗값" id="th3">
+        <button data-th="0" aria-pressed="false">0</button>
+        <button data-th="1" aria-pressed="true">1</button>
+        <button data-th="2" aria-pressed="false">2</button>
+      </div>
+    </div>
+
+    <figure>
+      <figcaption>뉴로드 계산 과정 <span class="lg">빨간 점선 = 억제성 입력</span></figcaption>
+      <div class="svgbox" id="nd3"></div>
+    </figure>
+
+    <div>
+      <h3>진리표</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>x1</th><th>x2</th><th>합 g</th><th>출력 y</th></tr></thead>
+          <tbody id="tt3"></tbody>
+        </table>
+      </div>
+      <p class="summary" style="margin-top:8px" id="sum3"></p>
+    </div>
+
+    <div>
+      <h3>입력이 하나뿐이라면? NOT 뉴로드</h3>
+      <p class="lead" style="margin-bottom:10px">입력 x 하나를 억제성으로 넣고 θ = 0으로 두면, 출력은 입력을 정반대로 뒤집는다.</p>
+      <div class="controls"><button class="tg" id="a3n" aria-pressed="false">x = 0</button></div>
+      <div class="svgbox" id="ndNot" style="margin-top:10px"></div>
+      <div class="tablebox" style="margin-top:10px">
+        <table>
+          <thead><tr><th>x</th><th>합 = −x</th><th>합 ≥ 0 ?</th><th>출력 y</th></tr></thead>
+          <tbody id="ttN"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="pen">AND, OR, NOT이 다 모였다 → 디지털 계산의 기본 재료!</p>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · XOR과 정리 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 6 · XOR과 정리</p>
+      <h2 id="h4s">뉴로드 하나로는 끝내 못 만드는 것</h2>
+    </div>
+    <p class="lead">XOR(배타적 OR)은 두 입력이 <b>서로 다를 때만</b> 1이 된다. 계단 조명 스위치가 대표적인 예다. 1층과 2층 스위치 상태가 다르면 불이 켜지고, 같으면 꺼진다. 23쪽에서는 XOR을 만들려면 뉴로드가 둘 이상 필요하다고 했다. 정말인지 직접 도전해 보자.</p>
+
+    <div>
+      <h3>도전: 뉴로드 하나로 XOR 만들기</h3>
+      <div class="controls">
+        <span class="ctl-label">θ</span>
+        <div class="seg" role="group" aria-label="임곗값" id="th4">
+          <button data-th="-1" aria-pressed="false">−1</button>
+          <button data-th="0" aria-pressed="false">0</button>
+          <button data-th="1" aria-pressed="true">1</button>
+          <button data-th="2" aria-pressed="false">2</button>
+          <button data-th="3" aria-pressed="false">3</button>
+        </div>
+        <button class="tg inh" id="a4i1" aria-pressed="false">x1 억제성 꺼짐</button>
+        <button class="tg inh" id="a4i2" aria-pressed="false">x2 억제성 꺼짐</button>
+      </div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>x1</th><th>x2</th><th>합 g</th><th>뉴로드 y</th><th>XOR 목표</th><th>일치?</th></tr></thead>
+        <tbody id="tt4"></tbody>
+      </table>
+    </div>
+    <p class="summary" id="sum4"></p>
+
+    <figure>
+      <figcaption>왜 안 될까? 합을 수직선에 놓아 보면 <span class="lg">빨간 점 = XOR이 1이어야 하는 곳</span></figcaption>
+      <div class="svgbox">
+        <svg viewBox="0 0 400 130" role="img" aria-label="합 0, 1, 2를 수직선에 놓으면 XOR은 가운데 1에서만 켜져야 한다">
+          <line class="nl-ax" x1="40" y1="70" x2="360" y2="70"/>
+          <circle class="nl-0" cx="80" cy="70" r="9"/><circle class="nl-1" cx="200" cy="70" r="9"/><circle class="nl-0" cx="320" cy="70" r="9"/>
+          <text class="t-big" x="80" y="104" text-anchor="middle">0</text><text class="t-big" x="200" y="104" text-anchor="middle">1</text><text class="t-big" x="320" y="104" text-anchor="middle">2</text>
+          <text class="t-sm" x="80" y="45" text-anchor="middle">(0,0) → 0</text>
+          <text class="t-sm" x="200" y="45" text-anchor="middle">(0,1),(1,0) → 1</text>
+          <text class="t-sm" x="320" y="45" text-anchor="middle">(1,1) → 0</text>
+          <text class="t-sm" x="370" y="74" text-anchor="start">합</text>
+        </svg>
+      </div>
+    </figure>
+    <p class="lead">뉴로드 하나는 “합 ≥ θ면 켜기”라는 <b>기준선 하나</b>만 긋는다. 기준선 오른쪽은 모두 켜지고 왼쪽은 모두 꺼진다. 그래서 <b>가운데만 켜고 양 끝은 끄는</b> XOR은 만들 수 없다.</p>
+
+    <div>
+      <h3>해결: 뉴로드 3개를 이어 붙이기</h3>
+      <p class="lead" style="margin-bottom:10px">XOR = (x1 OR x2) 그리고 NOT (x1 AND x2). OR 뉴로드와 AND 뉴로드의 결과를 세 번째 뉴로드에 넣는다. 이때 AND 쪽은 억제성(−1)으로 넣는다.</p>
+      <div class="controls"><button class="tg" id="a4x1" aria-pressed="false">x1 = 0</button><button class="tg" id="a4x2" aria-pressed="false">x2 = 0</button></div>
+      <div class="svgbox wide" id="net" style="margin-top:10px"></div>
+      <p class="summary" style="margin-top:8px" id="sumNet"></p>
+    </div>
+
+    <div class="law">
+      <span class="t">MCP 뉴로드의 한계 (25쪽)</span>
+      <p>MCP 뉴로드를 잘 짜 맞추면 어떤 디지털 연산이든 할 수 있다. 하지만 AND는 θ = 2, OR은 θ = 1처럼 <b>θ를 사람이 직접 정해야</b> 했다. 데이터를 보고 스스로 θ를 찾아내지는 못했다. 즉, <b>학습할 수 없었다.</b></p>
+      <p>스스로 값을 찾는 뉴런이 나오기까지는 15년이 더 걸렸다. 그게 다음 STEP의 <b>퍼셉트론</b>이다.</p>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 퍼셉트론 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 6 · 퍼셉트론</p>
+      <h2 id="h5s">MCP 뉴로드를 업그레이드하면: 퍼셉트론</h2>
+    </div>
+
+    <div class="scene">
+      <p>1950년대 후반, 프랭크 <b>로젠블랫</b>은 MCP 뉴로드를 고쳐서 <b>퍼셉트론</b>을 만들었다.</p>
+      <p>20×20픽셀 카메라를 단 ‘퍼셉트론 1호’는 글자를 보고 알파벳을 알아맞혔다. 실수를 하면 그때마다 고쳐 가며 맞히는 법을 배웠다.</p>
+    </div>
+
+    <div class="tablebox">
+      <table class="map">
+        <thead><tr><th></th><th>MCP 뉴로드 (STEP 1~4)</th><th>퍼셉트론</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag in">입력</span></td><td>0 또는 1만</td><td><b>어떤 값이든</b> (키 172, 몸무게 65.5 …)</td></tr>
+          <tr><td><span class="tag in">입력 처리</span></td><td>그냥 더한다</td><td>입력마다 <b>가중치 w</b>를 곱해서 더한다 (가중합)</td></tr>
+          <tr><td><span class="tag mid">기준</span></td><td>합 ≥ θ 인가?</td><td><b>편향 b</b>를 더한 뒤 합 &gt; 0 인가?</td></tr>
+          <tr><td><span class="tag out">출력</span></td><td>0 또는 1</td><td><b>−1 또는 +1</b></td></tr>
+          <tr><td><span class="tag out">값 정하기</span></td><td>사람이 θ를 정해 줌</td><td>데이터를 보고 w와 b를 <b>스스로 학습</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="formula">
+      <span class="t">퍼셉트론의 계산 규칙 (29쪽)</span>
+      <p class="fx"><span class="k">① 가중합</span>g(x) = w1·x1 + w2·x2 + … + wn·xn + b = Σ wi·xi + b</p>
+      <p class="fx"><span class="k">② 판정하기</span>f(z) = <span class="cases"><span>−1, &nbsp;z ≤ 0</span><span>&nbsp;1, &nbsp;z &gt; 0</span></span></p>
+      <p class="fx"><span class="k">③ 출력</span>y = f(g(x))</p>
+    </div>
+
+    <div class="card">
+      <p class="ct">θ는 어디로 갔을까? → 편향 b가 되었다</p>
+      <p class="cs">MCP의 조건 “합 ≥ θ”에서 θ를 왼쪽으로 넘기면 “합 − θ ≥ 0”이 된다. 이 <b>−θ</b>가 편향 b 역할을 한다. 그래서 퍼셉트론은 기준값 없이 “0보다 큰가?”만 보면 된다. 책의 퍼셉트론은 0 <b>초과</b>일 때 +1이므로, θ = 2인 AND는 b를 −2보다 조금 큰 <b>−1.5</b> 정도로 두면 된다.</p>
+    </div>
+
+    <div>
+      <h3>퍼셉트론으로 AND·OR 다시 만들기</h3>
+      <div class="controls">
+        <span class="ctl-label">목표</span>
+        <div class="seg" role="group" aria-label="목표 규칙" id="tg5">
+          <button data-g="AND" aria-pressed="true" style="font-family:var(--f-body)">AND</button>
+          <button data-g="OR" aria-pressed="false" style="font-family:var(--f-body)">OR</button>
+          <button data-g="XOR" aria-pressed="false" style="font-family:var(--f-body)">XOR</button>
+        </div>
+        <button class="tg" id="p5preset" style="min-width:0">추천값 넣기</button>
+      </div>
+      <div class="sliders">
+        <label class="sl-row"><span class="sl-k">w1</span><input type="range" id="w1s" min="-2" max="2" step="0.5" value="0"><span class="num sl-v" id="w1v">0</span></label>
+        <label class="sl-row"><span class="sl-k">w2</span><input type="range" id="w2s" min="-2" max="2" step="0.5" value="0"><span class="num sl-v" id="w2v">0</span></label>
+        <label class="sl-row"><span class="sl-k">b</span><input type="range" id="bs" min="-3" max="3" step="0.5" value="0"><span class="num sl-v" id="bv">0</span></label>
+      </div>
+    </div>
+
+    <div class="controls"><button class="tg" id="a5x1" aria-pressed="false">x1 = 0</button><button class="tg" id="a5x2" aria-pressed="false">x2 = 0</button></div>
+    <figure>
+      <figcaption>퍼셉트론 계산 과정 <span class="lg">29쪽 그림처럼 b, w1x1, w2x2가 들어간다</span></figcaption>
+      <div class="svgbox" id="pc5"></div>
+    </figure>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>x1</th><th>x2</th><th>가중합 g</th><th>출력 y</th><th>목표</th><th>일치?</th></tr></thead>
+        <tbody id="tt5"></tbody>
+      </table>
+    </div>
+
+    <figure>
+      <figcaption>좌표평면에서 보기 <span class="lg">● 목표 +1 · ▲ 목표 −1 · 붉은 영역 = 퍼셉트론이 +1이라고 판정하는 곳</span></figcaption>
+      <div class="svgbox" id="pl5"></div>
+    </figure>
+    <p class="summary" id="sum5"></p>
+
+    <p class="pen">퍼셉트론 = 좌표평면에 직선 하나 긋기!</p>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button><button class="navbtn" data-go="6">STEP 6 · 학습하기 →</button></div>
+  </section>
+
+  <!-- STEP 6 -->
+  <section class="sheet" id="s6" aria-labelledby="h6s" hidden>
+    <div>
+      <p class="eyebrow">STEP 6 / 6 · 퍼셉트론의 학습</p>
+      <h2 id="h6s">틀리면서 배운다: 키와 몸무게로 비만 분류하기</h2>
+    </div>
+    <p class="lead">30쪽의 예를 따라가 보자. 몸무게 x1과 키 x2를 보고 비만(y = +1, ●)인지 비만 아님(y = −1, ▲)인지 분류한다. 퍼셉트론은 <b>w1 = w2 = b = 0</b>에서 출발한다. 데이터를 하나씩 보면서 틀릴 때마다 w1, w2, b를 고친다.</p>
+
+    <div class="formula">
+      <span class="t">학습 규칙 · 틀린 점을 만나면 선을 그 점 쪽으로 옮긴다</span>
+      <p class="fx"><span class="k">맞히면</span>아무것도 바꾸지 않는다</p>
+      <p class="fx"><span class="k">틀리면</span>w1 ← w1 + y·x1, &nbsp;w2 ← w2 + y·x2, &nbsp;b ← b + y</p>
+      <p class="hint">y는 그 점의 정답(+1 또는 −1)이다. 계산할 때는 몸무게와 키를 100으로 나눈 값을 쓴다. 이 규칙이 왜 통하는지는 책 뒤에서 자세히 나온다.</p>
+    </div>
+
+    <div class="controls">
+      <button class="tg" id="l1" style="min-width:0">한 명씩 확인</button>
+      <button class="tg" id="lEp" style="min-width:0">한 바퀴 돌기</button>
+      <button class="tg" id="lAuto" style="min-width:0">▶ 끝까지 자동</button>
+      <span class="spacer"></span>
+      <button class="tg" id="lReset" style="min-width:0;border-color:var(--rule);color:var(--muted)">처음부터</button>
+    </div>
+
+    <div class="stats">
+      <div class="tile"><span class="k">확인한 데이터</span><span class="v num" id="vSeen">0</span></div>
+      <div class="tile"><span class="k">고친 횟수</span><span class="v num" id="vUp">0</span></div>
+      <div class="tile"><span class="k">바퀴</span><span class="v num" id="vEp">0</span></div>
+      <div class="tile hl"><span class="k">틀린 점</span><span class="v num" id="vErr">20</span></div>
+    </div>
+    <p class="fx" style="margin:0" id="wNow"></p>
+
+    <figure>
+      <figcaption>학습 과정 <span class="lg">● 비만(+1) · ▲ 비만 아님(−1) · 테두리 = 지금 틀린 점 · 가상 데이터 20명</span></figcaption>
+      <div class="svgbox" id="pl6"></div>
+    </figure>
+    <p class="summary" id="log6">‘한 명씩 확인’을 눌러 학습을 시작하자.</p>
+
+    <div>
+      <h3>조정 과정 계산판 <span style="font-weight:400;color:var(--muted);font-size:13px">방금 확인한 사람의 계산이 그대로 나온다</span></h3>
+      <div class="calc" id="calc6"></div>
+      <p class="hint" style="margin-top:6px">처음 몇 명은 ‘한 명씩 확인’으로 천천히 보자. #1은 틀려서 고친 뒤 바로 맞게 된다. #2는 고쳐도 아직 틀린다.</p>
+    </div>
+
+    <div class="law">
+      <span class="t">왜 이런 공식일까?</span>
+      <ol>
+        <li><b>맞힘을 식으로 쓰기</b> · 정답 y와 가중합 z의 부호가 같으면 맞힌 것이다. 즉 <b>y·z &gt; 0</b>이면 맞고, <b>y·z ≤ 0</b>이면 틀린다.</li>
+        <li><b>고친 뒤의 가중합</b> · w1 + y·x1, w2 + y·x2, b + y를 넣으면<br><span class="num">z′ = (w1 + y·x1)·x1 + (w2 + y·x2)·x2 + (b + y) = z + y·(x1² + x2² + 1)</span></li>
+        <li><b>양변에 y를 곱하기</b> · y² = 1이므로 <span class="num">y·z′ = y·z + (x1² + x2² + 1)</span>이다. 괄호 안은 제곱의 합에 1을 더한 값이라 <b>항상 양수</b>다. 그래서 고칠 때마다 y·z가 반드시 커진다. 즉 그 점의 판정이 <b>정답 쪽으로 움직인다</b>.</li>
+        <li><b>왜 x를 곱할까?</b> · 값이 큰 입력은 판정에 더 큰 영향을 주었다. 그러니 그 입력의 가중치를 더 많이 고친다. 입력이 0이었다면 책임이 없으니 그 가중치는 바뀌지 않는다. 편향 b는 ‘항상 1인 입력’의 가중치로 보면 같은 규칙(b ← b + y·1)이다.</li>
+        <li><b>언젠가 끝날까?</b> · #2처럼 한 번에 다 고쳐지지 않을 때도 있다. 그래도 데이터가 직선 하나로 나뉘기만 하면 <b>정해진 횟수 안에 반드시</b> 학습이 끝난다는 사실이 수학적으로 증명되어 있다(퍼셉트론 수렴 정리).</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <p class="ct">선을 움직이는 두 손잡이 (31쪽)</p>
+      <p class="cs">구분선은 w1·x1 + w2·x2 + b = 0이다. <b>가중치 w1, w2는 선의 기울기</b>를 정하고, <b>편향 b는 선이 원점에서 얼마나 떨어져 있는지</b>(오프셋)를 정한다. 학습이란 이 세 값을 조금씩 고쳐서 ●와 ▲를 가르는 선을 찾는 과정이다.</p>
+    </div>
+
+    <div>
+      <h3>새로운 사람 판정하기 <span style="font-weight:400;color:var(--muted);font-size:13px">학습에 쓰지 않은 데이터</span></h3>
+      <div class="sliders">
+        <label class="sl-row"><span class="sl-k">몸무게</span><input type="range" id="nkg" min="40" max="140" step="1" value="75"><span class="num sl-v" id="nkgv">75kg</span></label>
+        <label class="sl-row"><span class="sl-k">키</span><input type="range" id="ncm" min="145" max="195" step="1" value="175"><span class="num sl-v" id="ncmv">175cm</span></label>
+      </div>
+      <p class="summary" style="margin-top:8px" id="newRes"></p>
+      <p class="hint" style="margin-top:4px">★로 그래프에 표시된다. 학습 전과 후의 판정을 비교해 보자. (실제 비만 판정은 BMI 등 더 복잡한 기준을 쓴다.)</p>
+    </div>
+
+    <div class="law">
+      <span class="t">한눈에 정리</span>
+      <ol>
+        <li><b>MCP 뉴로드</b>: 0/1 입력을 더하고(g), 합이 θ 이상인지 판정(f)한다. y = f(g(x))</li>
+        <li>θ = 2면 AND, θ = 1이면 OR, 억제성(×−1) 입력을 쓰면 NOT. 이걸 짜 맞추면 디지털 연산을 모두 할 수 있다.</li>
+        <li>XOR처럼 선 하나로 나눌 수 없는 규칙은 뉴로드를 <b>여러 개 연결</b>해야 한다.</li>
+        <li><b>퍼셉트론</b>: 어떤 값이든 입력받아 가중치를 곱해 더하고, 편향 b를 더해 0보다 크면 +1, 아니면 −1을 낸다.</li>
+        <li>퍼셉트론은 틀릴 때마다 w와 b를 고쳐서 <b>구분선을 스스로 찾는다</b>. 이것이 MCP에는 없던 ‘학습’이다.</li>
+        <li>단, 데이터가 직선 하나로 나뉠 때(<b>선형 분리 가능</b>)만 학습이 끝난다.</li>
+      </ol>
+    </div>
+
+    <p class="recall" id="recall">STEP 1에서 고른 내 예상: <b>아직 고르지 않음</b></p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">Q1</span>
+        <p>입력이 x1, x2, x3 세 개이고 θ = 2인 MCP 뉴로드는 어떤 규칙일까?</p>
+        <details><summary>답 보기</summary><div class="ans">세 입력 중 <b>2개 이상</b>이 1이면 1을 내보낸다. 즉 <b>다수결</b> 뉴로드다. (1,1,0)이면 합 2 ≥ 2라서 1이고, (1,0,0)이면 합 1 &lt; 2라서 0이다.</div></details>
+      </div>
+      <div class="q">
+        <span class="qn">Q2</span>
+        <p>입력이 n개일 때 AND와 OR을 만들려면 θ를 각각 얼마로 해야 할까?</p>
+        <details><summary>답 보기</summary><div class="ans">AND는 합이 n일 때만 켜져야 하므로 <b>θ = n</b>이다. OR은 하나만 1이어도 켜져야 하므로 <b>θ = 1</b>이다.</div></details>
+      </div>
+      <div class="q">
+        <span class="qn">Q3</span>
+        <p>구분선 w1·x1 + w2·x2 + b = 0을 x2에 대해 정리해 보자. 기울기와 y절편은 w1, w2, b로 어떻게 나타날까?</p>
+        <details><summary>답 보기</summary><div class="ans">x2 = −(w1/w2)·x1 − b/w2 (단, w2 ≠ 0). 기울기는 <b>−w1/w2</b>로 가중치끼리의 비율이 정하고, y절편은 <b>−b/w2</b>로 편향이 선을 위아래로 밀어 준다. 31쪽에서 말한 “가중치는 기울기, 편향은 오프셋”이 바로 이 뜻이다.</div></details>
+      </div>
+      <div class="q">
+        <span class="qn">Q4</span>
+        <p>STEP 5에서 XOR은 퍼셉트론으로도 만들 수 없었다. 그럼 STEP 6처럼 학습을 시키면 XOR을 배울 수 있을까?</p>
+        <details><summary>답 보기</summary><div class="ans">배울 수 없다. 퍼셉트론 하나는 결국 직선 하나를 긋는다. XOR의 네 점은 어떤 직선으로도 ●와 ▲로 나눌 수 없다(선형 분리 불가능). 그래서 틀린 점이 늘 남고 학습이 영원히 끝나지 않는다. 해결하려면 STEP 4처럼 뉴런을 <b>여러 층으로 쌓아야</b> 한다.</div></details>
+      </div>
+      <div class="q">
+        <span class="qn">Q5</span>
+        <p>MCP 뉴로드와 퍼셉트론의 가장 큰 차이를 한 문장으로 말해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">예시: “MCP 뉴로드는 사람이 정해 준 θ대로만 판단하지만, 퍼셉트론은 데이터를 보고 틀린 만큼 가중치와 편향을 고쳐 <b>스스로 기준을 찾는다</b>.”</div></details>
+      </div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 두 가지 값만 보고 ‘예/아니오’를 가르는 상황을 하나 찾아보자. 그 데이터는 직선 하나로 나뉠까? (예: 공부 시간과 수면 시간으로 시험 통과 여부 예측)</p>
+
+    <div class="nav"><button class="navbtn" data-go="5">← STEP 5</button></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function sgn(n){return n<0?'−'+Math.abs(n):''+n}
+
+  /* ---------- routing ---------- */
+  var current=1;
+  function render(){
+    var m=/^#s([1-6])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=6;i++){
+      $('s'+i).hidden=(i!==current);
+      $('st'+i).setAttribute('aria-current',i===current?'step':'false');
+    }
+    if(current===6) fillRecall();
+  }
+  function go(i){
+    i=Math.max(1,Math.min(6,i));
+    if(location.hash!=='#s'+i){location.hash='s'+i}else{render()}
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  /* ---------- step 1 ---------- */
+  var belief=null;
+  document.querySelectorAll('#belief .chip').forEach(function(b){
+    b.addEventListener('click',function(){
+      belief=b.getAttribute('data-v');
+      document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    });
+  });
+  function fillRecall(){
+    $('recall').innerHTML='STEP 1에서 고른 내 예상: <b>'+(belief||'아직 고르지 않음')+'</b> · 책의 결론: MCP 뉴로드를 짜 맞추면 <b>어떤 디지털 연산이든</b> 할 수 있다. 다만 θ를 스스로 찾지는 못했다. 그 일을 해낸 것이 <b>퍼셉트론</b>이다.';
+  }
+
+  /* ---------- neurode svg ---------- */
+  var uid=0;
+  function neurode(inputs,th){
+    uid++;
+    var cx=215,cy=95,r=62,ys=inputs.length===1?[95]:[62,128];
+    var sum=0; inputs.forEach(function(p){sum+=p.v*p.w});
+    var y=sum>=th?1:0;
+    var s='<svg viewBox="0 0 400 190" role="img" aria-label="입력의 합 '+sgn(sum)+', 임곗값 '+sgn(th)+', 출력 '+y+'">';
+    s+='<defs><marker id="mk'+uid+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah"/></marker></defs>';
+    inputs.forEach(function(p,i){
+      var yy=ys[i], dx=Math.sqrt(r*r-(yy-cy)*(yy-cy)), ex=cx-dx-4;
+      var on=p.v===1, neg=p.w<0;
+      s+='<rect class="nd-box '+(on?'on':'off')+(neg?' neg':'')+'" x="8" y="'+(yy-17)+'" width="78" height="34" rx="4"/>';
+      s+='<text class="t-lab num" x="47" y="'+(yy+5)+'" text-anchor="middle">'+p.n+' = '+p.v+'</text>';
+      s+='<line class="nd-w'+(on?' on':'')+(neg?' neg':'')+'" x1="88" y1="'+yy+'" x2="'+ex.toFixed(1)+'" y2="'+(yy+(cy-yy)*0.12).toFixed(1)+'" marker-end="url(#mk'+uid+')"/>';
+      s+='<text class="t-wt'+(neg?' neg':'')+'" x="'+((88+ex)/2).toFixed(0)+'" y="'+(yy-9)+'" text-anchor="middle">'+(neg?'×(−1)':'×1')+'</text>';
+    });
+    s+='<circle class="nd-neu" cx="'+cx+'" cy="'+cy+'" r="'+r+'"/>';
+    s+='<line class="nd-div" x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'"/>';
+    s+='<text class="t-gf" x="'+(cx-30)+'" y="'+(cy-20)+'" text-anchor="middle">g</text>';
+    s+='<text class="t-sm" x="'+(cx-30)+'" y="'+(cy+4)+'" text-anchor="middle">합</text>';
+    s+='<text class="t-big" x="'+(cx-30)+'" y="'+(cy+28)+'" text-anchor="middle">'+sgn(sum)+'</text>';
+    s+='<text class="t-gf" x="'+(cx+30)+'" y="'+(cy-20)+'" text-anchor="middle">f</text>';
+    s+='<text class="t-sm" x="'+(cx+30)+'" y="'+(cy+4)+'" text-anchor="middle">≥ '+sgn(th)+' ?</text>';
+    s+='<text class="'+(y?'t-pass':'t-fail')+'" x="'+(cx+30)+'" y="'+(cy+28)+'" text-anchor="middle">'+(y?'통과':'미달')+'</text>';
+    s+='<line class="nd-w'+(y?' on':'')+'" x1="'+(cx+r+2)+'" y1="'+cy+'" x2="334" y2="'+cy+'" marker-end="url(#mk'+uid+')"/>';
+    s+='<circle class="nd-lamp '+(y?'on':'off')+'" cx="362" cy="'+cy+'" r="22"/>';
+    s+='<text class="t-lampv '+(y?'on':'off')+'" x="362" y="'+(cy+5)+'" text-anchor="middle">'+y+'</text>';
+    s+='<text class="t-lab" x="362" y="'+(cy-32)+'" text-anchor="middle">y</text>';
+    s+='</svg>';
+    return s;
+  }
+  function seg(id,cb){
+    document.querySelectorAll('#'+id+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        document.querySelectorAll('#'+id+' button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+        cb(+b.getAttribute('data-th'));
+      });
+    });
+  }
+  function tog(id,label,get,set){
+    var b=$(id);
+    b.addEventListener('click',function(){set(1-get());});
+    return function(){var v=get();b.textContent=label+' = '+v;b.setAttribute('aria-pressed',v?'true':'false');};
+  }
+  var ROWS=[[0,0],[0,1],[1,0],[1,1]];
+
+  /* ---------- step 2 ---------- */
+  var s2={x1:0,x2:0,th:2};
+  var r2a=tog('a2x1','x1',function(){return s2.x1},function(v){s2.x1=v;draw2()});
+  var r2b=tog('a2x2','x2',function(){return s2.x2},function(v){s2.x2=v;draw2()});
+  seg('th2',function(t){s2.th=t;draw2()});
+  var GATES={0:['항상 1','θ = 0이면 합이 0이어도 0 ≥ 0이라서 언제나 켜진다. 입력이 소용없다.'],1:['OR','합이 1 이상이면 켜진다. 하나만 1이어도 1이다.'],2:['AND','합이 2 이상이면 켜진다. 둘 다 1이어야 1이다.'],3:['항상 0','합은 최대 2라서 θ = 3에 절대 닿지 못한다. 언제나 꺼진다.']};
+  function lever(x,y,on){return '<line class="cw" x1="'+x+'" y1="'+y+'" x2="'+(on?x+40:x+36)+'" y2="'+(on?y:y-14)+'"/>'}
+  function circuit(th,a,b){
+    var on=(a+b)>=th?1:0;
+    if(th===2){
+      return '<svg viewBox="0 0 380 150" role="img" aria-label="직렬 회로, 전구 '+(on?'켜짐':'꺼짐')+'">'+
+      '<line class="cw" x1="60" y1="35" x2="60" y2="66"/><line class="cw" x1="46" y1="66" x2="74" y2="66"/><line class="cw" x1="52" y1="74" x2="68" y2="74"/><line class="cw" x1="60" y1="74" x2="60" y2="105"/>'+
+      '<line class="cw" x1="60" y1="35" x2="110" y2="35"/><line class="cw" x1="150" y1="35" x2="190" y2="35"/><line class="cw" x1="230" y1="35" x2="300" y2="35"/>'+
+      '<line class="cw" x1="300" y1="35" x2="300" y2="57"/><line class="cw" x1="300" y1="83" x2="300" y2="105"/><line class="cw" x1="300" y1="105" x2="60" y2="105"/>'+
+      lever(110,35,a)+lever(190,35,b)+
+      '<circle class="cdot" cx="110" cy="35" r="3"/><circle class="cdot" cx="150" cy="35" r="3"/><circle class="cdot" cx="190" cy="35" r="3"/><circle class="cdot" cx="230" cy="35" r="3"/>'+
+      '<text class="t-sm" x="130" y="55" text-anchor="middle">x1</text><text class="t-sm" x="210" y="55" text-anchor="middle">x2</text>'+
+      '<circle class="cbulb '+(on?'on':'off')+'" cx="300" cy="70" r="13"/>'+
+      '<text class="t-lab" x="40" y="136">직렬: '+(on?'불 켜짐 (y = 1)':'불 꺼짐 (y = 0)')+'</text></svg>';
+    }
+    if(th===1){
+      return '<svg viewBox="0 0 380 165" role="img" aria-label="병렬 회로, 전구 '+(on?'켜짐':'꺼짐')+'">'+
+      '<line class="cw" x1="60" y1="35" x2="60" y2="74"/><line class="cw" x1="46" y1="74" x2="74" y2="74"/><line class="cw" x1="52" y1="82" x2="68" y2="82"/><line class="cw" x1="60" y1="82" x2="60" y2="120"/>'+
+      '<line class="cw" x1="60" y1="35" x2="150" y2="35"/><line class="cw" x1="190" y1="35" x2="300" y2="35"/>'+
+      '<line class="cw" x1="110" y1="35" x2="110" y2="78"/><line class="cw" x1="110" y1="78" x2="150" y2="78"/><line class="cw" x1="190" y1="78" x2="250" y2="78"/><line class="cw" x1="250" y1="78" x2="250" y2="35"/>'+
+      '<line class="cw" x1="300" y1="35" x2="300" y2="65"/><line class="cw" x1="300" y1="91" x2="300" y2="120"/><line class="cw" x1="300" y1="120" x2="60" y2="120"/>'+
+      lever(150,35,a)+lever(150,78,b)+
+      '<circle class="cdot" cx="150" cy="35" r="3"/><circle class="cdot" cx="190" cy="35" r="3"/><circle class="cdot" cx="150" cy="78" r="3"/><circle class="cdot" cx="190" cy="78" r="3"/>'+
+      '<text class="t-sm" x="170" y="54" text-anchor="middle">x1</text><text class="t-sm" x="170" y="97" text-anchor="middle">x2</text>'+
+      '<circle class="cbulb '+(on?'on':'off')+'" cx="300" cy="78" r="13"/>'+
+      '<text class="t-lab" x="40" y="151">병렬: '+(on?'불 켜짐 (y = 1)':'불 꺼짐 (y = 0)')+'</text></svg>';
+    }
+    return '<svg viewBox="0 0 380 70" role="img" aria-label="회로 설명"><text class="t-lab" x="20" y="30">θ = '+th+'은 스위치와 상관없이 '+(th===0?'항상 켜진 전구':'항상 꺼진 전구')+'와 같다.</text><text class="t-sm" x="20" y="52">θ를 1 또는 2로 바꾸면 회로 그림이 나온다.</text></svg>';
+  }
+  function draw2(){
+    r2a();r2b();
+    $('nd2').innerHTML=neurode([{n:'x1',v:s2.x1,w:1},{n:'x2',v:s2.x2,w:1}],s2.th);
+    $('th2v').textContent=s2.th;
+    var g=GATES[s2.th]; $('gate2').textContent=g[0]; $('gate2txt').textContent=g[1];
+    $('tt2').innerHTML=ROWS.map(function(r){
+      var sm=r[0]+r[1], y=sm>=s2.th?1:0, cur=(r[0]===s2.x1&&r[1]===s2.x2);
+      return '<tr'+(cur?' class="cur"':'')+'><td class="num">'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="num">'+sm+'</td><td class="num"><b>'+y+'</b></td></tr>';
+    }).join('');
+    $('circ2').innerHTML=circuit(s2.th,s2.x1,s2.x2);
+  }
+
+  /* ---------- step 3 ---------- */
+  var s3={x1:0,x2:0,inh:1,th:1,nx:0};
+  var r3a=tog('a3x1','x1',function(){return s3.x1},function(v){s3.x1=v;draw3()});
+  var r3b=tog('a3x2','x2',function(){return s3.x2},function(v){s3.x2=v;draw3()});
+  $('a3inh').addEventListener('click',function(){s3.inh=1-s3.inh;draw3()});
+  seg('th3',function(t){s3.th=t;draw3()});
+  var r3n=tog('a3n','x',function(){return s3.nx},function(v){s3.nx=v;drawNot()});
+  function draw3(){
+    r3a();r3b();
+    var w2=s3.inh?-1:1, b=$('a3inh');
+    b.textContent='x2 억제성 (×−1) '+(s3.inh?'켜짐':'꺼짐'); b.setAttribute('aria-pressed',s3.inh?'true':'false');
+    $('nd3').innerHTML=neurode([{n:'x1',v:s3.x1,w:1},{n:'x2',v:s3.x2,w:w2}],s3.th);
+    var outs=[];
+    $('tt3').innerHTML=ROWS.map(function(r){
+      var sm=r[0]+w2*r[1], y=sm>=s3.th?1:0, cur=(r[0]===s3.x1&&r[1]===s3.x2); outs.push(y);
+      var veto=s3.inh&&r[1]===1;
+      return '<tr'+(cur?' class="cur"':'')+'><td class="num">'+r[0]+'</td><td class="num'+(veto?' veto':'')+'">'+r[1]+'</td><td class="num">'+sgn(sm)+'</td><td class="num"><b>'+y+'</b></td></tr>';
+    }).join('');
+    var key=outs.join(''), msg;
+    if(s3.inh&&s3.th===1) msg='x2가 1이면 x1과 상관없이 <b>항상 0</b>이다. 거부권처럼 작동한다. 결과적으로 “x1 그리고 NOT x2”가 된다.';
+    else if(s3.inh&&s3.th===2) msg='합이 최대 1이라서 θ = 2에 닿지 못한다. 언제나 0이다.';
+    else if(s3.inh&&s3.th===0) msg='θ = 0이면 x1 = 0, x2 = 1일 때만 합이 −1이 되어 꺼진다. θ = 1로 바꿔서 거부권이 어떻게 작동하는지 보자.';
+    else msg='억제성을 끄면 STEP 2의 보통 뉴로드와 같아진다. ('+(key==='0111'?'OR':key==='0001'?'AND':key==='1111'?'항상 1':'항상 0')+')';
+    $('sum3').innerHTML=msg;
+  }
+  function drawNot(){
+    r3n();
+    $('ndNot').innerHTML=neurode([{n:'x',v:s3.nx,w:-1}],0);
+    $('ttN').innerHTML=[0,1].map(function(x){
+      var cur=x===s3.nx;
+      return '<tr'+(cur?' class="cur"':'')+'><td class="num">'+x+'</td><td class="num">'+sgn(-x)+'</td><td>'+(-x>=0?'예':'아니오')+'</td><td class="num"><b>'+(x?0:1)+'</b></td></tr>';
+    }).join('');
+  }
+
+  /* ---------- step 4 ---------- */
+  var s4={th:1,i1:0,i2:0,x1:0,x2:0}, tried={};
+  seg('th4',function(t){s4.th=t;draw4()});
+  $('a4i1').addEventListener('click',function(){s4.i1=1-s4.i1;draw4()});
+  $('a4i2').addEventListener('click',function(){s4.i2=1-s4.i2;draw4()});
+  function draw4(){
+    var w1=s4.i1?-1:1,w2=s4.i2?-1:1;
+    [['a4i1','x1',s4.i1],['a4i2','x2',s4.i2]].forEach(function(a){var b=$(a[0]);b.textContent=a[1]+' 억제성 '+(a[2]?'켜짐':'꺼짐');b.setAttribute('aria-pressed',a[2]?'true':'false')});
+    var bad=0;
+    $('tt4').innerHTML=ROWS.map(function(r){
+      var sm=w1*r[0]+w2*r[1], y=sm>=s4.th?1:0, goal=r[0]^r[1], ok=y===goal; if(!ok) bad++;
+      return '<tr><td class="num">'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="num">'+sgn(sm)+'</td><td class="num"><b>'+y+'</b></td><td class="num">'+goal+'</td><td class="'+(ok?'ok':'bad')+'">'+(ok?'○':'✕')+'</td></tr>';
+    }).join('');
+    tried[s4.th+'|'+s4.i1+'|'+s4.i2]=1;
+    var n=Object.keys(tried).length;
+    $('sum4').innerHTML=(bad?'불일치 <b>'+bad+'칸</b> · 아직 XOR이 아니다.':'XOR 완성!')+' &nbsp;<span style="font-weight:400;color:var(--muted)">시도한 조합 <span class="num">'+n+'</span> / 20</span>'+(n>=20?'<br><b>20가지를 모두 해 봤지만 하나도 성공하지 못했다.</b> 뉴로드 하나로는 XOR을 만들 수 없다.':'');
+  }
+  tog('a4x1','x1',function(){return s4.x1},function(v){s4.x1=v;drawNet()});
+  tog('a4x2','x2',function(){return s4.x2},function(v){s4.x2=v;drawNet()});
+  function drawNet(){
+    var a=s4.x1,b=s4.x2;
+    [['a4x1','x1',a],['a4x2','x2',b]].forEach(function(t){var e=$(t[0]);e.textContent=t[1]+' = '+t[2];e.setAttribute('aria-pressed',t[2]?'true':'false')});
+    var h1=(a+b)>=1?1:0, h2=(a+b)>=2?1:0, sm=h1-h2, y=sm>=1?1:0;
+    uid++; var mk='mk'+uid;
+    function box(x,yy,lab,v){return '<rect class="nd-box '+(v?'on':'off')+'" x="'+x+'" y="'+(yy-17)+'" width="66" height="34" rx="4"/><text class="t-lab num" x="'+(x+33)+'" y="'+(yy+5)+'" text-anchor="middle">'+lab+' = '+v+'</text>'}
+    function wire(x1,y1,x2,y2,on,neg){return '<line class="nd-w'+(on?' on':'')+(neg?' neg':'')+'" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" marker-end="url(#'+mk+')"/>'}
+    function node(cx,cy,t1,t2,v){return '<circle class="nd-neu" cx="'+cx+'" cy="'+cy+'" r="40"/><text class="t-lab" x="'+cx+'" y="'+(cy-8)+'" text-anchor="middle" style="font-weight:700">'+t1+'</text><text class="t-sm" x="'+cx+'" y="'+(cy+10)+'" text-anchor="middle">'+t2+'</text><text class="'+(v?'t-pass':'t-fail')+'" x="'+cx+'" y="'+(cy+27)+'" text-anchor="middle">출력 '+v+'</text>'}
+    var s='<svg viewBox="0 0 480 240" role="img" aria-label="OR 뉴로드와 AND 뉴로드를 거쳐 XOR을 만드는 3개 뉴로드 연결, 출력 '+y+'">';
+    s+='<defs><marker id="'+mk+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah"/></marker></defs>';
+    s+=box(6,70,'x1',a)+box(6,170,'x2',b);
+    s+=wire(74,70,178,62,a)+wire(74,70,182,158,a)+wire(74,170,182,82,b)+wire(74,170,178,178,b);
+    s+=node(220,62,'OR','θ = 1',h1)+node(220,178,'AND','θ = 2',h2);
+    s+=wire(260,70,326,108,h1)+'<text class="t-wt" x="300" y="78" text-anchor="middle">×1</text>';
+    s+=wire(260,170,326,132,h2,true)+'<text class="t-wt neg" x="302" y="176" text-anchor="middle">×(−1)</text>';
+    s+=node(366,120,'XOR','합 '+sgn(sm)+' ≥ 1 ?',y);
+    s+=wire(406,120,432,120,y);
+    s+='<circle class="nd-lamp '+(y?'on':'off')+'" cx="455" cy="120" r="18"/><text class="t-lampv '+(y?'on':'off')+'" x="455" y="125" text-anchor="middle">'+y+'</text>';
+    s+='</svg>';
+    $('net').innerHTML=s;
+    var txt;
+    if(a===0&&b===0) txt='둘 다 0 → OR도 0, AND도 0 → 합 0 → <b>y = 0</b>';
+    else if(a&&b) txt='둘 다 1 → OR은 1이지만 AND도 1이라 억제(−1)가 걸림 → 합 0 → <b>y = 0</b>';
+    else txt='하나만 1 → OR은 1, AND는 0 → 합 1 → <b>y = 1</b>';
+    $('sumNet').innerHTML=txt;
+  }
+
+  /* ---------- shared: number format, plot ---------- */
+  function fm(v){v=Math.round(v*100)/100; if(Object.is(v,-0)) v=0; return (v<0?'−':'')+Math.abs(v);}
+  function plot(o){
+    var W=o.W,H=o.H,L=o.L,R=o.R,T=o.T,MB=o.MB;
+    function px(x){return L+(x-o.xmin)/(o.xmax-o.xmin)*(W-L-R)}
+    function py(y){return H-MB-(y-o.ymin)/(o.ymax-o.ymin)*(H-T-MB)}
+    function f(p){return o.A*p[0]+o.B*p[1]+o.C}
+    var rect=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]];
+    var poly=[];
+    for(var i=0;i<4;i++){
+      var a=rect[i],b=rect[(i+1)%4],fa=f(a),fb=f(b);
+      if(fa>0) poly.push(a);
+      if((fa>0)!==(fb>0)&&fa!==fb){var t=fa/(fa-fb);poly.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}
+    }
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+o.aria+'">';
+    s+='<rect class="pl-neg" x="'+L+'" y="'+T+'" width="'+(W-L-R)+'" height="'+(H-T-MB)+'"/>';
+    if(poly.length>2) s+='<polygon class="pl-pos" points="'+poly.map(function(p){return px(p[0]).toFixed(1)+','+py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    o.xt.forEach(function(v){s+='<line class="pl-grid" x1="'+px(v)+'" y1="'+T+'" x2="'+px(v)+'" y2="'+(H-MB)+'"/><text class="t-tick" x="'+px(v)+'" y="'+(H-MB+15)+'" text-anchor="middle">'+v+'</text>'});
+    o.yt.forEach(function(v){s+='<line class="pl-grid" x1="'+L+'" y1="'+py(v)+'" x2="'+(W-R)+'" y2="'+py(v)+'"/><text class="t-tick" x="'+(L-6)+'" y="'+(py(v)+4)+'" text-anchor="end">'+v+'</text>'});
+    s+='<rect class="pl-ax" x="'+L+'" y="'+T+'" width="'+(W-L-R)+'" height="'+(H-T-MB)+'"/>';
+    if(o.A!==0||o.B!==0){
+      var pts=[];
+      for(var j=0;j<4;j++){
+        var p1=rect[j],p2=rect[(j+1)%4],f1=f(p1),f2=f(p2);
+        if(f1===0) pts.push(p1);
+        else if(f1*f2<0){var u=f1/(f1-f2);pts.push([p1[0]+u*(p2[0]-p1[0]),p1[1]+u*(p2[1]-p1[1])])}
+      }
+      if(pts.length>=2) s+='<line class="pl-line" x1="'+px(pts[0][0]).toFixed(1)+'" y1="'+py(pts[0][1]).toFixed(1)+'" x2="'+px(pts[1][0]).toFixed(1)+'" y2="'+py(pts[1][1]).toFixed(1)+'"/>';
+    } else if(o.empty){
+      s+='<text class="t-sm" x="'+((L+W-R)/2)+'" y="'+(T+18)+'" text-anchor="middle">'+o.empty+'</text>';
+    }
+    o.pts.forEach(function(p){
+      var X=px(p.x),Y=py(p.y);
+      if(p.star){
+        var st='';for(var k=0;k<10;k++){var rr=k%2?4.5:11,an=-Math.PI/2+k*Math.PI/5;st+=(X+rr*Math.cos(an)).toFixed(1)+','+(Y+rr*Math.sin(an)).toFixed(1)+' '}
+        s+='<polygon class="pt-star" points="'+st+'"/>';return;
+      }
+      if(p.cur) s+='<circle class="pt-cur" cx="'+X+'" cy="'+Y+'" r="14"/>';
+      if(p.bad) s+='<circle class="pt-bad" cx="'+X+'" cy="'+Y+'" r="10"/>';
+      if(p.t>0) s+='<circle class="pt-p" cx="'+X+'" cy="'+Y+'" r="'+(o.r||6)+'"/>';
+      else {var q=(o.r||6)+1;s+='<polygon class="pt-n" points="'+X+','+(Y-q)+' '+(X+q)+','+(Y+q*0.8)+' '+(X-q)+','+(Y+q*0.8)+'"/>'}
+    });
+    s+='<text class="t-sm" x="'+(W-R)+'" y="'+(H-6)+'" text-anchor="end">'+o.xlab+'</text>';
+    s+='<text class="t-sm" x="6" y="'+(T-8)+'">'+o.ylab+'</text>';
+    return s+'</svg>';
+  }
+
+  /* ---------- step 5: perceptron ---------- */
+  var s5={g:'AND',w1:0,w2:0,b:0,x1:0,x2:0};
+  function tgt(g,a,b){return g==='AND'?(a&&b?1:-1):g==='OR'?(a||b?1:-1):((a^b)?1:-1)}
+  function perceptronSVG(x1,x2,w1,w2,b){
+    uid++; var mk='mk'+uid, cx=250,cy=100,r=62;
+    var z=w1*x1+w2*x2+b, y=z>0?1:-1;
+    var rows=[['b = '+fm(b),1,false],['w1·x1 = '+fm(w1)+'×'+x1,x1,false],['w2·x2 = '+fm(w2)+'×'+x2,x2,false]], ys=[42,100,158];
+    var s='<svg viewBox="0 0 420 200" role="img" aria-label="퍼셉트론 가중합 '+fm(z)+', 출력 '+y+'"><defs><marker id="'+mk+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah"/></marker></defs>';
+    rows.forEach(function(rw,i){
+      var yy=ys[i],dx=Math.sqrt(r*r-(yy-cy)*(yy-cy)),ex=cx-dx-4,on=i===0?b!==0:rw[1]===1;
+      s+='<rect class="nd-box '+(on?'on':'off')+'" x="4" y="'+(yy-16)+'" width="128" height="32" rx="4"/>';
+      s+='<text class="t-lab num" x="68" y="'+(yy+5)+'" text-anchor="middle" style="font-size:12.5px">'+rw[0]+'</text>';
+      s+='<line class="nd-w'+(on?' on':'')+'" x1="134" y1="'+yy+'" x2="'+ex.toFixed(1)+'" y2="'+(yy+(cy-yy)*0.15).toFixed(1)+'" marker-end="url(#'+mk+')"/>';
+    });
+    s+='<circle class="nd-neu" cx="'+cx+'" cy="'+cy+'" r="'+r+'"/><line class="nd-div" x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'"/>';
+    s+='<text class="t-gf" x="'+(cx-30)+'" y="'+(cy-20)+'" text-anchor="middle">g</text><text class="t-sm" x="'+(cx-30)+'" y="'+(cy+4)+'" text-anchor="middle">가중합</text><text class="t-big" x="'+(cx-30)+'" y="'+(cy+28)+'" text-anchor="middle" style="font-size:15px">'+fm(z)+'</text>';
+    s+='<text class="t-gf" x="'+(cx+30)+'" y="'+(cy-20)+'" text-anchor="middle">f</text><text class="t-sm" x="'+(cx+30)+'" y="'+(cy+4)+'" text-anchor="middle">&gt; 0 ?</text><text class="'+(y>0?'t-pass':'t-fail')+'" x="'+(cx+30)+'" y="'+(cy+28)+'" text-anchor="middle">'+(y>0?'예':'아니오')+'</text>';
+    s+='<line class="nd-w'+(y>0?' on':'')+'" x1="'+(cx+r+2)+'" y1="'+cy+'" x2="356" y2="'+cy+'" marker-end="url(#'+mk+')"/>';
+    s+='<circle class="nd-lamp '+(y>0?'on':'off')+'" cx="385" cy="'+cy+'" r="24"/><text class="t-lampv '+(y>0?'on':'off')+'" x="385" y="'+(cy+5)+'" text-anchor="middle">'+(y>0?'+1':'−1')+'</text><text class="t-lab" x="385" y="'+(cy-34)+'" text-anchor="middle">y</text>';
+    return s+'</svg>';
+  }
+  var r5a=tog('a5x1','x1',function(){return s5.x1},function(v){s5.x1=v;draw5()});
+  var r5b=tog('a5x2','x2',function(){return s5.x2},function(v){s5.x2=v;draw5()});
+  document.querySelectorAll('#tg5 button').forEach(function(bt){
+    bt.addEventListener('click',function(){
+      document.querySelectorAll('#tg5 button').forEach(function(x){x.setAttribute('aria-pressed',x===bt?'true':'false')});
+      s5.g=bt.getAttribute('data-g'); s5.preset=false; draw5();
+    });
+  });
+  [['w1s','w1'],['w2s','w2'],['bs','b']].forEach(function(a){$(a[0]).addEventListener('input',function(){s5[a[1]]=+this.value;s5.preset=false;draw5()})});
+  var PRE={AND:[1,1,-1.5],OR:[1,1,-0.5]};
+  $('p5preset').addEventListener('click',function(){
+    var p=PRE[s5.g]; s5.preset=true;
+    if(p){s5.w1=p[0];s5.w2=p[1];s5.b=p[2];$('w1s').value=p[0];$('w2s').value=p[1];$('bs').value=p[2];}
+    draw5();
+  });
+  function draw5(){
+    r5a();r5b();
+    $('w1v').textContent=fm(s5.w1);$('w2v').textContent=fm(s5.w2);$('bv').textContent=fm(s5.b);
+    $('pc5').innerHTML=perceptronSVG(s5.x1,s5.x2,s5.w1,s5.w2,s5.b);
+    var bad=0,pts=[];
+    $('tt5').innerHTML=ROWS.map(function(r){
+      var z=s5.w1*r[0]+s5.w2*r[1]+s5.b,y=z>0?1:-1,t=tgt(s5.g,r[0],r[1]),ok=y===t; if(!ok) bad++;
+      pts.push({x:r[0],y:r[1],t:t,bad:!ok});
+      var cur=r[0]===s5.x1&&r[1]===s5.x2;
+      return '<tr'+(cur?' class="cur"':'')+'><td class="num">'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="num">'+fm(z)+'</td><td class="num"><b>'+(y>0?'+1':'−1')+'</b></td><td class="num">'+(t>0?'+1':'−1')+'</td><td class="'+(ok?'ok':'bad')+'">'+(ok?'○':'✕')+'</td></tr>';
+    }).join('');
+    $('pl5').innerHTML=plot({W:400,H:290,L:44,R:16,T:26,MB:38,xmin:-0.5,xmax:1.5,ymin:-0.5,ymax:1.5,xt:[0,1],yt:[0,1],A:s5.w1,B:s5.w2,C:s5.b,pts:pts,r:8,xlab:'x1',ylab:'x2',aria:'네 입력점과 퍼셉트론 구분선',empty:'w1 = w2 = 0이라 아직 선이 없다'});
+    var msg;
+    if(s5.g==='XOR') msg='불일치 <b>'+bad+'칸</b>. XOR의 ●는 대각선 반대편 두 모서리에 있다. 그래서 어떤 직선으로도 ▲와 떼어 놓을 수 없다(<b>선형 분리 불가능</b>). STEP 4에서 뉴로드 하나로 안 됐던 것과 같은 이유다.'+(s5.preset?' 추천값도 없다!':'');
+    else if(!bad) msg='4칸 모두 일치! 직선 하나로 ●와 ▲가 갈렸다. 지금 값: w1 = '+fm(s5.w1)+', w2 = '+fm(s5.w2)+', b = '+fm(s5.b);
+    else msg='불일치 <b>'+bad+'칸</b>. 슬라이더를 움직여 붉은 영역이 ●만 덮도록 해 보자. 막히면 ‘추천값 넣기’를 누르자.';
+    $('sum5').innerHTML=msg;
+  }
+
+  /* ---------- step 6: learning ---------- */
+  var D=[[96,170,1],[67,158,-1],[102,162,1],[46,152,-1],[83,157,1],[58,162,-1],[100,167,1],[88,184,-1],[89,159,1],[88,182,-1],[95,161,1],[48,156,-1],[111,172,1],[85,173,-1],[119,178,1],[78,174,-1],[117,176,1],[71,178,-1],[105,170,1],[63,164,-1]];
+  var s6, timer=null;
+  function reset6(){s6={w1:0,w2:0,b:0,idx:0,seen:0,up:0,ep:0,cur:-1,last:null};stopAuto6();$('log6').innerHTML='‘한 명씩 확인’을 눌러 학습을 시작하자.';draw6();}
+  function pred6(kg,cm){return s6.w1*kg/100+s6.w2*cm/100+s6.b>0?1:-1}
+  function errs6(){return D.filter(function(d){return pred6(d[0],d[1])!==d[2]}).length}
+  function step6(){
+    if(!errs6()) return false;
+    var d=D[s6.idx],a=d[0]/100,c=d[1]/100,y=d[2],p=pred6(d[0],d[1]),lab=function(v){return v>0?'+1(비만)':'−1(비만 아님)'};
+    var bw={w1:s6.w1,w2:s6.w2,b:s6.b},z0=s6.w1*a+s6.w2*c+s6.b;
+    var head='#'+(s6.idx+1)+' · '+d[0]+'kg, '+d[1]+'cm · 정답 '+lab(y)+', 판정 '+lab(p);
+    if(p!==y){s6.w1+=y*a;s6.w2+=y*c;s6.b+=y;s6.up++;$('log6').innerHTML=head+' → <b>틀림!</b> w1, w2, b를 '+(y>0?'더했다':'뺐다')+'.';}
+    else $('log6').innerHTML=head+' → 맞음, 그대로 둔다.';
+    s6.last={n:s6.idx+1,kg:d[0],cm:d[1],a:a,c:c,y:y,p:p,bw:bw,z0:z0,aw:{w1:s6.w1,w2:s6.w2,b:s6.b},z1:s6.w1*a+s6.w2*c+s6.b};
+    s6.cur=s6.idx; s6.seen++; s6.idx++; if(s6.idx===D.length){s6.idx=0;s6.ep++}
+    if(!errs6()){$('log6').innerHTML+='<br><b>학습 완료!</b> '+s6.seen+'명을 확인하면서 '+s6.up+'번 고쳐서 20명을 모두 올바르게 나누는 선을 찾았다.';stopAuto6();}
+    return true;
+  }
+  function stopAuto6(){if(timer){clearInterval(timer);timer=null}$('lAuto').textContent='▶ 끝까지 자동';}
+  $('l1').addEventListener('click',function(){stopAuto6();step6();draw6()});
+  $('lEp').addEventListener('click',function(){stopAuto6();var n=0;do{if(!step6())break;n++}while(s6.idx!==0&&n<D.length);draw6()});
+  $('lAuto').addEventListener('click',function(){
+    if(timer){stopAuto6();return}
+    if(!errs6()) return;
+    $('lAuto').textContent='⏸ 멈추기';
+    var guard=0;timer=setInterval(function(){if(!step6()||++guard>2000){stopAuto6()}draw6()},110);
+  });
+  $('lReset').addEventListener('click',reset6);
+  ['nkg','ncm'].forEach(function(id){$(id).addEventListener('input',draw6)});
+
+  function pv(v){return v<0?'('+fm(v)+')':fm(v)}
+  function sgn1(y){return y>0?'(+1)':'(−1)'}
+  function pm(y){return y>0?'+1':'−1'}
+  function calcHTML(L){
+    if(!L) return '<p>‘한 명씩 확인’을 누르면 여기에 계산 과정이 나온다.</p>';
+    var A=L.a.toFixed(2),C=L.c.toFixed(2),ok0=L.p===L.y,k=L.a*L.a+L.c*L.c+1;
+    function expr(w){return pv(w.w1)+'×'+A+' + '+pv(w.w2)+'×'+C+' + '+pv(w.b)}
+    var h='<p class="c-head">#'+L.n+' · '+L.kg+'kg, '+L.cm+'cm → x1 = '+A+', x2 = '+C+' · 정답 y = '+pm(L.y)+'</p>';
+    h+='<p><span class="c-step">①</span>지금 값으로 가중합 계산</p>';
+    h+='<p class="c-eq">'+expr(L.bw)+' = <b>'+fm(L.z0)+'</b></p>';
+    h+='<p class="c-eq">'+fm(L.z0)+(L.z0>0?' &gt; 0':' ≤ 0')+' → 판정 '+pm(L.p)+' · '+(ok0?'<span class="c-ok">맞음</span>':'<span class="c-bad">틀림</span>')+'</p>';
+    if(ok0){h+='<p><span class="c-step">②</span>맞혔으니 w1, w2, b를 그대로 둔다.</p>';return h;}
+    h+='<p><span class="c-step">②</span>고치기 · 정답이 '+pm(L.y)+'이라 x를 '+(L.y>0?'<b>더한다</b>':'<b>뺀다</b>')+'</p>';
+    h+='<p class="c-eq">w1 = '+pv(L.bw.w1)+' + '+sgn1(L.y)+'×'+A+' = <b>'+fm(L.aw.w1)+'</b></p>';
+    h+='<p class="c-eq">w2 = '+pv(L.bw.w2)+' + '+sgn1(L.y)+'×'+C+' = <b>'+fm(L.aw.w2)+'</b></p>';
+    h+='<p class="c-eq">b &nbsp;= '+pv(L.bw.b)+' + '+sgn1(L.y)+' = <b>'+fm(L.aw.b)+'</b></p>';
+    var ok1=(L.z1>0?1:-1)===L.y;
+    h+='<p><span class="c-step">③</span>같은 사람을 다시 계산</p>';
+    h+='<p class="c-eq">'+expr(L.aw)+' = <b>'+fm(L.z1)+'</b></p>';
+    h+='<p class="c-eq">→ 판정 '+pm(L.z1>0?1:-1)+' · '+(ok1?'<span class="c-ok">이제 맞음</span>':'<span class="c-bad">아직 틀림 (그래도 정답 쪽으로 다가감)</span>')+'</p>';
+    h+='<p class="c-note">가중합 변화: '+fm(L.z0)+' → '+fm(L.z1)+'. 정답 쪽으로 x1² + x2² + 1 = '+(L.a*L.a).toFixed(2)+' + '+(L.c*L.c).toFixed(2)+' + 1 = <b>'+fm(k)+'</b>만큼 움직였다.</p>';
+    return h;
+  }
+  function draw6(){
+    var e=errs6(),done=!e;
+    $('vSeen').textContent=s6.seen;$('vUp').textContent=s6.up;$('vEp').textContent=s6.ep;$('vErr').textContent=e;
+    ['l1','lEp','lAuto'].forEach(function(id){$(id).disabled=done});
+    $('wNow').innerHTML='<span class="k">지금 값</span>w1 = '+fm(s6.w1)+' &nbsp;·&nbsp; w2 = '+fm(s6.w2)+' &nbsp;·&nbsp; b = '+fm(s6.b);
+    $('calc6').innerHTML=calcHTML(s6.last);
+    var kg=+$('nkg').value,cm=+$('ncm').value;
+    $('nkgv').textContent=kg+'kg';$('ncmv').textContent=cm+'cm';
+    var pts=D.map(function(d,i){return {x:d[0],y:d[1],t:d[2],bad:pred6(d[0],d[1])!==d[2],cur:i===s6.cur}});
+    pts.push({x:kg,y:cm,star:true});
+    $('pl6').innerHTML=plot({W:400,H:300,L:46,R:14,T:28,MB:38,xmin:40,xmax:140,ymin:145,ymax:195,xt:[40,60,80,100,120,140],yt:[150,160,170,180,190],A:s6.w1/100,B:s6.w2/100,C:s6.b,pts:pts,xlab:'몸무게(kg)',ylab:'키(cm)',aria:'몸무게와 키 데이터와 퍼셉트론 구분선',empty:'w1 = w2 = b = 0 → 모두 −1로 판정, 선 없음'});
+    var z=s6.w1*kg/100+s6.w2*cm/100+s6.b,p=z>0;
+    $('newRes').innerHTML='★ '+kg+'kg, '+cm+'cm → 가중합 '+fm(z)+' → <b>'+(p?'비만(+1)':'비만 아님(−1)')+'</b>'+(done?'':' <span style="font-weight:400;color:var(--muted)">(아직 학습 중이라 믿기 어렵다)</span>');
+  }
+
+  draw2();draw3();drawNot();draw4();drawNet();draw5();reset6();
+  render();
+})();
+</script>
+</body>
+</html>
