@@ -28,7 +28,9 @@
   <iframe id="vFrame" title="프로그램"></iframe>
 </div>
 
-<script src="data/books.js"></script>
-<script src="app.js"></script>
+<!-- 주소 끝에 시간을 붙여서, 수정 후 푸시하면 새로고침만으로 바로 반영되게 한다(브라우저·Pages 캐시 우회) -->
+<script>
+(function(){var v=Date.now();['data/books.js','app.js'].forEach(function(s){document.write('<script src="'+s+'?v='+v+'"><\/script>');});})();
+</script>
 </body>
 </html>
