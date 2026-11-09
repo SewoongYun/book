@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>퍼셉트론 훈련 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2E7D5B; --green-soft:#DDF0E6;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+  --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+  --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+  --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.top{margin-bottom:12px}
+.book{font-size:13px;color:var(--muted);letter-spacing:.02em;margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4.4vw,34px);line-height:1.2;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:640px){.stepper{grid-template-columns:repeat(5,minmax(0,1fr))}.stepper .sl{font-size:12px}.stepper .sn{display:none}.stepper button{padding:7px 8px;gap:6px}}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:26px 22px;padding-inline:clamp(18px,4vw,38px);display:flex;flex-direction:column;gap:20px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3.6vw,28px);line-height:1.3;margin:4px 0 0}
+.lead{margin:0;max-width:64ch}
+h3{font-size:15px;font-weight:700;margin:0 0 6px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:25px;line-height:1.15;margin:0;transform:rotate(-2deg);transform-origin:left center}
+.scene{background:var(--paper);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scene p{margin:0}
+.hint{font-size:13.5px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14.5px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figcaption{font-size:14px;font-weight:700}
+figcaption .lg{font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+.svgbox{border:1px solid var(--rule);border-radius:4px;background:var(--sheet);overflow:hidden}
+.svgbox svg,.svgbox canvas{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14.5px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.ghost{border-color:var(--rule);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--sheet);padding:8px 13px;cursor:pointer;font-weight:500;font-size:14.5px;border-left:1px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.sliders{display:grid;gap:6px;max-width:560px;width:100%}
+.sl-row{display:grid;grid-template-columns:5.5em 1fr 4.4em;align-items:center;gap:10px}
+.sl-k{font-weight:600;font-size:14.5px}
+.sl-v{text-align:right;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.readout{background:var(--paper);border-radius:4px;padding:12px 14px;display:grid;gap:4px;font-size:14.5px}
+.readout p{margin:0}
+.eq{font-family:var(--f-num);font-size:15px;overflow-wrap:anywhere}
+.eq b{color:var(--red)}
+.summary{margin:0;font-weight:500}
+.summary b{color:var(--red)}
+
+/* table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--rule)}
+thead th{font-size:12.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+.mt{max-width:420px}
+.mt th,.mt td{font-family:var(--f-num);font-size:17px;padding:0;border:1px solid var(--rule)}
+.mt thead th{color:var(--ink);background:var(--paper);height:44px;font-size:15px}
+.mt tbody th{background:var(--paper);width:52px}
+.mt td button{width:100%;height:46px;border:0;background:var(--sheet);cursor:pointer;font-family:var(--f-num);font-size:17px;font-weight:600}
+.mt td button:hover{background:var(--paper)}
+.mt td button.neg{color:var(--red)}
+.mt td button.sel{background:var(--amber-soft);outline:2px solid var(--amber);outline-offset:-2px}
+.mt td button.pair{background:var(--slate-soft)}
+.exp{border-collapse:collapse;font-size:13.5px}
+.exp th,.exp td{border:1px solid var(--rule);padding:6px 6px;font-family:var(--f-num)}
+.exp th{background:var(--paper);font-weight:600}
+.exp td.z{color:var(--muted);opacity:.55}
+.exp td.r{background:var(--green-soft)} .exp td.i{background:var(--red-soft)} .exp td.j{background:var(--blue-soft)} .exp td.k{background:var(--amber-soft)}
+.qin{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:460px}
+.qin label{display:flex;align-items:center;gap:4px;font-family:var(--f-num);font-size:14px}
+.qin input{width:100%;min-width:0;font-family:var(--f-num);font-size:16px;padding:6px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+.qin input.err{border-color:var(--red)}
+.qrow{display:flex;flex-direction:column;gap:4px}
+.qrow .qh{font-weight:700;font-size:14.5px}
+.err-msg{font-size:13px;color:var(--red);margin:0;min-height:1.2em}
+.cmp{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:4px;overflow:hidden;font-family:var(--f-num)}
+.cmp div{padding:8px 6px;text-align:center;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule)}
+.cmp div.h{background:var(--paper);font-size:12.5px;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.cmp div.lab{border-left:0;text-align:left;font-family:var(--f-body);font-weight:700;font-size:13.5px;background:var(--paper)}
+.cmp div.diff{background:var(--red-soft);color:var(--red);font-weight:700}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.card{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.card p{margin:0}
+.card .ct{font-weight:700}
+.card .cs{font-size:14.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.law .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.law p{margin:0}
+.law ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 14px}
+.recall b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:4px 10px;padding:12px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:14.5px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:13.5px;width:max-content}
+details[open] summary{margin-bottom:4px}
+.ans{background:var(--paper);padding:10px 12px;border-radius:4px}
+.more{font-size:14.5px}
+.mine{margin:0;font-size:14.5px;color:var(--muted)}
+.mine b{color:var(--ink)}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.navbtn{border:1px solid var(--rule);background:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+
+/* vector page */
+.mat{display:inline-flex;flex-direction:column;align-items:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:4px;padding:0 7px;line-height:1.35;font-family:var(--f-num);vertical-align:middle;min-width:2.4em}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--f-num);font-size:16px}
+.vec-a{color:var(--red);font-weight:700} .vec-b{color:var(--blue);font-weight:700} .vec-c{color:var(--amber);font-weight:700} .vec-w{color:var(--green);font-weight:700}
+.drag{touch-action:none;cursor:crosshair}
+.v-a{stroke:var(--red);fill:var(--red)} .v-b{stroke:var(--blue);fill:var(--blue)} .v-c{stroke:var(--ink);fill:var(--ink)} .v-u{stroke:var(--amber);fill:var(--amber)} .v-w{stroke:var(--green);fill:var(--green)} .v-f{stroke:var(--muted);fill:var(--muted)}
+.g-grid{stroke:var(--rule);stroke-width:1}
+.g-ax{stroke:var(--muted);stroke-width:1.3}
+.t-tk{font-family:var(--f-num);font-size:10.5px;fill:var(--muted)}
+.t-lb{font-size:12px;fill:var(--muted)}
+.t-v{font-family:var(--f-num);font-size:12.5px;font-weight:600}
+.t-va{fill:var(--red)} .t-vb{fill:var(--blue)} .t-vc{fill:var(--ink)} .t-vu{fill:var(--amber)} .t-vw{fill:var(--green)} .t-vm{fill:var(--muted)}
+.dash{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4;fill:none}
+.dash-f{stroke-width:1.4;stroke-dasharray:6 4;fill:none}
+.shadow{stroke:var(--amber);stroke-width:7;stroke-linecap:round;opacity:.45}
+.arc{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:3 3}
+.hdl{fill:var(--sheet);stroke-width:2.4;cursor:grab}
+.hdl.a{stroke:var(--red)} .hdl.b{stroke:var(--blue)} .hdl.w{stroke:var(--green)} .hdl.x{stroke:var(--amber)}
+.reg-p{fill:var(--red-soft)} .reg-n{fill:var(--slate-soft)}
+.pt-p{fill:var(--red)} .pt-n{fill:var(--slate)} .pt-bad{fill:none;stroke:var(--ink);stroke-width:1.6}
+.walker{fill:var(--amber);stroke:var(--ink);stroke-width:1.2}
+.ucirc{fill:none;stroke:var(--amber);stroke-width:1;stroke-dasharray:3 3}
+.sign{display:inline-block;padding:2px 10px;border-radius:4px;font-weight:700;font-size:14px}
+.sign.p{background:var(--red-soft);color:var(--red)} .sign.z{background:var(--green-soft);color:var(--green)} .sign.n{background:var(--slate-soft);color:var(--ink)}
+td.ok,.ok{color:var(--blue);font-weight:700} td.bad,.bad{color:var(--red);font-weight:700}
+.checks{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14.5px}
+.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.checks input{accent-color:var(--ink);width:17px;height:17px}
+
+.flow{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.flow li{border:1px solid var(--rule);border-radius:4px;padding:8px 12px;font-size:14.5px}
+.flow li.sub{margin-left:22px}
+.flow li.on{border-color:var(--amber);background:var(--amber-soft)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:8px 12px;min-width:0}
+.tile .k{font-size:12.5px;color:var(--muted);display:block}
+.tile .v{font-weight:600;font-size:22px;line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+tr.cur td{background:var(--amber-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">「여기에선 모두가 숫자에 불과하다」 58~61쪽 · 퍼셉트론 훈련 알고리즘과 수렴</p>
+    <h1>퍼셉트론 훈련 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="학습 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">y·wᵀx</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">훈련</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">원리</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">수렴 증명</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">정리</span></button></li>
+    </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 5 · 맞았는지 한 번에 검사하기</p>
+      <h2 id="h1s">y와 wᵀx를 곱하면 ‘맞음/틀림’이 부호로 나온다</h2>
+    </div>
+    <p class="lead">퍼셉트론은 wᵀx가 0보다 크면 +1, 아니면 −1이라고 판정한다. (편향은 w0로 가중치 벡터 안에 들어 있고, x0 = 1이다.) 훈련 데이터에는 정답 라벨 y가 붙어 있다. 판정이 정답과 맞는지 알려면 경우를 넷으로 나눠야 할 것 같지만, <b>y × wᵀx</b> 하나만 보면 된다.</p>
+
+    <div class="controls">
+      <span class="ctl-label">정답 라벨 y</span>
+      <div class="seg" role="group" aria-label="정답 라벨" id="y1">
+        <button data-y="1" aria-pressed="true">+1</button>
+        <button data-y="-1" aria-pressed="false">−1</button>
+      </div>
+    </div>
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">wᵀx</span><input type="range" id="z1" min="-5" max="5" step="1" value="3"><span class="num sl-v" id="z1v">3</span></label>
+    </div>
+
+    <figure>
+      <figcaption>wᵀx의 수직선 <span class="lg">0 = 초평면 · 오른쪽이면 +1로 판정, 왼쪽이면 −1로 판정</span></figcaption>
+      <div class="svgbox"><svg id="fig1" viewBox="0 0 400 130" role="img" aria-label="가중합의 수직선"></svg></div>
+    </figure>
+    <div class="readout" id="r1"></div>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>정답 y</th><th>wᵀx</th><th>판정</th><th>y·wᵀx</th><th>결과</th></tr></thead>
+        <tbody id="tt1"></tbody>
+      </table>
+    </div>
+
+    <div class="card"><p class="ct">검사 규칙 한 줄</p><p class="cs"><b>y·wᵀx &gt; 0</b>이면 맞게 분류한 것이다. <b>y·wᵀx ≤ 0</b>이면 무언가 잘못된 것이니 가중치를 고쳐야 한다. 0인 경우(점이 초평면 바로 위)도 고치는 쪽에 넣는다.</p></div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 훈련하기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 5 · 훈련 알고리즘 따라가기</p>
+      <h2 id="h2s">w = 0에서 출발해서, 틀릴 때마다 y·x를 더한다</h2>
+    </div>
+
+    <ol class="flow" id="flow">
+      <li id="f1"><b>1단계</b> 가중치 벡터를 0으로 둔다. w = [0, 0, 0]</li>
+      <li id="f2"><b>2단계</b> 데이터 점 x를 하나씩 꺼내 y·wᵀx를 계산한다.</li>
+      <li id="f2a" class="sub"><b>2a</b> y·wᵀx ≤ 0이면 틀린 것이다. → <span class="num">w(새것) = w(옛것) + y·x</span></li>
+      <li id="f3"><b>3단계</b> 한 바퀴 도는 동안 한 번도 안 고쳤으면 <b>종료</b>. 고쳤으면 2단계로 돌아가 한 바퀴 더.</li>
+    </ol>
+
+    <div class="controls">
+      <span class="ctl-label">데이터</span>
+      <div class="seg" role="group" aria-label="데이터 선택" id="ds2">
+        <button data-d="0" aria-pressed="true">쉬운 데이터</button>
+        <button data-d="1" aria-pressed="false">까다로운 데이터</button>
+        <button data-d="2" aria-pressed="false">나눌 수 없는 데이터</button>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="t1">한 점 검사</button>
+      <button class="btn" id="tP">한 바퀴</button>
+      <button class="btn" id="tA">▶ 자동</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="tR">처음부터</button>
+    </div>
+
+    <div class="stats">
+      <div class="tile"><span class="k">바퀴</span><span class="v num" id="vPass">1</span></div>
+      <div class="tile"><span class="k">이번 바퀴 갱신</span><span class="v num" id="vPU">0</span></div>
+      <div class="tile"><span class="k">전체 갱신</span><span class="v num" id="vUp">0</span></div>
+      <div class="tile hl"><span class="k">지금 틀린 점</span><span class="v num" id="vErr">0</span></div>
+    </div>
+
+    <figure>
+      <figcaption>훈련 과정 <span class="lg">● 라벨 +1 · ▲ 라벨 −1 · 노란 고리 = 방금 검사한 점 · 초록 화살표 = (w1, w2) 방향</span></figcaption>
+      <div class="svgbox"><svg id="fig2" viewBox="0 0 360 360" role="img" aria-label="데이터 점과 초평면"></svg></div>
+    </figure>
+    <p class="summary" id="log2"></p>
+
+    <div>
+      <h3>계산판 <span style="font-weight:400;color:var(--muted);font-size:13px">방금 검사한 점의 계산</span></h3>
+      <div class="readout" id="calc2"></div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 왜 통할까 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 5 · 갱신의 기하학</p>
+      <h2 id="h3s">y·x를 더하면 초평면이 틀린 점 쪽으로 돌아간다</h2>
+    </div>
+    <p class="lead">w에 y·x를 더하는 것은 <b>벡터 덧셈</b>이다. 정답이 +1이면 w를 x 쪽으로 끌어당기고, −1이면 x 반대쪽으로 민다. w가 바뀌면 w에 수직인 초평면도 함께 돈다. 그래서 틀린 쪽에 있던 점 x가 올바른 쪽에 더 가까워진다. (그림이 잘 보이도록 여기서는 편향 없이 원점을 지나는 선으로 본다.)</p>
+
+    <div class="controls">
+      <span class="ctl-label">점 x의 정답 y</span>
+      <div class="seg" role="group" aria-label="정답 라벨" id="y3">
+        <button data-y="1" aria-pressed="true">+1</button>
+        <button data-y="-1" aria-pressed="false">−1</button>
+      </div>
+      <button class="btn primary" id="ap3">갱신 적용</button>
+      <button class="btn ghost" id="rs3">처음으로</button>
+    </div>
+
+    <figure>
+      <figcaption>w와 x <span class="lg"><span class="vec-w">초록 = w</span> · <span class="vec-c">노랑 = x</span> · 파랑 = 더해지는 y·x · 검정 = 새 w · 점선 = 새 초평면</span></figcaption>
+      <div class="svgbox"><svg id="fig3" class="drag" viewBox="0 0 360 360" role="img" aria-label="가중치 갱신의 벡터 덧셈"></svg></div>
+    </figure>
+    <div class="readout" id="r3"></div>
+
+    <div class="law">
+      <span class="t">식으로 확인하기</span>
+      <p class="eq">y·(w + y·x)ᵀx = y·wᵀx + y²·xᵀx = y·wᵀx + ‖x‖²</p>
+      <p>y² = 1이고 xᵀx = ‖x‖²는 항상 양수다. 그래서 갱신할 때마다 y·wᵀx가 <b>‖x‖²만큼 커진다</b>. 음수(틀림)였던 값이 양수(맞음) 쪽으로 움직인다는 뜻이다. 한 번에 양수가 안 될 수도 있지만 방향은 언제나 옳다.</p>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 수렴 증명 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 5 · 수렴 증명의 아이디어</p>
+      <h2 id="h4s">왜 반드시 끝날까: 두 값의 달리기 시합</h2>
+    </div>
+    <p class="lead">데이터를 직선으로 나눌 수 있다면, 모든 점을 맞히는 정답 가중치 <b>w*</b>가 적어도 하나 있다. 훈련 중인 w에 대해 두 값을 지켜보자. 하나는 <b>w·w*</b>(w가 정답 방향으로 얼마나 자랐는지), 다른 하나는 <b>w·w = ‖w‖²</b>(w 자신의 길이의 제곱)이다. 갱신 횟수를 M이라고 하자.</p>
+
+    <div class="two">
+      <div class="card"><p class="ct">① w·w*는 빨리 자란다</p><p class="cs">갱신하면 w·w*는 y·w*ᵀx만큼 늘어난다. w*는 모든 점을 맞히므로 이 값은 항상 양수이고, 가장 작은 값을 γ라 하면 매번 γ 이상 늘어난다.</p><p class="eq">w·w* ≥ M·γ</p></div>
+      <div class="card"><p class="ct">② w·w는 천천히 자란다</p><p class="cs">갱신하면 ‖w‖²는 2y·wᵀx + ‖x‖²만큼 변한다. 틀린 점에서만 고치므로 y·wᵀx ≤ 0이다. 그래서 가장 긴 x의 길이를 R이라 하면 매번 R² 이하로만 늘어난다.</p><p class="eq">‖w‖² ≤ M·R² &nbsp;→&nbsp; ‖w‖ ≤ √M·R</p></div>
+    </div>
+
+    <div class="law">
+      <span class="t">③ 둘을 묶는 것은 점곱</span>
+      <p class="eq">w·w* = ‖w‖‖w*‖cos θ ≤ ‖w‖‖w*‖</p>
+      <p class="eq">M·γ ≤ w·w* ≤ ‖w‖‖w*‖ ≤ √M·R·‖w*‖</p>
+      <p>왼쪽 끝은 M에 비례해서 자라고, 오른쪽 끝은 √M에 비례해서 자란다. M이 커지면 언젠가 왼쪽이 오른쪽을 넘어서려 하는데, 그건 불가능하다. 그래서 M은 무한정 커질 수 없다.</p>
+      <p class="eq" style="font-size:17px"><b>M ≤ R²‖w*‖² / γ²</b></p>
+    </div>
+
+    <div class="controls">
+      <span class="ctl-label">데이터</span>
+      <div class="seg" role="group" aria-label="데이터 선택" id="ds4">
+        <button data-d="0" aria-pressed="false">쉬운 데이터</button>
+        <button data-d="1" aria-pressed="true">까다로운 데이터</button>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="c1">갱신 1번 진행</button>
+      <button class="btn" id="cAll">끝까지</button>
+      <button class="btn ghost" id="cR">처음부터</button>
+    </div>
+
+    <figure>
+      <figcaption>실제 훈련에서 잰 값 <span class="lg"><span class="vec-a">● w·w*</span> · <span class="vec-b">■ ‖w‖‖w*‖</span> · 점선 = M·γ</span></figcaption>
+      <div class="svgbox"><svg id="figA" viewBox="0 0 360 240" role="img" aria-label="갱신 횟수에 따른 w·w*와 그 위아래 한계"></svg></div>
+    </figure>
+    <div class="readout" id="r4"></div>
+
+    <figure>
+      <figcaption>보장된 두 곡선의 시합 <span class="lg">직선 M·γ가 곡선 √M·R‖w*‖를 넘기 전에 끝나야 한다</span></figcaption>
+      <div class="svgbox"><svg id="figB" viewBox="0 0 360 240" role="img" aria-label="직선과 제곱근 곡선이 만나는 지점이 갱신 횟수의 상한"></svg></div>
+    </figure>
+    <p class="summary" id="msg4"></p>
+
+    <div class="two">
+      <div class="card"><p class="ct">상한: “아무리 늦어도 여기까지”</p><p class="cs">R²‖w*‖²/γ²은 갱신 횟수의 <b>상한</b>이다. 실제로는 훨씬 빨리 끝나는 경우가 많다. 중요한 것은 값의 크기보다 <b>유한하다</b>는 사실이다. 훈련이 영원히 헤매지 않는다는 보증서다.</p></div>
+      <div class="card"><p class="ct">하한: “아무리 잘해도 이만큼은”</p><p class="cs">반대로 <b>하한</b>은 어떤 문제를 푸는 데 최소한 필요한 시간이나 자원을 말한다. 하한이 너무 크면 그 문제는 현실적으로 풀 수 없다는 뜻이다. 알고리즘에 이런 한계를 증명하는 분야가 계산 복잡도 이론이다.</p></div>
+    </div>
+    <p class="hint">γ가 작을수록(두 무리 사이 틈이 좁을수록), R이 클수록(점이 멀리 퍼질수록) 상한이 커진다. 틈이 좁은 데이터가 어려운 이유다. 정답 w*는 여러 개라서, 어떤 w*를 쓰느냐에 따라 상한 값은 달라진다.</p>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 5 · 정리</p>
+      <h2 id="h5s">퍼셉트론 훈련을 한눈에</h2>
+    </div>
+    <div class="law">
+      <span class="t">한눈에 정리</span>
+      <ol>
+        <li>편향을 w0로 넣고 x0 = 1로 두면 판정은 <b>wᵀx &gt; 0이면 +1, 아니면 −1</b>이다.</li>
+        <li>맞았는지는 <b>y·wᵀx</b>의 부호로 검사한다. 양수면 맞음, 0 이하면 틀림이다.</li>
+        <li>훈련은 w = 0에서 시작한다. 점을 하나씩 검사해서 틀리면 <b>w ← w + y·x</b>로 고친다.</li>
+        <li>한 바퀴를 도는 동안 한 번도 고치지 않으면 끝난다. 모든 점을 맞혔다는 뜻이다.</li>
+        <li>갱신은 벡터 덧셈이다. w와 초평면을 돌려서 틀린 점이 올바른 쪽에 가까워지게 한다. y·wᵀx는 매번 ‖x‖²만큼 커진다.</li>
+        <li>데이터가 직선(초평면)으로 나뉘지 않으면 훈련은 끝나지 않는다.</li>
+        <li>나뉘는 데이터라면 갱신 횟수는 <b>M ≤ R²‖w*‖²/γ²</b>를 넘지 못한다. w·w*는 M에 비례해 자라는데 ‖w‖는 √M에 비례해서만 자라기 때문이다.</li>
+      </ol>
+    </div>
+
+    <div class="qs">
+      <div class="q"><span class="qn">Q1</span><p>w = [0, 1, −1], x = [1, 2, 3], y = +1일 때 y·wᵀx를 구하고, 갱신이 필요하면 새 w를 구해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">wᵀx = 0×1 + 1×2 + (−1)×3 = −1, y·wᵀx = −1 ≤ 0이므로 틀렸다. 새 w = [0, 1, −1] + [1, 2, 3] = <b>[1, 3, 2]</b>. 다시 계산하면 wᵀx = 1 + 6 + 6 = 13 &gt; 0으로 이제 맞는다. 변화량 14는 ‖x‖² = 1 + 4 + 9와 같다.</div></details></div>
+      <div class="q"><span class="qn">Q2</span><p>검사 조건이 ‘y·wᵀx &lt; 0’이 아니라 ‘≤ 0’인 이유는 무엇일까? 1단계와 연결해서 생각해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">처음에 w = 0이면 모든 점에서 y·wᵀx = 0이다. 조건이 ‘&lt; 0’이면 어떤 점도 틀렸다고 보지 않아서 <b>한 번도 갱신하지 못하고 끝난다</b>. 또 값이 0이면 점이 초평면 바로 위에 있어 어느 쪽인지 확실하지 않으니, 고치는 쪽으로 처리한다.</div></details></div>
+      <div class="q"><span class="qn">Q3</span><p>정답이 y = −1인 점을 +1로 잘못 판정했다. 이때 w에서 x를 ‘빼는’ 것이 왜 올바른 방향인지 설명해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">잘못 판정했다는 것은 wᵀx &gt; 0이라는 뜻이다. w − x로 바꾸면 (w − x)ᵀx = wᵀx − ‖x‖²로 가중합이 작아진다. 즉 0 아래(−1 판정) 쪽으로 움직인다. 그림으로는 w가 x 반대쪽으로 밀려나면서 초평면이 돌아 x가 −1 영역에 가까워진다.</div></details></div>
+      <div class="q"><span class="qn">Q4</span><p>한 번 갱신하면 그 점은 반드시 맞게 될까? STEP 2의 계산판에서 반례를 찾아보자.</p>
+        <details><summary>답 보기</summary><div class="ans">아니다. y·wᵀx가 ‖x‖²만큼 커질 뿐이다. 원래 값이 −‖x‖²보다 더 작았다면 갱신 뒤에도 0 이하다. 또 한 점을 고치다가 전에 맞던 다른 점이 틀려질 수도 있다. 그래서 여러 바퀴를 돈다.</div></details></div>
+      <div class="q"><span class="qn">Q5</span><p>‘마지막 갱신 직후’가 아니라 ‘갱신 없는 한 바퀴’를 확인한 뒤에야 종료하는 이유는?</p>
+        <details><summary>답 보기</summary><div class="ans">방금 고친 w가 나머지 점들을 모두 맞히는지는 아직 모른다. 모든 점을 다시 한 번씩 검사해서 한 번도 고치지 않아야 “모든 훈련 데이터를 올바르게 나눴다”고 말할 수 있다.</div></details></div>
+      <div class="q"><span class="qn">Q6</span><p>STEP 4의 부등식 M·γ ≤ √M·R‖w*‖에서 M ≤ R²‖w*‖²/γ²을 직접 유도해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">M &gt; 0일 때 양변을 √M으로 나누면 √M·γ ≤ R‖w*‖이다. 양변이 모두 양수이므로 제곱하면 M·γ² ≤ R²‖w*‖², 즉 <b>M ≤ R²‖w*‖²/γ²</b>이다.</div></details></div>
+      <div class="q"><span class="qn">Q7</span><p>나눌 수 없는 데이터에서는 이 증명의 어느 부분이 무너질까?</p>
+        <details><summary>답 보기</summary><div class="ans">모든 점을 맞히는 w*가 존재하지 않는다. 그러면 “갱신할 때마다 w·w*가 γ 이상 늘어난다”는 ①이 성립하지 않아서 상한을 만들 수 없다. 실제로 STEP 2에서 훈련이 끝나지 않았다.</div></details></div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 책의 예처럼 환자 데이터로 훈련한 퍼셉트론을 새 환자에게 쓰려면, 훈련 데이터에 대해 어떤 가정이 필요할까?</p>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function fm(v,d){d=d==null?2:d;var m=Math.pow(10,d);v=Math.round(v*m)/m;if(Object.is(v,-0)||Math.abs(v)<1e-9)v=0;return (v<0?'−':'')+Math.abs(v)}
+  function mat(x,y,cls){return '<span class="mat '+(cls||'')+'"><span>'+fm(x)+'</span><span>'+fm(y)+'</span></span>'}
+  function len(v){return Math.hypot(v[0],v[1])}
+  function pv(v){return v<0?'('+fm(v)+')':fm(v)}
+  function sq(v){var s=v[0]*v[0]+v[1]*v[1];var r=Math.sqrt(s);return Math.abs(r-Math.round(r))<1e-9?''+Math.round(r):'√'+fm(s)}
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- routing ---------- */
+  var current=1;
+  function render(){
+    var m=/^#s([1-5])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=5;i++){$('s'+i).hidden=(i!==current);$('st'+i).setAttribute('aria-current',i===current?'step':'false');}
+  }
+  function go(i){i=Math.max(1,Math.min(5,i));if(location.hash!=='#s'+i){location.hash='s'+i}else{render()}window.scrollTo(0,0);}
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  /* ---------- grid helper ---------- */
+  function Grid(o){
+    var W=o.W,H=o.H,P=26,u=Math.min((W-2*P)/(o.xmax-o.xmin),(H-2*P)/(o.ymax-o.ymin));
+    var ox=(W-u*(o.xmax-o.xmin))/2,oy=(H-u*(o.ymax-o.ymin))/2;
+    var G={u:u,o:o};
+    G.px=function(x){return ox+(x-o.xmin)*u}; G.py=function(y){return H-oy-(y-o.ymin)*u};
+    G.inv=function(sx,sy){return [(sx-ox)/u+o.xmin,(H-oy-sy)/u+o.ymin]};
+    var s='',st=o.tick||1;
+    for(var x=Math.ceil(o.xmin);x<=o.xmax;x++) s+='<line class="g-grid" x1="'+G.px(x)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(x)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(var y=Math.ceil(o.ymin);y<=o.ymax;y++) s+='<line class="g-grid" x1="'+G.px(o.xmin)+'" y1="'+G.py(y)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(y)+'"/>';
+    s+='<line class="g-ax" x1="'+G.px(o.xmin)+'" y1="'+G.py(0)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(0)+'"/><line class="g-ax" x1="'+G.px(0)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(0)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(x=Math.ceil(o.xmin/st)*st;x<=o.xmax;x+=st) if(x) s+='<text class="t-tk" x="'+G.px(x)+'" y="'+(G.py(0)+13)+'" text-anchor="middle">'+(x<0?'−'+(-x):x)+'</text>';
+    for(y=Math.ceil(o.ymin/st)*st;y<=o.ymax;y+=st) if(y) s+='<text class="t-tk" x="'+(G.px(0)-5)+'" y="'+(G.py(y)+4)+'" text-anchor="end">'+(y<0?'−'+(-y):y)+'</text>';
+    if(o.xl) s+='<text class="t-lb" x="'+(G.px(o.xmax)-2)+'" y="'+(G.py(0)-6)+'" text-anchor="end">'+o.xl+'</text>';
+    if(o.yl) s+='<text class="t-lb" x="'+(G.px(0)+6)+'" y="'+(G.py(o.ymax)+12)+'">'+o.yl+'</text>';
+    G.base=s;
+    G.arrow=function(a,b,cls,w){
+      var x1=G.px(a[0]),y1=G.py(a[1]),x2=G.px(b[0]),y2=G.py(b[1]),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);w=w||2.4;
+      if(L<2) return '';
+      var hl=Math.min(11,L*0.45),ux=dx/L,uy=dy/L,bx=x2-ux*hl,by=y2-uy*hl;
+      return '<line class="'+cls+'" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y2="'+by.toFixed(1)+'" stroke-width="'+w+'"/>'+
+        '<polygon class="'+cls+'" stroke-width="1" points="'+x2.toFixed(1)+','+y2.toFixed(1)+' '+(bx-uy*5.5).toFixed(1)+','+(by+ux*5.5).toFixed(1)+' '+(bx+uy*5.5).toFixed(1)+','+(by-ux*5.5).toFixed(1)+'"/>';
+    };
+    G.line=function(a,b,cls){return '<line class="'+cls+'" x1="'+G.px(a[0]).toFixed(1)+'" y1="'+G.py(a[1]).toFixed(1)+'" x2="'+G.px(b[0]).toFixed(1)+'" y2="'+G.py(b[1]).toFixed(1)+'"/>'};
+    G.text=function(p,t,cls,dx,dy,anc){return '<text class="t-v '+cls+'" x="'+(G.px(p[0])+(dx||0)).toFixed(1)+'" y="'+(G.py(p[1])+(dy||0)).toFixed(1)+'" text-anchor="'+(anc||'middle')+'">'+t+'</text>'};
+    G.clipLine=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],pts=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var p=R[i],q=R[(i+1)%4],fp=f(p),fq=f(q);if(fp===0)pts.push(p);else if(fp*fq<0){var t=fp/(fp-fq);pts.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])])}}
+      return pts.length>=2?[pts[0],pts[1]]:null;};
+    G.clipPoly=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],poly=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var a=R[i],b=R[(i+1)%4],fa=f(a),fb=f(b);if(fa>0)poly.push(a);if((fa>0)!==(fb>0)&&fa!==fb){var t=fa/(fa-fb);poly.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}}
+      return poly;};
+    return G;
+  }
+  function svgPoint(svg,e){var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;var m=svg.getScreenCTM();if(!m)return null;var p=pt.matrixTransform(m.inverse());return [p.x,p.y]}
+  function dragger(svg,G,setters,onChange){
+    var active=null;
+    svg.addEventListener('pointerdown',function(e){var h=e.target.getAttribute&&e.target.getAttribute('data-h');if(!h)return;active=h;try{svg.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+    svg.addEventListener('pointermove',function(e){if(!active)return;var p=svgPoint(svg,e);if(!p)return;var d=G.inv(p[0],p[1]),o=G.o;
+      var x=Math.max(o.xmin,Math.min(o.xmax,Math.round(d[0]))),y=Math.max(o.ymin,Math.min(o.ymax,Math.round(d[1])));setters[active](x,y);onChange()});
+    function end(){active=null} svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+  }
+  function hdl(G,p,name){return '<circle class="hdl '+name+'" data-h="'+name+'" cx="'+G.px(p[0]).toFixed(1)+'" cy="'+G.py(p[1]).toFixed(1)+'" r="10"/>'}
+
+  function pm(v){return v>0?'+1':'−1'}
+  function vecS(a){return '['+a.map(function(v){return fm(v)}).join(', ')+']'}
+
+  /* ---------- step 1 ---------- */
+  var y1=1;
+  document.querySelectorAll('#y1 button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#y1 button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});y1=+b.dataset.y;draw1()})});
+  $('z1').addEventListener('input',draw1);
+  function draw1(){
+    var z=+$('z1').value;$('z1v').textContent=fm(z);
+    function X(v){return 200+v*34}
+    var s='<rect class="reg-n" x="'+X(-5.3)+'" y="38" width="'+(X(0)-X(-5.3))+'" height="44"/><rect class="reg-p" x="'+X(0)+'" y="38" width="'+(X(5.3)-X(0))+'" height="44"/>';
+    s+='<line class="g-ax" x1="'+X(-5.3)+'" y1="60" x2="'+X(5.3)+'" y2="60"/><line class="v-c" stroke-width="2.4" x1="'+X(0)+'" y1="30" x2="'+X(0)+'" y2="90"/>';
+    for(var k=-5;k<=5;k++) s+='<text class="t-tk" x="'+X(k)+'" y="104" text-anchor="middle">'+fm(k)+'</text>';
+    s+='<text class="t-lb" x="'+X(-2.7)+'" y="26" text-anchor="middle">판정 −1</text><text class="t-lb" x="'+X(2.7)+'" y="26" text-anchor="middle">판정 +1</text><text class="t-lb" x="'+X(0)+'" y="122" text-anchor="middle">초평면</text>';
+    var X0=X(z);
+    s+=y1>0?'<circle class="pt-p" cx="'+X0+'" cy="60" r="9"/>':'<polygon class="pt-n" points="'+X0+',50 '+(X0+10)+',68 '+(X0-10)+',68"/>';
+    $('fig1').innerHTML=s;
+    var pr=z>0?1:-1,yz=y1*z,ok=yz>0;
+    $('r1').innerHTML='<p class="eq">정답 y = '+pm(y1)+', wᵀx = '+fm(z)+' → 판정 '+pm(pr)+'</p><p class="eq">y·wᵀx = ('+pm(y1)+') × ('+fm(z)+') = <b>'+fm(yz)+'</b> '+(ok?'&gt; 0':'≤ 0')+' → '+(ok?'<span class="ok">맞음</span>':'<span class="bad">틀림 → 가중치를 고친다</span>')+'</p>'+(z===0?'<p class="hint">wᵀx = 0이면 점이 초평면 바로 위에 있다. 이때도 고친다.</p>':'');
+    var rows=[[1,1],[1,-1],[-1,1],[-1,-1]];
+    $('tt1').innerHTML=rows.map(function(r){var cur=r[0]===y1&&((z>0?1:-1)===r[1])&&z!==0,good=r[0]*r[1]>0;
+      return '<tr'+(cur?' class="cur"':'')+'><td class="num">'+pm(r[0])+'</td><td>'+(r[1]>0?'양수':'음수')+'</td><td class="num">'+pm(r[1])+'</td><td>'+(good?'양수':'음수')+'</td><td class="'+(good?'ok':'bad')+'">'+(good?'맞음':'틀림')+'</td></tr>'}).join('');
+  }
+
+  /* ---------- step 2 ---------- */
+  var DS=[
+    [[2,3,1],[-2,-1,-1],[3,1,1],[-3,2,-1],[4,4,1],[0,-3,-1],[1,4,1],[-1,-4,-1]],
+    [[1,3,1],[-1,1,-1],[3,2,1],[0,-1,-1],[4,-1,1],[2,-3,-1],[2,1,1],[-2,3,-1]],
+    [[2,2,1],[2,-2,-1],[-2,-2,1],[-2,2,-1]]
+  ];
+  var G2=Grid({W:360,H:360,xmin:-5,xmax:5,ymin:-5,ymax:5,tick:1,xl:'x1',yl:'x2'}),ds=0,T,timer=null,CAP=40;
+  function reset2(){stop2();T={w:[0,0,0],idx:0,pass:1,pu:0,up:0,last:null,done:false,capped:false,ph:'f1'};$('log2').innerHTML='1단계: w = [0, 0, 0]으로 시작한다. ‘한 점 검사’를 눌러 보자.';draw2()}
+  function errs2(){var w=T.w;return DS[ds].filter(function(d){return d[2]*(w[0]+w[1]*d[0]+w[2]*d[1])<=0}).length}
+  function step2(){
+    if(T.done||T.capped) return false;
+    var d=DS[ds][T.idx],x=[1,d[0],d[1]],y=d[2],wb=T.w.slice(),z=wb[0]+wb[1]*x[1]+wb[2]*x[2],yz=y*z,upd=yz<=0;
+    if(upd){T.w=[wb[0]+y,wb[1]+y*x[1],wb[2]+y*x[2]];T.pu++;T.up++}
+    T.last={n:T.idx+1,x:x,y:y,wb:wb,z:z,yz:yz,upd:upd,wa:T.w.slice()};T.ph=upd?'f2a':'f2';
+    var msg='점 #'+(T.idx+1)+' ('+fm(d[0])+', '+fm(d[1])+'), 정답 '+pm(y)+' → y·wᵀx = '+fm(yz)+(upd?' ≤ 0 → <b>틀림, w를 고쳤다.</b>':' &gt; 0 → 맞음, 그대로 둔다.');
+    T.idx++;
+    if(T.idx===DS[ds].length){
+      if(T.pu===0){T.done=true;T.ph='f3';msg+='<br><b>3단계: 이번 바퀴에 한 번도 고치지 않았다 → 종료!</b> 전체 '+T.up+'번 고쳐서 모든 점을 올바르게 나눴다.'}
+      else if(T.pass>=CAP){T.capped=true;T.ph='f3';msg+='<br><b>'+CAP+'바퀴를 돌아도 끝나지 않는다.</b> 이 데이터는 직선 하나로 나눌 수 없어서(선형 분리 불가능) 언제나 틀린 점이 남는다.'}
+      else{msg+='<br>3단계: 이번 바퀴에 '+T.pu+'번 고쳤다 → 2단계로 돌아가 한 바퀴 더.';T.idx=0;T.pass++;T.pu=0;T.ph='f3'}
+    }
+    $('log2').innerHTML=msg;return true;
+  }
+  function stop2(){if(timer){clearInterval(timer);timer=null}$('tA').textContent='▶ 자동'}
+  $('t1').addEventListener('click',function(){stop2();step2();draw2()});
+  $('tP').addEventListener('click',function(){stop2();var p=T.pass;do{if(!step2())break}while(T.pass===p&&!T.done&&!T.capped);draw2()});
+  $('tA').addEventListener('click',function(){if(timer){stop2();return}if(T.done||T.capped)return;$('tA').textContent='⏸ 멈추기';
+    timer=setInterval(function(){if(!step2())stop2();draw2();if(T.done||T.capped)stop2()},ds===2?60:260)});
+  $('tR').addEventListener('click',reset2);
+  document.querySelectorAll('#ds2 button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#ds2 button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});ds=+b.dataset.d;reset2()})});
+  function draw2(){
+    var w=T.w,o=G2.o,s='';
+    s+='<rect class="reg-n" x="'+G2.px(o.xmin)+'" y="'+G2.py(o.ymax)+'" width="'+(G2.px(o.xmax)-G2.px(o.xmin))+'" height="'+(G2.py(o.ymin)-G2.py(o.ymax))+'"/>';
+    var poly=G2.clipPoly(w[1],w[2],w[0]);
+    if(poly.length>2) s+='<polygon class="reg-p" points="'+poly.map(function(p){return G2.px(p[0]).toFixed(1)+','+G2.py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    s+=G2.base;
+    if(w[1]||w[2]){var dl=G2.clipLine(w[1],w[2],w[0]);if(dl)s+='<line class="v-c" stroke-width="2.4" x1="'+G2.px(dl[0][0]).toFixed(1)+'" y1="'+G2.py(dl[0][1]).toFixed(1)+'" x2="'+G2.px(dl[1][0]).toFixed(1)+'" y2="'+G2.py(dl[1][1]).toFixed(1)+'"/>';
+      var L=Math.hypot(w[1],w[2]);s+=G2.arrow([0,0],[w[1]/L*1.8,w[2]/L*1.8],'v-w',3);}
+    else s+='<text class="t-lb" x="180" y="20" text-anchor="middle">'+(w[0]>0?'w1 = w2 = 0 → 선 없음, 모두 +1로 판정':'w1 = w2 = 0 → 선 없음, 모두 −1로 판정')+'</text>';
+    DS[ds].forEach(function(d,i){var X=G2.px(d[0]),Y=G2.py(d[1]),bad=d[2]*(w[0]+w[1]*d[0]+w[2]*d[1])<=0;
+      if(T.last&&T.last.n===i+1) s+='<circle cx="'+X+'" cy="'+Y+'" r="14" style="fill:none;stroke:var(--amber);stroke-width:2.6"/>';
+      if(bad) s+='<circle class="pt-bad" cx="'+X+'" cy="'+Y+'" r="10"/>';
+      s+=d[2]>0?'<circle class="pt-p" cx="'+X+'" cy="'+Y+'" r="6"/>':'<polygon class="pt-n" points="'+X+','+(Y-7)+' '+(X+7)+','+(Y+5.6)+' '+(X-7)+','+(Y+5.6)+'"/>';
+      s+='<text class="t-tk" x="'+(X+9)+'" y="'+(Y-8)+'">#'+(i+1)+'</text>'});
+    $('fig2').innerHTML=s;
+    $('vPass').textContent=T.pass;$('vPU').textContent=T.pu;$('vUp').textContent=T.up;$('vErr').textContent=errs2();
+    ['f1','f2','f2a','f3'].forEach(function(id){$(id).classList.toggle('on',id===T.ph)});
+    ['t1','tP','tA'].forEach(function(id){$(id).disabled=T.done||T.capped});
+    var L2=T.last,h;
+    if(!L2) h='<p class="eq">w = [w0, w1, w2] = [0, 0, 0]</p><p class="hint">점 (x1, x2)는 x = [1, x1, x2]로 쓴다. 맨 앞의 1이 편향용 x0다.</p>';
+    else{
+      h='<p><b>점 #'+L2.n+'</b> · x = '+vecS(L2.x)+', 정답(라벨) y = '+pm(L2.y)+'</p>'+
+        '<p class="eq">지금 w = '+vecS(L2.wb)+'</p>'+
+        '<p class="eq">wᵀx = '+L2.wb.map(function(v,i){return pv(v)+'×'+pv(L2.x[i])}).join(' + ')+' = '+fm(L2.z)+'</p>'+
+        '<p class="eq">퍼셉트론의 판정 = '+pm(L2.z>0?1:-1)+' ('+(L2.z>0?'wᵀx &gt; 0':'wᵀx ≤ 0')+'이므로) · 정답 y = '+pm(L2.y)+'</p>'+
+        '<p class="eq">y·wᵀx = ('+pm(L2.y)+') × '+pv(L2.z)+' = <b>'+fm(L2.yz)+'</b> '+(L2.upd?'≤ 0 → <span class="bad">틀림</span>':'&gt; 0 → <span class="ok">맞음</span>')+'</p>';
+      if(L2.upd){var z2=L2.wa[0]+L2.wa[1]*L2.x[1]+L2.wa[2]*L2.x[2];
+        h+='<p class="eq">새 w = '+vecS(L2.wb)+' + ('+pm(L2.y)+')×'+vecS(L2.x)+' = <b>'+vecS(L2.wa)+'</b></p>'+
+          '<p class="hint">이 점을 다시 계산하면 y·wᵀx = '+fm(L2.y*z2)+'. '+fm(L2.yz)+'에서 ‖x‖² = '+fm(1+L2.x[1]*L2.x[1]+L2.x[2]*L2.x[2])+'만큼 커졌다.'+(L2.y*z2>0?'':' 아직 0 이하라서 다음 바퀴에 또 고쳐야 한다.')+'</p>';}
+      else h+='<p class="eq">w는 그대로 '+vecS(L2.wa)+'</p>';
+    }
+    $('calc2').innerHTML=h;
+  }
+
+  /* ---------- step 3 ---------- */
+  var G3=Grid({W:360,H:360,xmin:-8,xmax:8,ymin:-8,ymax:8,tick:2}),W3=[3,1],X3=[-3,2],y3=1;
+  function cl(v){return Math.max(-5,Math.min(5,v))}
+  dragger($('fig3'),G3,{w:function(x,y){x=cl(x);y=cl(y);if(x||y)W3=[x,y]},x:function(x,y){x=cl(x);y=cl(y);if(x||y)X3=[x,y]}},draw3);
+  document.querySelectorAll('#y3 button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#y3 button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});y3=+b.dataset.y;draw3()})});
+  $('ap3').addEventListener('click',function(){var yz=y3*(W3[0]*X3[0]+W3[1]*X3[1]);if(yz<=0){W3=[W3[0]+y3*X3[0],W3[1]+y3*X3[1]];draw3()}});
+  $('rs3').addEventListener('click',function(){W3=[3,1];X3=[-3,2];draw3()});
+  function draw3(){
+    var w=W3,x=X3,o=G3.o,s='',z=w[0]*x[0]+w[1]*x[1],yz=y3*z,bad=yz<=0,wn=[w[0]+y3*x[0],w[1]+y3*x[1]];
+    s+='<rect class="reg-n" x="'+G3.px(o.xmin)+'" y="'+G3.py(o.ymax)+'" width="'+(G3.px(o.xmax)-G3.px(o.xmin))+'" height="'+(G3.py(o.ymin)-G3.py(o.ymax))+'"/>';
+    var poly=G3.clipPoly(w[0],w[1],0);if(poly.length>2)s+='<polygon class="reg-p" points="'+poly.map(function(p){return G3.px(p[0]).toFixed(1)+','+G3.py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    s+=G3.base;
+    var dl=G3.clipLine(w[0],w[1],0);if(dl)s+='<line class="v-c" stroke-width="2.4" x1="'+G3.px(dl[0][0]).toFixed(1)+'" y1="'+G3.py(dl[0][1]).toFixed(1)+'" x2="'+G3.px(dl[1][0]).toFixed(1)+'" y2="'+G3.py(dl[1][1]).toFixed(1)+'"/>';
+    if(bad){
+      if(wn[0]||wn[1]){var nl=G3.clipLine(wn[0],wn[1],0);if(nl)s+='<line class="dash-f v-c" x1="'+G3.px(nl[0][0]).toFixed(1)+'" y1="'+G3.py(nl[0][1]).toFixed(1)+'" x2="'+G3.px(nl[1][0]).toFixed(1)+'" y2="'+G3.py(nl[1][1]).toFixed(1)+'"/>';}
+      s+=G3.arrow(w,wn,'v-b',2.2)+G3.arrow([0,0],wn,'v-c',2.4)+G3.text(wn,'새 w','t-vc',0,wn[1]>=0?-9:17);
+    }
+    s+=G3.arrow([0,0],x,'v-u',2.6)+G3.arrow([0,0],w,'v-w',3);
+    s+=G3.text(w,'w','t-vw',w[0]>=0?13:-13,w[1]>=0?-9:17)+G3.text(x,'x ('+pm(y3)+')','t-vu',x[0]>=0?14:-14,x[1]>=0?-11:19);
+    s+=hdl(G3,w,'w')+hdl(G3,x,'x');
+    $('fig3').innerHTML=s;$('ap3').disabled=!bad;
+    var h='<p>w = <span class="vec-w">'+vecS(w)+'</span>, x = <span class="vec-c">'+vecS(x)+'</span>, 정답 y = '+pm(y3)+'</p>'+
+      '<p class="eq">wᵀx = '+pv(w[0])+'×'+pv(x[0])+' + '+pv(w[1])+'×'+pv(x[1])+' = '+fm(z)+' → y·wᵀx = <b>'+fm(yz)+'</b> '+(bad?'≤ 0 → <span class="bad">틀림</span>':'&gt; 0 → <span class="ok">맞음, 고칠 필요 없음</span>')+'</p>';
+    if(bad){var n2=x[0]*x[0]+x[1]*x[1],yz2=y3*(wn[0]*x[0]+wn[1]*x[1]);
+      h+='<p class="eq">새 w = '+vecS(w)+' + ('+pm(y3)+')×'+vecS(x)+' = <b>'+vecS(wn)+'</b></p>'+
+        '<p class="eq">새 y·wᵀx = '+fm(yz)+' + ‖x‖² = '+fm(yz)+' + '+fm(n2)+' = <b>'+fm(yz2)+'</b> '+(yz2>0?'→ <span class="ok">이제 맞음</span>':'→ <span class="bad">아직 틀림, 그래도 가까워졌다</span>')+'</p>'+
+        '<p class="hint">‘갱신 적용’을 누르면 w가 새 w로 바뀐다. x를 끌어 다른 틀린 점도 만들어 보자.</p>';}
+    else h+='<p class="hint">x를 반대쪽 영역으로 끌거나 정답 y를 바꿔서 틀린 상황을 만들어 보자. 붉은 영역이 +1 판정 쪽이다.</p>';
+    $('r3').innerHTML=h;
+  }
+
+  /* ---------- step 4: convergence ---------- */
+  var WS=[[0,1,1],[-3,2,2]],d4=1,H4,M4=0;
+  function dot3(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+  function build4(){
+    var D=DS[d4],ws=WS[d4],w=[0,0,0],g=Infinity,R2=0;
+    D.forEach(function(d){var x=[1,d[0],d[1]];g=Math.min(g,d[2]*dot3(ws,x));R2=Math.max(R2,dot3(x,x))});
+    H4={hist:[{w:[0,0,0],a:0,n2:0}],g:g,R2:R2,ws2:dot3(ws,ws)};
+    for(var pass=0;pass<200;pass++){var u=0;D.forEach(function(d){var x=[1,d[0],d[1]];if(d[2]*dot3(w,x)<=0){w=[w[0]+d[2],w[1]+d[2]*x[1],w[2]+d[2]*x[2]];u++;H4.hist.push({w:w.slice(),a:dot3(w,ws),n2:dot3(w,w)})}});if(!u)break}
+    H4.bound=H4.R2*H4.ws2/(g*g);M4=0;
+  }
+  function chart(o){
+    var W=360,H=240,L=44,R=14,T=14,B=34,s='';
+    function X(v){return L+v/o.xmax*(W-L-R)} function Y(v){return H-B-v/o.ymax*(H-T-B)}
+    for(var i=0;i<=4;i++){var yv=o.ymax*i/4,xv=o.xmax*i/4;
+      s+='<line class="g-grid" x1="'+L+'" y1="'+Y(yv)+'" x2="'+(W-R)+'" y2="'+Y(yv)+'"/><text class="t-tk" x="'+(L-6)+'" y="'+(Y(yv)+4)+'" text-anchor="end">'+fm(yv,0)+'</text>';
+      s+='<text class="t-tk" x="'+X(xv)+'" y="'+(H-B+15)+'" text-anchor="middle">'+fm(xv,0)+'</text>'}
+    s+='<line class="g-ax" x1="'+L+'" y1="'+Y(0)+'" x2="'+(W-R)+'" y2="'+Y(0)+'"/><line class="g-ax" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+Y(0)+'"/>';
+    s+='<text class="t-lb" x="'+(W-R)+'" y="'+(H-4)+'" text-anchor="end">갱신 횟수 M</text>';
+    o.series.forEach(function(S){
+      if(S.type==='line'){s+='<polyline points="'+S.pts.map(function(p){return X(p[0]).toFixed(1)+','+Y(Math.min(p[1],o.ymax*1.05)).toFixed(1)}).join(' ')+'" style="fill:none;stroke:'+S.color+';stroke-width:'+(S.w||2)+(S.dash?';stroke-dasharray:6 4':'')+'"/>'}
+      else S.pts.forEach(function(p){s+=S.type==='sq'?'<rect x="'+(X(p[0])-4)+'" y="'+(Y(p[1])-4)+'" width="8" height="8" style="fill:'+S.color+'"/>':'<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4.5" style="fill:'+S.color+'"/>'})
+      if(S.label) s+='<text class="t-v" x="'+(X(S.lx)+(S.dx||0))+'" y="'+(Y(S.ly)+(S.dy||0))+'" text-anchor="'+(S.anc||'start')+'" style="fill:'+S.color+'">'+S.label+'</text>';
+    });
+    (o.marks||[]).forEach(function(m){s+='<line x1="'+X(m.x)+'" y1="'+T+'" x2="'+X(m.x)+'" y2="'+Y(0)+'" style="stroke:'+m.color+';stroke-width:1.4;stroke-dasharray:3 3"/><text class="t-v" x="'+(X(m.x)+(m.dx||5))+'" y="'+(T+12+(m.dy||0))+'" text-anchor="'+(m.anc||'start')+'" style="fill:'+m.color+'">'+m.label+'</text>'});
+    return s;
+  }
+  function draw4(){
+    var h=H4.hist,N=h.length-1,ws=Math.sqrt(H4.ws2),g=H4.g,cur=h[M4],i;
+    var a=[],u=[],lo=[];for(i=0;i<=M4;i++){a.push([i,h[i].a]);u.push([i,Math.sqrt(h[i].n2)*ws])}
+    for(i=0;i<=N;i++)lo.push([i,i*g]);
+    var ymaxA=0;h.forEach(function(e){ymaxA=Math.max(ymaxA,Math.sqrt(e.n2)*ws,e.a)});ymaxA=Math.ceil(ymaxA/10)*10;
+    $('figA').innerHTML=chart({xmax:Math.max(N,4),ymax:ymaxA,series:[
+      {type:'line',pts:lo,color:'var(--muted)',dash:true,label:'M·γ',lx:N,ly:N*g,dx:-4,dy:16,anc:'end'},
+      {type:'sq',pts:u,color:'var(--blue)'},{type:'dot',pts:a,color:'var(--red)'}]});
+    var cos=M4?cur.a/(Math.sqrt(cur.n2)*ws):0;
+    $('r4').innerHTML='<p>w* = '+vecS(WS[d4])+', γ = '+fm(g)+', R² = '+fm(H4.R2)+', ‖w*‖² = '+fm(H4.ws2)+'</p>'+
+      '<p class="eq">M = '+M4+' &nbsp;·&nbsp; w = '+vecS(cur.w)+'</p>'+
+      '<p class="eq">M·γ = '+fm(M4*g)+' ≤ w·w* = <b>'+fm(cur.a)+'</b> ≤ ‖w‖‖w*‖ = '+fm(Math.sqrt(cur.n2)*ws)+' ≤ √M·R‖w*‖ = '+fm(Math.sqrt(M4*H4.R2)*ws)+'</p>'+
+      '<p class="eq">‖w‖² = '+fm(cur.n2)+' ≤ M·R² = '+fm(M4*H4.R2)+'</p>'+
+      (M4?'<p class="eq">cos θ = '+fm(cos,3)+' (1을 넘을 수 없다)</p>':'')+
+      (M4===N?'<p class="summary">훈련 종료: 실제 갱신 '+N+'번.</p>':'<p class="hint">‘갱신 1번 진행’을 눌러 빨간 점이 점선 위, 파란 네모 아래에 계속 끼어 있는지 보자.</p>');
+    var bd=H4.bound,xm=bd*1.25,l1=[],l2=[];for(i=0;i<=60;i++){var m=xm*i/60;l1.push([m,m*g]);l2.push([m,Math.sqrt(m*H4.R2)*ws])}
+    var ymB=Math.sqrt(xm*H4.R2)*ws*1.15;
+    $('figB').innerHTML=chart({xmax:xm,ymax:ymB,series:[
+      {type:'line',pts:l2,color:'var(--blue)',label:'√M·R‖w*‖',lx:xm*0.3,ly:Math.sqrt(xm*0.3*H4.R2)*ws,dy:-10},
+      {type:'line',pts:l1,color:'var(--red)',label:'M·γ',lx:xm*0.45,ly:xm*0.45*g,dy:18}],
+      marks:[{x:bd,color:'var(--ink)',label:'상한 '+fm(bd,0),anc:'end',dx:-5},{x:N,color:'var(--amber)',label:'실제 '+N,dy:16}]});
+    $('msg4').innerHTML='보장된 상한은 <b>'+fm(bd,0)+'번</b>, 실제 갱신은 <b>'+N+'번</b>이다. 상한은 넉넉하게 잡은 값이라 실제와 차이가 크다. 그래도 “'+fm(bd,0)+'번 안에는 반드시 끝난다”는 것을 훈련 전에 미리 말할 수 있다.';
+    $('c1').disabled=$('cAll').disabled=M4>=N;
+  }
+  document.querySelectorAll('#ds4 button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#ds4 button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});d4=+b.dataset.d;build4();draw4()})});
+  $('c1').addEventListener('click',function(){if(M4<H4.hist.length-1){M4++;draw4()}});
+  $('cAll').addEventListener('click',function(){M4=H4.hist.length-1;draw4()});
+  $('cR').addEventListener('click',function(){M4=0;draw4()});
+
+  draw1();reset2();draw3();build4();draw4();
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>수렴 증명 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2E7D5B; --green-soft:#DDF0E6;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+  --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+  --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+  --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.top{margin-bottom:12px}
+.book{font-size:13px;color:var(--muted);letter-spacing:.02em;margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4.4vw,34px);line-height:1.2;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:640px){.stepper{grid-template-columns:repeat(5,minmax(0,1fr))}.stepper .sl{font-size:12px}.stepper .sn{display:none}.stepper button{padding:7px 8px;gap:6px}}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:26px 22px;padding-inline:clamp(18px,4vw,38px);display:flex;flex-direction:column;gap:20px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3.6vw,28px);line-height:1.3;margin:4px 0 0}
+.lead{margin:0;max-width:64ch}
+h3{font-size:15px;font-weight:700;margin:0 0 6px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:25px;line-height:1.15;margin:0;transform:rotate(-2deg);transform-origin:left center}
+.scene{background:var(--paper);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scene p{margin:0}
+.hint{font-size:13.5px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14.5px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figcaption{font-size:14px;font-weight:700}
+figcaption .lg{font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+.svgbox{border:1px solid var(--rule);border-radius:4px;background:var(--sheet);overflow:hidden}
+.svgbox svg,.svgbox canvas{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14.5px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.ghost{border-color:var(--rule);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--sheet);padding:8px 13px;cursor:pointer;font-weight:500;font-size:14.5px;border-left:1px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.sliders{display:grid;gap:6px;max-width:560px;width:100%}
+.sl-row{display:grid;grid-template-columns:5.5em 1fr 4.4em;align-items:center;gap:10px}
+.sl-k{font-weight:600;font-size:14.5px}
+.sl-v{text-align:right;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.readout{background:var(--paper);border-radius:4px;padding:12px 14px;display:grid;gap:4px;font-size:14.5px}
+.readout p{margin:0}
+.eq{font-family:var(--f-num);font-size:15px;overflow-wrap:anywhere}
+.eq b{color:var(--red)}
+.summary{margin:0;font-weight:500}
+.summary b{color:var(--red)}
+
+/* table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--rule)}
+thead th{font-size:12.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+.mt{max-width:420px}
+.mt th,.mt td{font-family:var(--f-num);font-size:17px;padding:0;border:1px solid var(--rule)}
+.mt thead th{color:var(--ink);background:var(--paper);height:44px;font-size:15px}
+.mt tbody th{background:var(--paper);width:52px}
+.mt td button{width:100%;height:46px;border:0;background:var(--sheet);cursor:pointer;font-family:var(--f-num);font-size:17px;font-weight:600}
+.mt td button:hover{background:var(--paper)}
+.mt td button.neg{color:var(--red)}
+.mt td button.sel{background:var(--amber-soft);outline:2px solid var(--amber);outline-offset:-2px}
+.mt td button.pair{background:var(--slate-soft)}
+.exp{border-collapse:collapse;font-size:13.5px}
+.exp th,.exp td{border:1px solid var(--rule);padding:6px 6px;font-family:var(--f-num)}
+.exp th{background:var(--paper);font-weight:600}
+.exp td.z{color:var(--muted);opacity:.55}
+.exp td.r{background:var(--green-soft)} .exp td.i{background:var(--red-soft)} .exp td.j{background:var(--blue-soft)} .exp td.k{background:var(--amber-soft)}
+.qin{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:460px}
+.qin label{display:flex;align-items:center;gap:4px;font-family:var(--f-num);font-size:14px}
+.qin input{width:100%;min-width:0;font-family:var(--f-num);font-size:16px;padding:6px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+.qin input.err{border-color:var(--red)}
+.qrow{display:flex;flex-direction:column;gap:4px}
+.qrow .qh{font-weight:700;font-size:14.5px}
+.err-msg{font-size:13px;color:var(--red);margin:0;min-height:1.2em}
+.cmp{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:4px;overflow:hidden;font-family:var(--f-num)}
+.cmp div{padding:8px 6px;text-align:center;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule)}
+.cmp div.h{background:var(--paper);font-size:12.5px;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.cmp div.lab{border-left:0;text-align:left;font-family:var(--f-body);font-weight:700;font-size:13.5px;background:var(--paper)}
+.cmp div.diff{background:var(--red-soft);color:var(--red);font-weight:700}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.card{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.card p{margin:0}
+.card .ct{font-weight:700}
+.card .cs{font-size:14.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.law .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.law p{margin:0}
+.law ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 14px}
+.recall b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:4px 10px;padding:12px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:14.5px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:13.5px;width:max-content}
+details[open] summary{margin-bottom:4px}
+.ans{background:var(--paper);padding:10px 12px;border-radius:4px}
+.more{font-size:14.5px}
+.mine{margin:0;font-size:14.5px;color:var(--muted)}
+.mine b{color:var(--ink)}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.navbtn{border:1px solid var(--rule);background:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+
+/* vector page */
+.mat{display:inline-flex;flex-direction:column;align-items:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:4px;padding:0 7px;line-height:1.35;font-family:var(--f-num);vertical-align:middle;min-width:2.4em}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--f-num);font-size:16px}
+.vec-a{color:var(--red);font-weight:700} .vec-b{color:var(--blue);font-weight:700} .vec-c{color:var(--amber);font-weight:700} .vec-w{color:var(--green);font-weight:700}
+.drag{touch-action:none;cursor:crosshair}
+.v-a{stroke:var(--red);fill:var(--red)} .v-b{stroke:var(--blue);fill:var(--blue)} .v-c{stroke:var(--ink);fill:var(--ink)} .v-u{stroke:var(--amber);fill:var(--amber)} .v-w{stroke:var(--green);fill:var(--green)} .v-f{stroke:var(--muted);fill:var(--muted)}
+.g-grid{stroke:var(--rule);stroke-width:1}
+.g-ax{stroke:var(--muted);stroke-width:1.3}
+.t-tk{font-family:var(--f-num);font-size:10.5px;fill:var(--muted)}
+.t-lb{font-size:12px;fill:var(--muted)}
+.t-v{font-family:var(--f-num);font-size:12.5px;font-weight:600}
+.t-va{fill:var(--red)} .t-vb{fill:var(--blue)} .t-vc{fill:var(--ink)} .t-vu{fill:var(--amber)} .t-vw{fill:var(--green)} .t-vm{fill:var(--muted)}
+.dash{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4;fill:none}
+.dash-f{stroke-width:1.4;stroke-dasharray:6 4;fill:none}
+.shadow{stroke:var(--amber);stroke-width:7;stroke-linecap:round;opacity:.45}
+.arc{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:3 3}
+.hdl{fill:var(--sheet);stroke-width:2.4;cursor:grab}
+.hdl.a{stroke:var(--red)} .hdl.b{stroke:var(--blue)} .hdl.w{stroke:var(--green)} .hdl.x{stroke:var(--amber)}
+.reg-p{fill:var(--red-soft)} .reg-n{fill:var(--slate-soft)}
+.pt-p{fill:var(--red)} .pt-n{fill:var(--slate)} .pt-bad{fill:none;stroke:var(--ink);stroke-width:1.6}
+.walker{fill:var(--amber);stroke:var(--ink);stroke-width:1.2}
+.ucirc{fill:none;stroke:var(--amber);stroke-width:1;stroke-dasharray:3 3}
+.sign{display:inline-block;padding:2px 10px;border-radius:4px;font-weight:700;font-size:14px}
+.sign.p{background:var(--red-soft);color:var(--red)} .sign.z{background:var(--green-soft);color:var(--green)} .sign.n{background:var(--slate-soft);color:var(--ink)}
+td.ok,.ok{color:var(--blue);font-weight:700} td.bad,.bad{color:var(--red);font-weight:700}
+.checks{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14.5px}
+.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.checks input{accent-color:var(--ink);width:17px;height:17px}
+
+.flow{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.flow li{border:1px solid var(--rule);border-radius:4px;padding:8px 12px;font-size:14.5px}
+.flow li.sub{margin-left:22px}
+.flow li.on{border-color:var(--amber);background:var(--amber-soft)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:8px 12px;min-width:0}
+.tile .k{font-size:12.5px;color:var(--muted);display:block}
+.tile .v{font-weight:600;font-size:22px;line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+tr.cur td{background:var(--amber-soft)}
+
+table.map td{text-align:left}
+table.map td:first-child{white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">「여기에선 모두가 숫자에 불과하다」 64~70쪽 · 수학적 코다: 퍼셉트론 수렴 증명</p>
+    <h1>수렴 증명 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="학습 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">가정</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">결과 1</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">결과 2</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">결론</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">정리</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 5 · 증명의 무대 세우기</p>
+      <h2 id="h1s">무엇을 가정하고, 무엇을 증명할까</h2>
+    </div>
+    <p class="lead">증명하려는 것은 한 문장이다. <b>데이터를 초평면으로 나눌 수 있으면, 퍼셉트론은 유한한 횟수만 고치고 반드시 멈춘다.</b> 계산이 깔끔해지도록 세 가지를 약속하고 시작한다.</p>
+
+    <div class="tablebox">
+      <table class="map">
+        <thead><tr><th>기호</th><th>뜻</th><th>약속</th></tr></thead>
+        <tbody>
+          <tr><td><b class="vec-w">w*</b></td><td>데이터를 완벽히 나누는 정답 가중치</td><td>길이를 1로 맞춘다 (‖w*‖ = 1)</td></tr>
+          <tr><td><b>x</b></td><td>데이터 점 (벡터)</td><td>가장 먼 점의 길이가 1이 되도록 전체를 같은 비율로 줄인다 (‖x‖ ≤ 1)</td></tr>
+          <tr><td><b>y</b></td><td>정답 라벨</td><td>+1 또는 −1</td></tr>
+          <tr><td><b>γ</b> (감마)</td><td>초평면에서 가장 가까운 점까지의 거리</td><td>0 &lt; γ ≤ 1</td></tr>
+          <tr><td><b>w</b></td><td>훈련 중인 가중치</td><td>0에서 출발, 틀리면 w ← w + y·x</td></tr>
+          <tr><td><b>M</b></td><td>지금까지 고친 횟수</td><td>이 값이 유한함을 보이는 것이 목표</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">전체를 같은 비율로 줄여도 점들 사이의 관계와 방향은 그대로다. 편향은 가중치 벡터 안에 넣었다고 보고, 초평면은 원점을 지나는 것으로 그린다.</p>
+
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">두 무리의 틈</span><input type="range" id="gap1" min="0.05" max="0.5" step="0.05" value="0.15"><span class="num sl-v" id="gap1v"></span></label>
+    </div>
+    <figure>
+      <figcaption>정규화한 데이터와 정답 w* <span class="lg">● +1 · ▲ −1 · 점선 원 = 반지름 1 · 노란 띠 = 초평면에서 γ 이내</span></figcaption>
+      <div class="svgbox"><svg id="fig1" viewBox="0 0 360 360" role="img" aria-label="단위원 안의 데이터와 정답 가중치 벡터"></svg></div>
+    </figure>
+    <div class="readout" id="r1"></div>
+
+    <div class="card"><p class="ct">y·w*ᵀx가 ‘거리’인 이유</p><p class="cs">w*의 길이가 1이므로 w*ᵀx는 x를 w* 방향으로 비춘 그림자의 길이다. 그것이 곧 초평면에서 x까지의 거리다. w*는 모든 점을 맞히므로 y를 곱하면 항상 양수가 된다. 그 가운데 가장 작은 값이 γ다. 그래서 <b>모든 점에서 y·w*ᵀx ≥ γ</b>다.</p></div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 중간 결과 1 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 5 · 중간 결과 1</p>
+      <h2 id="h2s">wᵀw*는 고칠 때마다 γ 이상 커진다</h2>
+    </div>
+    <p class="lead">w가 w*와 같은 쪽을 향할수록 점곱 wᵀw*가 커진다. 한 번 고친 뒤 이 값이 어떻게 변하는지 전개해 보자.</p>
+    <div class="law">
+      <span class="t">전개</span>
+      <p class="eq">w(새)ᵀw* = (w(옛) + y·x)ᵀw* = w(옛)ᵀw* + y·xᵀw*</p>
+      <p>점곱은 순서를 바꿔도 같으므로 y·xᵀw* = y·w*ᵀx이고, STEP 1에서 본 대로 이 값은 γ 이상이다.</p>
+      <p class="eq" style="font-size:17px"><b>w(새)ᵀw* ≥ w(옛)ᵀw* + γ</b></p>
+      <p>0에서 출발해 M번 고쳤다면 γ가 M번 쌓인다. &nbsp;<span class="eq"><b>M·γ ≤ wᵀw*</b> … (1)</span></p>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" data-act="next">갱신 1번 진행</button>
+      <button class="btn" data-act="all">끝까지</button>
+      <button class="btn ghost" data-act="reset">처음부터</button>
+    </div>
+    <figure>
+      <figcaption>훈련 장면 <span class="lg"><span class="vec-w">초록 = w*</span> · 검정 = 지금 w의 방향 · 노란 고리 = 방금 고친 점</span></figcaption>
+      <div class="svgbox"><svg id="fig2" viewBox="0 0 360 360" role="img" aria-label="훈련 중인 w와 정답 w*"></svg></div>
+    </figure>
+    <figure>
+      <figcaption>wᵀw*의 성장 <span class="lg"><span class="vec-a">● wᵀw*</span> · 점선 = M·γ</span></figcaption>
+      <div class="svgbox"><svg id="ch2" viewBox="0 0 360 240" role="img" aria-label="갱신 횟수에 따른 w와 w별의 점곱"></svg></div>
+    </figure>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>M</th><th>고친 점</th><th>늘어난 양 y·w*ᵀx</th><th>≥ γ ?</th><th>wᵀw*</th><th>M·γ</th></tr></thead>
+        <tbody id="tb2"></tbody>
+      </table>
+    </div>
+    <p class="summary" id="m2"></p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 중간 결과 2 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 5 · 중간 결과 2</p>
+      <h2 id="h3s">wᵀw는 고칠 때마다 많아야 1 커진다</h2>
+    </div>
+    <p class="lead">그런데 wᵀw*는 w가 그냥 <b>길어지기만 해도</b> 커진다. 방향이 맞아서 커진 것인지 확인하려면 w 자신의 길이 제곱 wᵀw = ‖w‖²가 얼마나 빨리 자라는지도 봐야 한다.</p>
+    <div class="law">
+      <span class="t">전개</span>
+      <p class="eq">w(새)ᵀw(새) = (w(옛) + y·x)ᵀ(w(옛) + y·x)</p>
+      <p class="eq">= w(옛)ᵀw(옛) + 2y·w(옛)ᵀx + y²·xᵀx</p>
+      <p><b>가운데 항 ≤ 0</b>: 틀린 점에서만 고치므로 y·w(옛)ᵀx ≤ 0이다.<br><b>마지막 항 ≤ 1</b>: y² = 1이고, 정규화했으므로 xᵀx = ‖x‖² ≤ 1이다.</p>
+      <p class="eq" style="font-size:17px"><b>w(새)ᵀw(새) ≤ w(옛)ᵀw(옛) + 1</b></p>
+      <p>0에서 출발해 M번 고쳤다면 &nbsp;<span class="eq"><b>wᵀw ≤ M</b> … (2)</span></p>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" data-act="next">갱신 1번 진행</button>
+      <button class="btn" data-act="all">끝까지</button>
+      <button class="btn ghost" data-act="reset">처음부터</button>
+    </div>
+    <figure>
+      <figcaption>wᵀw의 성장 <span class="lg"><span class="vec-b">■ wᵀw</span> · 점선 = M</span></figcaption>
+      <div class="svgbox"><svg id="ch3" viewBox="0 0 360 240" role="img" aria-label="갱신 횟수에 따른 w의 길이 제곱"></svg></div>
+    </figure>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>M</th><th>2y·wᵀx (≤ 0)</th><th>xᵀx (≤ 1)</th><th>늘어난 양</th><th>wᵀw</th><th>≤ M ?</th></tr></thead>
+        <tbody id="tb3"></tbody>
+      </table>
+    </div>
+    <p class="summary" id="m3"></p>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 결론 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 5 · 두 결과를 합치기</p>
+      <h2 id="h4s">M·γ ≤ √M, 그래서 M ≤ 1/γ²</h2>
+    </div>
+    <div class="law">
+      <span class="t">마지막 연결</span>
+      <p class="eq">wᵀw* = ‖w‖‖w*‖cos θ ≤ ‖w‖ &nbsp;&nbsp;(‖w*‖ = 1, cos θ ≤ 1)</p>
+      <p class="eq">‖w‖ = √(wᵀw) ≤ √M &nbsp;&nbsp;(결과 2)</p>
+      <p class="eq">M·γ ≤ wᵀw* ≤ ‖w‖ ≤ √M &nbsp;&nbsp;(결과 1과 연결)</p>
+      <p class="eq">M²γ² ≤ M &nbsp;→&nbsp; <b style="font-size:18px">M ≤ 1/γ²</b></p>
+      <p>γ는 0보다 큰 수이므로 1/γ²은 유한하다. 고치는 횟수 M이 이 값을 넘을 수 없으니 훈련은 반드시 멈춘다. 증명 끝.</p>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" data-act="next">갱신 1번 진행</button>
+      <button class="btn" data-act="all">끝까지</button>
+      <button class="btn ghost" data-act="reset">처음부터</button>
+    </div>
+    <figure>
+      <figcaption>부등식 사슬을 숫자로 <span class="lg">점선 M·γ ≤ <span class="vec-a">● wᵀw*</span> ≤ <span class="vec-b">■ ‖w‖</span> ≤ 곡선 √M</span></figcaption>
+      <div class="svgbox"><svg id="ch4" viewBox="0 0 360 240" role="img" aria-label="네 값의 크기 순서"></svg></div>
+    </figure>
+    <div class="readout" id="r4"></div>
+
+    <figure>
+      <figcaption>직선 M·γ와 곡선 √M의 시합 <span class="lg">두 선이 만나는 곳이 1/γ²</span></figcaption>
+      <div class="svgbox"><svg id="ch5" viewBox="0 0 360 240" role="img" aria-label="직선과 제곱근 곡선의 교점이 상한"></svg></div>
+    </figure>
+
+    <div>
+      <h3>틈이 좁아지면 상한은 어떻게 될까?</h3>
+      <div class="sliders">
+        <label class="sl-row"><span class="sl-k">두 무리의 틈</span><input type="range" id="gap4" min="0.05" max="0.5" step="0.05" value="0.15"><span class="num sl-v" id="gap4v"></span></label>
+      </div>
+      <div class="tablebox" style="margin-top:8px">
+        <table>
+          <thead><tr><th>틈</th><th>γ</th><th>상한 1/γ²</th><th>실제 갱신 M</th></tr></thead>
+          <tbody id="tb4"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:6px">γ가 절반이 되면 상한은 4배가 된다. 두 무리가 가까울수록 어려운 문제다. 그래도 γ &gt; 0이기만 하면 상한은 유한하다.</p>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 5 · 정리</p>
+      <h2 id="h5s">증명을 네 줄로</h2>
+    </div>
+    <div class="law">
+      <span class="t">한눈에 정리</span>
+      <ol>
+        <li><b>가정</b>: ‖w*‖ = 1, 모든 점에서 ‖x‖ ≤ 1, 초평면에서 가장 가까운 점까지 거리 γ &gt; 0, w는 0에서 출발.</li>
+        <li><b>결과 1</b>: 고칠 때마다 wᵀw*는 γ 이상 커진다. → M·γ ≤ wᵀw*</li>
+        <li><b>결과 2</b>: 고칠 때마다 wᵀw는 많아야 1 커진다. → wᵀw ≤ M</li>
+        <li><b>결론</b>: M·γ ≤ wᵀw* ≤ ‖w‖ ≤ √M 이므로 <b>M ≤ 1/γ²</b>. 선형 분리 가능한 데이터에서 퍼셉트론은 유한 번 만에 멈춘다.</li>
+      </ol>
+    </div>
+    <div class="card"><p class="ct">증명의 뼈대</p><p class="cs">같은 값을 <b>아래에서 받치는 식</b>(빠르게 자람)과 <b>위에서 누르는 식</b>(느리게 자람) 사이에 끼워 넣었다. 둘이 엇갈리는 지점보다 더 멀리 갈 수 없다는 것이 핵심이다. 수학에서 자주 쓰는 ‘샌드위치’ 논법이다.</p></div>
+
+    <div class="qs">
+      <div class="q"><span class="qn">Q1</span><p>결과 1의 전개에서 y·xᵀw* = y·w*ᵀx로 바꿀 수 있는 이유는?</p>
+        <details><summary>답 보기</summary><div class="ans">두 벡터의 점곱은 순서와 상관없다. a = (a1, a2), b = (b1, b2)이면 aᵀb = a1b1 + a2b2 = bᵀa이다.</div></details></div>
+      <div class="q"><span class="qn">Q2</span><p>결과 2에서 가운데 항 2y·wᵀx가 0 이하라는 사실은 알고리즘의 어느 부분에서 나올까?</p>
+        <details><summary>답 보기</summary><div class="ans">퍼셉트론은 <b>y·wᵀx ≤ 0인 점(틀린 점)에서만</b> w를 고친다. 그래서 고치는 순간의 y·wᵀx는 언제나 0 이하다. 맞힌 점에서는 고치지 않으니 이 식을 쓸 일이 없다.</div></details></div>
+      <div class="q"><span class="qn">Q3</span><p>M·γ ≤ √M에서 M ≤ 1/γ²을 유도해 보자. 제곱해도 부등호 방향이 유지되는 이유도 말해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">양변이 모두 0 이상이므로 제곱해도 부등호 방향이 그대로다. M²γ² ≤ M이고, M &gt; 0으로 나누면 Mγ² ≤ 1, 즉 <b>M ≤ 1/γ²</b>이다.</div></details></div>
+      <div class="q"><span class="qn">Q4</span><p>γ = 0.1인 데이터라면 퍼셉트론은 최대 몇 번 고칠까? γ = 0.01이라면?</p>
+        <details><summary>답 보기</summary><div class="ans">1/0.1² = <b>100번</b> 이하, 1/0.01² = <b>10,000번</b> 이하다. γ가 10분의 1이 되면 상한은 100배가 된다.</div></details></div>
+      <div class="q"><span class="qn">Q5</span><p>데이터를 정규화하지 않고, 가장 먼 점의 길이를 R이라고 두면 결과 2와 결론은 어떻게 바뀔까?</p>
+        <details><summary>답 보기</summary><div class="ans">xᵀx ≤ R²이므로 결과 2는 wᵀw ≤ M·R²이 된다. 그러면 M·γ ≤ √M·R이고 <b>M ≤ R²/γ²</b>이다. 정규화는 R = 1로 만들어 식을 간단하게 하는 장치다.</div></details></div>
+      <div class="q"><span class="qn">Q6</span><p>나눌 수 없는 데이터에서는 이 증명의 어느 가정이 무너질까?</p>
+        <details><summary>답 보기</summary><div class="ans">모든 점을 맞히는 w*가 없으므로 γ &gt; 0을 보장할 수 없다. 결과 1(매번 γ 이상 증가)을 쓸 수 없어서 상한이 생기지 않는다.</div></details></div>
+    </div>
+    <p class="mine"><b>나만의 질문 1개</b> · 상한 1/γ²은 실제 갱신 횟수보다 훨씬 클 때가 많다. 그런데도 이 증명이 가치 있는 이유를 한 문장으로 써 보자.</p>
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function fm(v,d){d=d==null?2:d;var m=Math.pow(10,d);v=Math.round(v*m)/m;if(Object.is(v,-0)||Math.abs(v)<1e-9)v=0;return (v<0?'−':'')+Math.abs(v)}
+  function mat(x,y,cls){return '<span class="mat '+(cls||'')+'"><span>'+fm(x)+'</span><span>'+fm(y)+'</span></span>'}
+  function len(v){return Math.hypot(v[0],v[1])}
+  function pv(v){return v<0?'('+fm(v)+')':fm(v)}
+  function sq(v){var s=v[0]*v[0]+v[1]*v[1];var r=Math.sqrt(s);return Math.abs(r-Math.round(r))<1e-9?''+Math.round(r):'√'+fm(s)}
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- routing ---------- */
+  var current=1;
+  function render(){
+    var m=/^#s([1-5])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=5;i++){$('s'+i).hidden=(i!==current);$('st'+i).setAttribute('aria-current',i===current?'step':'false');}
+  }
+  function go(i){i=Math.max(1,Math.min(5,i));if(location.hash!=='#s'+i){location.hash='s'+i}else{render()}window.scrollTo(0,0);}
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  /* ---------- grid helper ---------- */
+  function Grid(o){
+    var W=o.W,H=o.H,P=26,u=Math.min((W-2*P)/(o.xmax-o.xmin),(H-2*P)/(o.ymax-o.ymin));
+    var ox=(W-u*(o.xmax-o.xmin))/2,oy=(H-u*(o.ymax-o.ymin))/2;
+    var G={u:u,o:o};
+    G.px=function(x){return ox+(x-o.xmin)*u}; G.py=function(y){return H-oy-(y-o.ymin)*u};
+    G.inv=function(sx,sy){return [(sx-ox)/u+o.xmin,(H-oy-sy)/u+o.ymin]};
+    var s='',st=o.tick||1;
+    for(var x=Math.ceil(o.xmin);x<=o.xmax;x++) s+='<line class="g-grid" x1="'+G.px(x)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(x)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(var y=Math.ceil(o.ymin);y<=o.ymax;y++) s+='<line class="g-grid" x1="'+G.px(o.xmin)+'" y1="'+G.py(y)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(y)+'"/>';
+    s+='<line class="g-ax" x1="'+G.px(o.xmin)+'" y1="'+G.py(0)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(0)+'"/><line class="g-ax" x1="'+G.px(0)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(0)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(x=Math.ceil(o.xmin/st)*st;x<=o.xmax;x+=st) if(x) s+='<text class="t-tk" x="'+G.px(x)+'" y="'+(G.py(0)+13)+'" text-anchor="middle">'+(x<0?'−'+(-x):x)+'</text>';
+    for(y=Math.ceil(o.ymin/st)*st;y<=o.ymax;y+=st) if(y) s+='<text class="t-tk" x="'+(G.px(0)-5)+'" y="'+(G.py(y)+4)+'" text-anchor="end">'+(y<0?'−'+(-y):y)+'</text>';
+    if(o.xl) s+='<text class="t-lb" x="'+(G.px(o.xmax)-2)+'" y="'+(G.py(0)-6)+'" text-anchor="end">'+o.xl+'</text>';
+    if(o.yl) s+='<text class="t-lb" x="'+(G.px(0)+6)+'" y="'+(G.py(o.ymax)+12)+'">'+o.yl+'</text>';
+    G.base=s;
+    G.arrow=function(a,b,cls,w){
+      var x1=G.px(a[0]),y1=G.py(a[1]),x2=G.px(b[0]),y2=G.py(b[1]),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);w=w||2.4;
+      if(L<2) return '';
+      var hl=Math.min(11,L*0.45),ux=dx/L,uy=dy/L,bx=x2-ux*hl,by=y2-uy*hl;
+      return '<line class="'+cls+'" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y2="'+by.toFixed(1)+'" stroke-width="'+w+'"/>'+
+        '<polygon class="'+cls+'" stroke-width="1" points="'+x2.toFixed(1)+','+y2.toFixed(1)+' '+(bx-uy*5.5).toFixed(1)+','+(by+ux*5.5).toFixed(1)+' '+(bx+uy*5.5).toFixed(1)+','+(by-ux*5.5).toFixed(1)+'"/>';
+    };
+    G.line=function(a,b,cls){return '<line class="'+cls+'" x1="'+G.px(a[0]).toFixed(1)+'" y1="'+G.py(a[1]).toFixed(1)+'" x2="'+G.px(b[0]).toFixed(1)+'" y2="'+G.py(b[1]).toFixed(1)+'"/>'};
+    G.text=function(p,t,cls,dx,dy,anc){return '<text class="t-v '+cls+'" x="'+(G.px(p[0])+(dx||0)).toFixed(1)+'" y="'+(G.py(p[1])+(dy||0)).toFixed(1)+'" text-anchor="'+(anc||'middle')+'">'+t+'</text>'};
+    G.clipLine=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],pts=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var p=R[i],q=R[(i+1)%4],fp=f(p),fq=f(q);if(fp===0)pts.push(p);else if(fp*fq<0){var t=fp/(fp-fq);pts.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])])}}
+      return pts.length>=2?[pts[0],pts[1]]:null;};
+    G.clipPoly=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],poly=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var a=R[i],b=R[(i+1)%4],fa=f(a),fb=f(b);if(fa>0)poly.push(a);if((fa>0)!==(fb>0)&&fa!==fb){var t=fa/(fa-fb);poly.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}}
+      return poly;};
+    return G;
+  }
+  function svgPoint(svg,e){var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;var m=svg.getScreenCTM();if(!m)return null;var p=pt.matrixTransform(m.inverse());return [p.x,p.y]}
+  function dragger(svg,G,setters,onChange){
+    var active=null;
+    svg.addEventListener('pointerdown',function(e){var h=e.target.getAttribute&&e.target.getAttribute('data-h');if(!h)return;active=h;try{svg.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+    svg.addEventListener('pointermove',function(e){if(!active)return;var p=svgPoint(svg,e);if(!p)return;var d=G.inv(p[0],p[1]),o=G.o;
+      var x=Math.max(o.xmin,Math.min(o.xmax,Math.round(d[0]))),y=Math.max(o.ymin,Math.min(o.ymax,Math.round(d[1])));setters[active](x,y);onChange()});
+    function end(){active=null} svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+  }
+  function hdl(G,p,name){return '<circle class="hdl '+name+'" data-h="'+name+'" cx="'+G.px(p[0]).toFixed(1)+'" cy="'+G.py(p[1]).toFixed(1)+'" r="10"/>'}
+
+  function pm(v){return v>0?'+1':'−1'}
+  function f3(v){return fm(v,3)}
+  var WS=[0.6,0.8],U=[-0.8,0.6],BASE=[[0,-0.5,1],[0.1,0.5,-1],[0,1,1],[0.3,1,-1],[0.3,0.3,1],[0.1,-0.3,-1],[0.1,-0.1,1],[0.1,0.4,-1]];
+  var gap=0.15,S,M=0;
+  function build(g){
+    var P=BASE.map(function(b){var s=b[2]*(g+b[0]);return [s*WS[0]+b[1]*U[0],s*WS[1]+b[1]*U[1],b[2]]}),R=0;
+    P.forEach(function(p){R=Math.max(R,Math.hypot(p[0],p[1]))});
+    P=P.map(function(p){return [p[0]/R,p[1]/R,p[2]]});
+    var gm=Infinity;P.forEach(function(p){gm=Math.min(gm,p[2]*(WS[0]*p[0]+WS[1]*p[1]))});
+    var w=[0,0],h=[{w:[0,0],a:0,n2:0}];
+    for(var pass=0;pass<5000;pass++){var u=0;P.forEach(function(p,i){var z=w[0]*p[0]+w[1]*p[1];if(p[2]*z<=0){var e={i:i,inc1:p[2]*(WS[0]*p[0]+WS[1]*p[1]),mid:2*p[2]*z,xx:p[0]*p[0]+p[1]*p[1]};
+      w=[w[0]+p[2]*p[0],w[1]+p[2]*p[1]];e.w=w.slice();e.a=w[0]*WS[0]+w[1]*WS[1];e.n2=w[0]*w[0]+w[1]*w[1];h.push(e);u++}});if(!u)break}
+    return {P:P,g:gm,h:h,N:h.length-1,bound:1/(gm*gm)};
+  }
+  function setGap(g){gap=g;S=build(g);M=0;$('gap1').value=g;$('gap4').value=g;drawAll()}
+  ['gap1','gap4'].forEach(function(id){$(id).addEventListener('input',function(){setGap(+this.value)})});
+  document.querySelectorAll('[data-act]').forEach(function(b){b.addEventListener('click',function(){var a=b.dataset.act;
+    if(a==='next'&&M<S.N)M++;else if(a==='all')M=S.N;else if(a==='reset')M=0;drawAll()})});
+
+  var GS=Grid({W:360,H:360,xmin:-1.25,xmax:1.25,ymin:-1.25,ymax:1.25,tick:1});
+  function scene(id,dyn){
+    var s='',g=S.g,o=GS.o;
+    s+='<rect class="reg-n" x="'+GS.px(o.xmin)+'" y="'+GS.py(o.ymax)+'" width="'+(GS.px(o.xmax)-GS.px(o.xmin))+'" height="'+(GS.py(o.ymin)-GS.py(o.ymax))+'"/>';
+    var poly=GS.clipPoly(WS[0],WS[1],0);s+='<polygon class="reg-p" points="'+poly.map(function(p){return GS.px(p[0]).toFixed(1)+','+GS.py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    var c=[[U[0]*2+WS[0]*g,U[1]*2+WS[1]*g],[-U[0]*2+WS[0]*g,-U[1]*2+WS[1]*g],[-U[0]*2-WS[0]*g,-U[1]*2-WS[1]*g],[U[0]*2-WS[0]*g,U[1]*2-WS[1]*g]];
+    s+='<clipPath id="cp'+id+'"><rect x="'+GS.px(o.xmin)+'" y="'+GS.py(o.ymax)+'" width="'+(GS.px(o.xmax)-GS.px(o.xmin))+'" height="'+(GS.py(o.ymin)-GS.py(o.ymax))+'"/></clipPath>';
+    s+='<polygon clip-path="url(#cp'+id+')" points="'+c.map(function(p){return GS.px(p[0]).toFixed(1)+','+GS.py(p[1]).toFixed(1)}).join(' ')+'" style="fill:var(--amber);opacity:.3"/>';
+    s+=GS.base+'<circle class="ucirc" cx="'+GS.px(0)+'" cy="'+GS.py(0)+'" r="'+GS.u+'"/>';
+    var dl=GS.clipLine(WS[0],WS[1],0);s+='<line class="v-w" stroke-width="2" x1="'+GS.px(dl[0][0]).toFixed(1)+'" y1="'+GS.py(dl[0][1]).toFixed(1)+'" x2="'+GS.px(dl[1][0]).toFixed(1)+'" y2="'+GS.py(dl[1][1]).toFixed(1)+'"/>';
+    var cur=dyn&&M?S.h[M]:null;
+    if(cur){var L=Math.hypot(cur.w[0],cur.w[1]);if(L>1e-9){var wl=GS.clipLine(cur.w[0],cur.w[1],0);if(wl)s+='<line class="dash-f v-c" x1="'+GS.px(wl[0][0]).toFixed(1)+'" y1="'+GS.py(wl[0][1]).toFixed(1)+'" x2="'+GS.px(wl[1][0]).toFixed(1)+'" y2="'+GS.py(wl[1][1]).toFixed(1)+'"/>';
+      s+=GS.arrow([0,0],[cur.w[0]/L*0.8,cur.w[1]/L*0.8],'v-c',2.6)}}
+    S.P.forEach(function(p,i){var X=GS.px(p[0]),Y=GS.py(p[1]);
+      if(cur&&cur.i===i)s+='<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="13" style="fill:none;stroke:var(--amber);stroke-width:2.6"/>';
+      if(dyn){var w=S.h[M].w;if(p[2]*(w[0]*p[0]+w[1]*p[1])<=0)s+='<circle class="pt-bad" cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="9.5"/>'}
+      s+=p[2]>0?'<circle class="pt-p" cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="5.5"/>':'<polygon class="pt-n" points="'+X.toFixed(1)+','+(Y-6.5).toFixed(1)+' '+(X+6.5).toFixed(1)+','+(Y+5).toFixed(1)+' '+(X-6.5).toFixed(1)+','+(Y+5).toFixed(1)+'"/>';
+      s+='<text class="t-tk" x="'+(X+8).toFixed(1)+'" y="'+(Y-7).toFixed(1)+'">#'+(i+1)+'</text>'});
+    s+=GS.arrow([0,0],WS,'v-w',3)+GS.text(WS,'w*','t-vw',12,-6);
+    $(id).innerHTML=s;
+  }
+  function chart(o){
+    var W=360,H=240,L=44,R=14,T=14,B=34,s='';
+    function X(v){return L+v/o.xmax*(W-L-R)} function Y(v){return H-B-v/o.ymax*(H-T-B)}
+    var d=o.ymax<5?(o.ymax<1.2?2:1):0,dx=o.xint?0:(o.xmax<8?1:0);
+    for(var i=0;i<=4;i++){var yv=o.ymax*i/4,xv=o.xmax*i/4;
+      s+='<line class="g-grid" x1="'+L+'" y1="'+Y(yv)+'" x2="'+(W-R)+'" y2="'+Y(yv)+'"/><text class="t-tk" x="'+(L-6)+'" y="'+(Y(yv)+4)+'" text-anchor="end">'+fm(yv,d)+'</text>';
+      s+='<text class="t-tk" x="'+X(xv)+'" y="'+(H-B+15)+'" text-anchor="middle">'+fm(xv,dx)+'</text>'}
+    s+='<line class="g-ax" x1="'+L+'" y1="'+Y(0)+'" x2="'+(W-R)+'" y2="'+Y(0)+'"/><line class="g-ax" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+Y(0)+'"/>';
+    s+='<text class="t-lb" x="'+(W-R)+'" y="'+(H-4)+'" text-anchor="end">갱신 횟수 M</text>';
+    o.series.forEach(function(Se){
+      if(Se.type==='line'){s+='<polyline points="'+Se.pts.filter(function(p){return p[1]<=o.ymax*1.02}).map(function(p){return X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)}).join(' ')+'" style="fill:none;stroke:'+Se.color+';stroke-width:2'+(Se.dash?';stroke-dasharray:6 4':'')+'"/>'}
+      else Se.pts.forEach(function(p){s+=Se.type==='sq'?'<rect x="'+(X(p[0])-3.5).toFixed(1)+'" y="'+(Y(p[1])-3.5).toFixed(1)+'" width="7" height="7" style="fill:'+Se.color+'"/>':'<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4" style="fill:'+Se.color+'"/>'});
+      if(Se.label)s+='<text class="t-v" x="'+(X(Se.lx)+(Se.dx||0)).toFixed(1)+'" y="'+(Y(Math.min(Se.ly,o.ymax))+(Se.dy||0)).toFixed(1)+'" text-anchor="'+(Se.anc||'start')+'" style="fill:'+Se.color+'">'+Se.label+'</text>'});
+    (o.marks||[]).forEach(function(m){s+='<line x1="'+X(m.x)+'" y1="'+T+'" x2="'+X(m.x)+'" y2="'+Y(0)+'" style="stroke:'+m.color+';stroke-width:1.4;stroke-dasharray:3 3"/><text class="t-v" x="'+(X(m.x)+(m.dx||5))+'" y="'+(T+12+(m.dy||0))+'" text-anchor="'+(m.anc||'start')+'" style="fill:'+m.color+'">'+m.label+'</text>'});
+    return s;
+  }
+  function nice(v){var p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;return (m<=1?1:m<=2?2:m<=5?5:10)*p}
+  function drawAll(){
+    var h=S.h,N=S.N,g=S.g,i,cur=h[M];
+    $('gap1v').textContent=$('gap4v').textContent=fm(gap);
+    scene('fig1',false);scene('fig2',true);
+    $('r1').innerHTML='<p class="eq">w* = [0.6, 0.8], ‖w*‖ = √(0.36 + 0.64) = 1</p><p class="eq">가장 가까운 점까지 거리 γ = <b>'+f3(g)+'</b></p><p class="eq">이 증명이 보장하는 상한: M ≤ 1/γ² = 1/'+f3(g*g)+' ≈ <b>'+fm(S.bound,1)+'</b></p><p class="hint">틈을 좁히면 γ가 작아지고 상한이 커진다. 다음 STEP에서 실제 훈련을 돌려 본다.</p>';
+    var xm=Math.ceil(Math.max(N,4)/4)*4,a=[],n=[],nn=[],lo=[],id=[],sq=[];
+    for(i=0;i<=M;i++){a.push([i,h[i].a]);n.push([i,h[i].n2]);nn.push([i,Math.sqrt(h[i].n2)])}
+    for(i=0;i<=40;i++){var m=xm*i/40;lo.push([m,m*g]);id.push([m,m]);sq.push([m,Math.sqrt(m)])}
+    var ya=nice(Math.max(h[N].a,N*g)*1.1);
+    $('ch2').innerHTML=chart({xmax:xm,ymax:ya,xint:true,series:[{type:'line',pts:lo,color:'var(--muted)',dash:true,label:'M·γ',lx:xm,ly:xm*g,dx:-4,dy:15,anc:'end'},{type:'dot',pts:a,color:'var(--red)'}]});
+    var yn=nice(Math.max(N,1));
+    $('ch3').innerHTML=chart({xmax:xm,ymax:Math.max(yn,xm),xint:true,series:[{type:'line',pts:id,color:'var(--muted)',dash:true,label:'M',lx:xm*0.8,ly:xm*0.8,dx:-8,dy:-6,anc:'end'},{type:'sq',pts:n,color:'var(--blue)'}]});
+    var y4=nice(Math.sqrt(xm)*1.1);
+    $('ch4').innerHTML=chart({xmax:xm,ymax:y4,xint:true,series:[{type:'line',pts:sq,color:'var(--ink)',label:'√M',lx:xm*0.5,ly:Math.sqrt(xm*0.5),dy:-9},{type:'line',pts:lo,color:'var(--muted)',dash:true,label:'M·γ',lx:xm,ly:xm*g,dx:-4,dy:15,anc:'end'},{type:'sq',pts:nn,color:'var(--blue)'},{type:'dot',pts:a,color:'var(--red)'}]});
+    var bd=S.bound,x5=bd*1.3,l1=[],l2=[];for(i=0;i<=60;i++){var mm=x5*i/60;l1.push([mm,mm*g]);l2.push([mm,Math.sqrt(mm)])}
+    $('ch5').innerHTML=chart({xmax:x5,ymax:Math.sqrt(x5)*1.15,series:[{type:'line',pts:l2,color:'var(--ink)',label:'√M',lx:x5*0.25,ly:Math.sqrt(x5*0.25),dy:-9},{type:'line',pts:l1,color:'var(--red)',label:'M·γ',lx:x5*0.5,ly:x5*0.5*g,dy:17}],
+      marks:[{x:bd,color:'var(--ink)',label:'1/γ² ≈ '+fm(bd,1),anc:'end',dx:-5},{x:N,color:'var(--amber)',label:'실제 '+N,dy:16}]});
+    var r2='',r3='',from=Math.max(1,M-7);
+    for(i=from;i<=M;i++){var e=h[i];
+      r2+='<tr'+(i===M?' class="cur"':'')+'><td class="num">'+i+'</td><td class="num">#'+(e.i+1)+'</td><td class="num">'+f3(e.inc1)+'</td><td class="ok">○</td><td class="num">'+f3(e.a)+'</td><td class="num">'+f3(i*g)+'</td></tr>';
+      r3+='<tr'+(i===M?' class="cur"':'')+'><td class="num">'+i+'</td><td class="num">'+f3(e.mid)+'</td><td class="num">'+f3(e.xx)+'</td><td class="num">'+f3(e.mid+e.xx)+'</td><td class="num">'+f3(e.n2)+'</td><td class="ok">○</td></tr>'}
+    var empty='<tr><td colspan="6" style="color:var(--muted)">‘갱신 1번 진행’을 눌러 보자.</td></tr>';
+    $('tb2').innerHTML=r2||empty;$('tb3').innerHTML=r3||empty;
+    var fin=M===N?' <b>훈련 종료: 총 '+N+'번 고쳤다.</b>':'';
+    $('m2').innerHTML=M?'M = '+M+': wᵀw* = '+f3(cur.a)+' ≥ M·γ = '+f3(M*g)+'. 늘어난 양은 매번 γ = '+f3(g)+' 이상이다.'+fin+(M>8?' <span style="font-weight:400;color:var(--muted)">(표는 최근 8번만 보여 준다.)</span>':''):'w = 0에서 시작한다. wᵀw* = 0.';
+    $('m3').innerHTML=M?'M = '+M+': wᵀw = '+f3(cur.n2)+' ≤ M = '+M+'. 가운데 항이 0 이하라서 한 번에 1보다 많이 늘 수 없다.'+fin:'w = 0에서 시작한다. wᵀw = 0.';
+    var nw=Math.sqrt(cur.n2);
+    $('r4').innerHTML='<p class="eq">M = '+M+' / '+N+'</p><p class="eq">M·γ = '+f3(M*g)+' ≤ wᵀw* = <b>'+f3(cur.a)+'</b> ≤ ‖w‖ = '+f3(nw)+' ≤ √M = '+f3(Math.sqrt(M))+'</p>'+(M?'<p class="eq">cos θ = wᵀw* / ‖w‖ = '+f3(cur.a/nw)+' → w와 w* 사이 각 '+fm(Math.acos(Math.min(1,cur.a/nw))*180/Math.PI,1)+'°</p>':'')+
+      '<p class="eq">상한 1/γ² ≈ '+fm(bd,1)+', 실제 갱신 '+(M===N?'<b>'+N+'번</b>으로 종료':'진행 중')+'</p>';
+    $('tb4').innerHTML=[0.05,0.1,0.15,0.2,0.3,0.5].map(function(gp){var T=Math.abs(gp-gap)<1e-9?S:build(gp);
+      return '<tr'+(Math.abs(gp-gap)<1e-9?' class="cur"':'')+'><td class="num">'+fm(gp)+'</td><td class="num">'+f3(T.g)+'</td><td class="num">'+fm(T.bound,1)+'</td><td class="num"><b>'+T.N+'</b></td></tr>'}).join('');
+    document.querySelectorAll('[data-act="next"],[data-act="all"]').forEach(function(b){b.disabled=M>=N});
+  }
+  setGap(0.15);
+  render();
+})();
+</script>
+</body>
+</html>
