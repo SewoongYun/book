@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>사원수 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2E7D5B; --green-soft:#DDF0E6;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+  --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+  --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+  --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.top{margin-bottom:12px}
+.book{font-size:13px;color:var(--muted);letter-spacing:.02em;margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4.4vw,34px);line-height:1.2;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:640px){.stepper{grid-template-columns:repeat(3,minmax(0,1fr))}.stepper .sl{font-size:13px}.stepper button{padding:7px 8px;gap:6px}}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:26px 22px;padding-inline:clamp(18px,4vw,38px);display:flex;flex-direction:column;gap:20px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3.6vw,28px);line-height:1.3;margin:4px 0 0}
+.lead{margin:0;max-width:64ch}
+h3{font-size:15px;font-weight:700;margin:0 0 6px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:25px;line-height:1.15;margin:0;transform:rotate(-2deg);transform-origin:left center}
+.scene{background:var(--paper);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scene p{margin:0}
+.hint{font-size:13.5px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14.5px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figcaption{font-size:14px;font-weight:700}
+figcaption .lg{font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+.svgbox{border:1px solid var(--rule);border-radius:4px;background:var(--sheet);overflow:hidden}
+.svgbox svg,.svgbox canvas{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+/* hamilton */
+.hero{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+@media (max-width:560px){.hero{grid-template-columns:1fr;justify-items:start}}
+.badge-svg{width:150px;height:auto}
+.hero .name{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0}
+.hero .life{font-size:13.5px;color:var(--muted);margin:0 0 6px}
+.hero p{margin:0}
+.timeline{list-style:none;margin:0;padding:0;border-left:2px solid var(--ink);display:grid;gap:12px}
+.timeline li{position:relative;padding-left:18px}
+.timeline li::before{content:"";position:absolute;left:-7px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--sheet);border:2px solid var(--ink)}
+.timeline li.key::before{background:var(--red);border-color:var(--red)}
+.timeline .yr{font-family:var(--f-num);font-weight:600;color:var(--red);margin-right:8px}
+.timeline .tt{font-weight:700}
+.timeline .td{display:block;font-size:14.5px;color:var(--muted)}
+.quote{margin:0;border-left:3px solid var(--red);padding:4px 0 4px 16px}
+.quote p{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(16px,2.5vw,19px);line-height:1.6}
+.quote cite{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:4px}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14.5px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.ghost{border-color:var(--rule);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--sheet);padding:8px 13px;cursor:pointer;font-weight:500;font-size:14.5px;border-left:1px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.sliders{display:grid;gap:6px;max-width:560px;width:100%}
+.sl-row{display:grid;grid-template-columns:5.5em 1fr 4.4em;align-items:center;gap:10px}
+.sl-k{font-weight:600;font-size:14.5px}
+.sl-v{text-align:right;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.readout{background:var(--paper);border-radius:4px;padding:12px 14px;display:grid;gap:4px;font-size:14.5px}
+.readout p{margin:0}
+.eq{font-family:var(--f-num);font-size:15px;overflow-wrap:anywhere}
+.eq b{color:var(--red)}
+.summary{margin:0;font-weight:500}
+.summary b{color:var(--red)}
+
+/* table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--rule)}
+thead th{font-size:12.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+.mt{max-width:420px}
+.mt th,.mt td{font-family:var(--f-num);font-size:17px;padding:0;border:1px solid var(--rule)}
+.mt thead th{color:var(--ink);background:var(--paper);height:44px;font-size:15px}
+.mt tbody th{background:var(--paper);width:52px}
+.mt td button{width:100%;height:46px;border:0;background:var(--sheet);cursor:pointer;font-family:var(--f-num);font-size:17px;font-weight:600}
+.mt td button:hover{background:var(--paper)}
+.mt td button.neg{color:var(--red)}
+.mt td button.sel{background:var(--amber-soft);outline:2px solid var(--amber);outline-offset:-2px}
+.mt td button.pair{background:var(--slate-soft)}
+.exp{border-collapse:collapse;font-size:13.5px}
+.exp th,.exp td{border:1px solid var(--rule);padding:6px 6px;font-family:var(--f-num)}
+.exp th{background:var(--paper);font-weight:600}
+.exp td.z{color:var(--muted);opacity:.55}
+.exp td.r{background:var(--green-soft)} .exp td.i{background:var(--red-soft)} .exp td.j{background:var(--blue-soft)} .exp td.k{background:var(--amber-soft)}
+.qin{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:460px}
+.qin label{display:flex;align-items:center;gap:4px;font-family:var(--f-num);font-size:14px}
+.qin input{width:100%;min-width:0;font-family:var(--f-num);font-size:16px;padding:6px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+.qin input.err{border-color:var(--red)}
+.qrow{display:flex;flex-direction:column;gap:4px}
+.qrow .qh{font-weight:700;font-size:14.5px}
+.err-msg{font-size:13px;color:var(--red);margin:0;min-height:1.2em}
+.cmp{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:4px;overflow:hidden;font-family:var(--f-num)}
+.cmp div{padding:8px 6px;text-align:center;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule)}
+.cmp div.h{background:var(--paper);font-size:12.5px;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.cmp div.lab{border-left:0;text-align:left;font-family:var(--f-body);font-weight:700;font-size:13.5px;background:var(--paper)}
+.cmp div.diff{background:var(--red-soft);color:var(--red);font-weight:700}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.card{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.card p{margin:0}
+.card .ct{font-weight:700}
+.card .cs{font-size:14.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.law .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.law p{margin:0}
+.law ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 14px}
+.recall b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:4px 10px;padding:12px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:14.5px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:13.5px;width:max-content}
+details[open] summary{margin-bottom:4px}
+.ans{background:var(--paper);padding:10px 12px;border-radius:4px}
+.more{font-size:14.5px}
+.mine{margin:0;font-size:14.5px;color:var(--muted)}
+.mine b{color:var(--ink)}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.navbtn{border:1px solid var(--rule);background:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+
+/* svg classes */
+.g-grid{stroke:var(--rule);stroke-width:1}
+.g-ax{stroke:var(--muted);stroke-width:1.4}
+.g-unit{fill:none;stroke:var(--slate);stroke-width:1;stroke-dasharray:4 4}
+.g-trail{fill:var(--slate)}
+.g-pt{fill:var(--red)}
+.g-arc{fill:none;stroke:var(--amber);stroke-width:2}
+.t-tk{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
+.t-lb{font-size:12.5px;fill:var(--muted)}
+.t-pt{font-family:var(--f-num);font-size:13px;font-weight:600;fill:var(--red)}
+.cy-node{fill:var(--sheet);stroke:var(--ink);stroke-width:1.6}
+.cy-node.on{fill:var(--amber-soft);stroke:var(--amber)}
+.cy-t{font-family:var(--f-num);font-size:20px;font-weight:600;fill:var(--ink)}
+.cy-arr{fill:none;stroke:var(--muted);stroke-width:1.8}
+.cy-arr.on{stroke:var(--red);stroke-width:2.6}
+.ah{fill:var(--muted)}
+.ah-on{fill:var(--red)}
+.br-water{fill:var(--blue-soft)}
+.br-stone{fill:var(--slate-soft);stroke:var(--slate);stroke-width:1.4}
+.br-plaque{fill:var(--sheet);stroke:var(--ink);stroke-width:1.4}
+.br-t{font-family:var(--f-display);font-weight:800;font-size:15px;fill:var(--ink)}
+.br-s{font-size:11.5px;fill:var(--muted)}
+.bd-ring{fill:var(--amber-soft);stroke:var(--amber);stroke-width:2}
+.bd-in{fill:none;stroke:var(--amber);stroke-width:1;stroke-dasharray:3 3}
+.bd-m{font-family:var(--f-display);font-weight:800;font-size:30px;fill:var(--ink)}
+.bd-s{font-size:11px;fill:var(--muted);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">해밀턴과 사원수 · ‘벡터’라는 말이 태어난 이야기</p>
+    <h1>사원수 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="학습 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">해밀턴</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">복소수 회전</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">i·j·k</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">계산기</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">3D 회전</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 5 · 해밀턴 이야기</p>
+      <h2 id="h1s">다리에 수식을 새긴 수학자</h2>
+    </div>
+
+    <div class="hero">
+      <svg class="badge-svg" viewBox="0 0 150 150" role="img" aria-label="윌리엄 로언 해밀턴 이니셜 배지">
+        <circle class="bd-ring" cx="75" cy="75" r="70"/>
+        <circle class="bd-in" cx="75" cy="75" r="58"/>
+        <text class="bd-m" x="75" y="84" text-anchor="middle">W.R.H.</text>
+        <text class="bd-s" x="75" y="108" text-anchor="middle">1805–1865</text>
+        <text class="bd-s" x="75" y="50" text-anchor="middle">DUBLIN</text>
+      </svg>
+      <div>
+        <p class="name">윌리엄 로언 해밀턴</p>
+        <p class="life">1805–1865 · 아일랜드 더블린 · 수학자·물리학자·천문학자</p>
+        <p>어릴 때부터 언어와 계산에 뛰어난 신동으로 소문났다. 대학생이던 22살에 아일랜드 왕립 천문학자로 임명될 만큼 인정받았다. 오늘날 물리학과 인공지능 교과서에도 그의 이름과 아이디어가 남아 있다.</p>
+      </div>
+    </div>
+
+    <div>
+      <h3>해밀턴의 업적 연표</h3>
+      <ol class="timeline">
+        <li><span class="yr">1805</span><span class="tt">더블린에서 태어남</span><span class="td">어린 시절부터 여러 언어를 익힌 신동으로 유명했다.</span></li>
+        <li><span class="yr">1827</span><span class="tt">22살, 아일랜드 왕립 천문학자</span><span class="td">아직 대학생인데도 트리니티 칼리지 천문학 교수 자리에 올랐다.</span></li>
+        <li><span class="yr">1833</span><span class="tt">빛과 운동을 하나의 수학으로</span><span class="td">‘해밀턴 역학’을 만들었다. 이 이름은 지금도 양자역학의 핵심 식에 쓰인다.</span></li>
+        <li class="key"><span class="yr">1843</span><span class="tt">10월 16일, 사원수 발견</span><span class="td">산책 중 떠오른 i² = j² = k² = ijk = −1을 브룸 다리 돌에 새겼다.</span></li>
+        <li class="key"><span class="yr">1846</span><span class="tt">‘스칼라’와 ‘벡터’라는 이름을 붙임</span><span class="td">사원수의 실수 부분을 스칼라, 나머지 i·j·k 부분을 벡터라고 불렀다.</span></li>
+        <li><span class="yr">1865</span><span class="tt">세상을 떠남</span><span class="td">말년까지 사원수 연구에 매달렸다.</span></li>
+      </ol>
+    </div>
+
+    <figure>
+      <figcaption>1843년 10월 16일, 브룸 다리 <span class="lg">지금도 다리에 기념판이 있다</span></figcaption>
+      <div class="svgbox">
+        <svg viewBox="0 0 400 200" role="img" aria-label="운하 위 돌다리와 i² = j² = k² = ijk = −1이 새겨진 기념판">
+          <rect class="br-water" x="0" y="150" width="400" height="50"/>
+          <path class="br-stone" d="M20 150 L20 70 L380 70 L380 150 L300 150 Q300 92 200 92 Q100 92 100 150 Z"/>
+          <rect class="br-plaque" x="112" y="20" width="176" height="44" rx="3"/>
+          <text class="br-t" x="200" y="48" text-anchor="middle">i² = j² = k² = ijk = −1</text>
+          <text class="br-s" x="200" y="185" text-anchor="middle">더블린 로열 운하 · 브룸 다리(Broom Bridge)</text>
+        </svg>
+      </div>
+    </figure>
+
+    <div class="scene">
+      <p>해밀턴은 10년 넘게 ‘3차원 수’를 찾고 있었다. 복소수(실수 1개 + 허수 1개)가 평면을 다루듯, 공간을 다룰 수를 원했다.</p>
+      <p>아들들이 아침마다 물었다고 한다. <b>“아빠, 세 쌍(triplet) 곱하는 법 찾으셨어요?”</b></p>
+      <p class="pen">“아니, 아직 더하고 빼는 것만 할 수 있단다.”</p>
+      <p>답은 의외의 곳에 있었다. 수가 3개가 아니라 <b>4개</b> 필요했던 것이다. 아내와 운하를 따라 걷던 날, 그 생각이 번뜩 떠올랐다.</p>
+    </div>
+
+    <div>
+      <h3>예상해 보자: 복소수를 넘어서는 새로운 수를 만들면, 무엇을 포기해야 했을까?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 예상">
+        <button class="chip" data-v="덧셈의 규칙" aria-pressed="false">덧셈의 규칙</button>
+        <button class="chip" data-v="곱셈의 교환법칙 (ab = ba)" aria-pressed="false">곱셈의 교환법칙 (ab = ba)</button>
+        <button class="chip" data-v="아무것도 포기하지 않아도 된다" aria-pressed="false">아무것도 포기하지 않아도 된다</button>
+      </div>
+      <p class="hint" style="margin-top:6px">답은 STEP 3에서 직접 확인한다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 복소수 회전 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 5 · 출발점: 복소수</p>
+      <h2 id="h2s">i를 곱하면 90° 돈다</h2>
+    </div>
+    <p class="lead">복소수 a + bi는 좌표평면의 점 (a, b)로 볼 수 있다. 여기에 i를 곱하면 점이 원점을 중심으로 <b>90° 회전</b>한다. 해밀턴은 이 ‘곱셈 = 회전’을 3차원으로 넓히고 싶었다.</p>
+
+    <div class="controls">
+      <button class="btn primary" id="cI">× i (90°)</button>
+      <button class="btn" id="cN">× (−1) (180°)</button>
+      <button class="btn" id="cNI">× (−i) (−90°)</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="cR">처음으로</button>
+    </div>
+
+    <figure>
+      <figcaption>복소평면 <span class="lg">점선 원 = 원점에서의 거리가 같은 곳</span></figcaption>
+      <div class="svgbox" id="cplane"></div>
+    </figure>
+
+    <div class="readout" id="cRead"></div>
+
+    <div>
+      <h3>원하는 각도만큼 돌리기</h3>
+      <div class="sliders">
+        <label class="sl-row"><span class="sl-k">각도 φ</span><input type="range" id="cAng" min="-180" max="180" step="15" value="45"><span class="num sl-v" id="cAngV">45°</span></label>
+      </div>
+      <div class="controls" style="margin-top:8px"><button class="btn" id="cRot">(cos φ + i sin φ) 곱하기</button></div>
+    </div>
+
+    <div class="card">
+      <p class="ct">i² = −1의 뜻</p>
+      <p class="cs">× i를 두 번 누르면 90° + 90° = 180°이다. 그래서 × (−1)과 결과가 같다. 즉 i × i = −1은 “90° 회전을 두 번 하면 반대 방향이 된다”는 뜻이다.</p>
+    </div>
+
+    <p class="pen">평면 회전은 복소수로 OK! 그럼 공간 회전은?</p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · i·j·k 곱셈 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 5 · 사원수의 곱셈 규칙</p>
+      <h2 id="h3s">i, j, k 세 개의 허수</h2>
+    </div>
+    <p class="lead">사원수는 <b>q = a + bi + cj + dk</b> 꼴의 수다. 실수 1개와 허수 단위 3개로 이루어져서 ‘4원수’라고 부른다. 곱셈 규칙은 다리에 새긴 한 줄에 모두 들어 있다.</p>
+
+    <div class="readout"><p class="eq" style="font-size:17px;text-align:center"><b>i² = j² = k² = ijk = −1</b></p></div>
+
+    <div class="two">
+      <figure>
+        <figcaption>곱셈 순환도</figcaption>
+        <div class="svgbox" id="cycle"></div>
+        <p class="hint">화살표 방향(i→j→k→i)으로 곱하면 <b>+</b>, 거꾸로 곱하면 <b style="color:var(--red)">−</b></p>
+      </figure>
+      <div>
+        <h3>곱셈표 <span style="font-weight:400;color:var(--muted);font-size:13px">칸을 눌러 보자 (왼쪽 × 위쪽)</span></h3>
+        <div class="tablebox">
+          <table class="mt" id="mt"></table>
+        </div>
+      </div>
+    </div>
+    <div class="readout" id="mtRead"><p>곱셈표의 칸을 하나 눌러 보자.</p></div>
+
+    <div class="card">
+      <p class="ct">교환법칙이 깨진다!</p>
+      <p class="cs">i × j = k인데 j × i = −k이다. 곱하는 <b>순서</b>를 바꾸면 결과가 달라진다. 지금까지 배운 수(자연수, 정수, 실수, 복소수)에서는 늘 ab = ba였다. 해밀턴은 교환법칙을 포기하는 대담한 선택으로 새로운 수를 완성했다.</p>
+    </div>
+
+    <div>
+      <h3>ijk = −1 확인하기</h3>
+      <div class="controls"><button class="btn" id="ijkBtn">한 단계씩 계산</button><button class="btn ghost" id="ijkReset">다시</button></div>
+      <div class="readout" id="ijkRead" style="margin-top:8px"><p class="eq">ijk = ?</p></div>
+    </div>
+
+    <p class="recall" id="recall">STEP 1에서 고른 내 예상: <b>아직 고르지 않음</b></p>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 사원수 계산기 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 5 · 사원수 계산기</p>
+      <h2 id="h4s">p × q와 q × p는 정말 다를까?</h2>
+    </div>
+    <p class="lead">두 사원수를 곱할 때는 다항식처럼 전개한다. 4개 × 4개 = <b>16개</b> 항이 나온다. 각 항에서 i, j, k끼리의 곱은 STEP 3의 곱셈표를 따른다. 정수로 넣어 보자.</p>
+
+    <div class="qrow">
+      <span class="qh">p = a + bi + cj + dk</span>
+      <div class="qin" id="pin"></div>
+    </div>
+    <div class="qrow">
+      <span class="qh">q = a + bi + cj + dk</span>
+      <div class="qin" id="qin"></div>
+    </div>
+    <p class="err-msg" id="qerr" role="alert"></p>
+    <div class="controls">
+      <span class="ctl-label">예시</span>
+      <button class="btn" data-ex="0">i × j</button>
+      <button class="btn" data-ex="1">(1+i)(1+j)</button>
+      <button class="btn" data-ex="2">(2+3i)(1−i)</button>
+      <button class="btn" data-ex="3">(1+2i+j)(3k)</button>
+    </div>
+
+    <figure>
+      <figcaption>p × q 전개표 <span class="lg">왼쪽 p의 항 × 위쪽 q의 항 · 색 = 결과가 어느 성분으로 가는지</span></figcaption>
+      <div class="tablebox" id="expBox"></div>
+      <div class="legend"><span><i style="background:var(--green-soft)"></i>실수</span><span><i style="background:var(--red-soft)"></i>i</span><span><i style="background:var(--blue-soft)"></i>j</span><span><i style="background:var(--amber-soft)"></i>k</span></div>
+    </figure>
+
+    <div>
+      <h3>결과 비교</h3>
+      <div class="cmp" id="cmp"></div>
+      <p class="summary" style="margin-top:8px" id="cmpMsg"></p>
+    </div>
+
+    <div class="card">
+      <p class="ct">해밀턴이 붙인 이름: 스칼라와 벡터</p>
+      <p class="cs">q = <b>a</b> + <b>bi + cj + dk</b>에서 실수 부분 a를 <b>스칼라</b>(크기만 있는 양), 나머지 (b, c, d) 부분을 <b>벡터</b>(방향이 있는 양)라고 불렀다. 퍼셉트론의 가중치 w = (w1, w2)나 입력 x = (x1, x2)를 ‘벡터’라고 부르는 것도 여기서 시작됐다.</p>
+    </div>
+
+    <details class="more">
+      <summary>더 알아보기: 벡터로 쓴 사원수 곱셈 공식</summary>
+      <div class="ans">p = (a₁, <b>v₁</b>), q = (a₂, <b>v₂</b>)로 쓰면<br>
+      <span class="num">p × q = (a₁a₂ − v₁·v₂,&nbsp; a₁v₂ + a₂v₁ + v₁×v₂)</span><br>
+      여기서 v₁·v₂는 내적, v₁×v₂는 외적이다. 외적은 순서를 바꾸면 부호가 바뀐다(v₁×v₂ = −v₂×v₁). 그래서 p × q와 q × p가 달라진다. 두 벡터 부분이 평행하면 외적이 0이 되어 결과가 같아진다.</div>
+    </details>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 3D 회전 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 5 · 사원수로 3D 회전하기</p>
+      <h2 id="h5s">해밀턴의 꿈: 공간을 돌리는 수</h2>
+    </div>
+    <p class="lead">축 방향 (u, v, w)와 각도 θ가 정해지면, 그 회전을 사원수 하나로 나타낼 수 있다. 게임 속 캐릭터, 드론, 우주선, 스마트폰 화면 회전이 실제로 이 방법을 쓴다.</p>
+
+    <div class="readout"><p class="eq" style="text-align:center">q = cos(θ/2) + sin(θ/2)·(u·i + v·j + w·k)</p><p class="eq" style="text-align:center">돌린 점 = q · (점) · q⁻¹</p></div>
+
+    <div class="controls">
+      <span class="ctl-label">회전축</span>
+      <div class="seg" role="group" aria-label="회전축" id="axSeg">
+        <button data-ax="x" aria-pressed="false">x축</button>
+        <button data-ax="y" aria-pressed="true">y축</button>
+        <button data-ax="z" aria-pressed="false">z축</button>
+        <button data-ax="d" aria-pressed="false">대각선 (1,1,1)</button>
+      </div>
+    </div>
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">각도 θ</span><input type="range" id="ang5" min="0" max="360" step="5" value="45"><span class="num sl-v" id="ang5v">45°</span></label>
+    </div>
+    <div class="controls"><button class="btn" id="spin">▶ 한 바퀴 돌려 보기</button></div>
+
+    <figure>
+      <figcaption>회전하는 상자 <span class="lg">검은 화살표 = 상자의 ‘앞’ · 점선 = 회전축</span></figcaption>
+      <div class="svgbox"><canvas id="cv5" aria-label="사원수로 회전하는 3D 상자"></canvas></div>
+      <div class="legend"><span><i style="background:var(--red)"></i>x축·+x 면</span><span><i style="background:var(--green)"></i>y축·+y 면</span><span><i style="background:var(--blue)"></i>z축·+z 면</span><span>흐린 색 = 반대쪽 면</span></div>
+    </figure>
+    <div class="readout" id="q5Read"></div>
+
+    <div class="card">
+      <p class="ct">왜 θ가 아니라 θ/2일까?</p>
+      <p class="cs">점을 돌릴 때 q를 <b>앞에서 한 번, 뒤에서(q⁻¹) 한 번</b> 곱한다. 각각 절반씩 돌려서 합치면 θ만큼 돈다. 그래서 θ/2를 쓴다.</p>
+    </div>
+
+    <div>
+      <h3>순서를 바꾸면? 공간 회전도 교환법칙이 안 된다</h3>
+      <p class="lead" style="margin-bottom:10px">같은 두 회전(x축 90°, y축 90°)을 순서만 바꿔서 해 보자. STEP 3의 i × j ≠ j × i가 실제 회전에서 어떻게 보이는지 확인한다.</p>
+      <div class="controls"><button class="btn primary" id="ordPlay">▶ 두 상자 동시에 재생</button></div>
+      <div class="two" style="margin-top:10px">
+        <figure>
+          <figcaption>A: x축 90° → y축 90°</figcaption>
+          <div class="svgbox"><canvas id="cvA" aria-label="x축 다음 y축으로 회전한 상자"></canvas></div>
+          <p class="eq" id="qA" style="font-size:13.5px"></p>
+        </figure>
+        <figure>
+          <figcaption>B: y축 90° → x축 90°</figcaption>
+          <div class="svgbox"><canvas id="cvB" aria-label="y축 다음 x축으로 회전한 상자"></canvas></div>
+          <p class="eq" id="qB" style="font-size:13.5px"></p>
+        </figure>
+      </div>
+      <p class="summary" style="margin-top:8px" id="ordMsg">재생을 눌러 보자. 마지막에 상자의 ‘앞’ 화살표와 면 색깔을 비교한다.</p>
+    </div>
+
+    <div class="card">
+      <p class="ct">왜 게임과 드론은 사원수를 쓸까?</p>
+      <p class="cs">회전을 ‘좌우·위아래·기울기’ 세 각도로만 나타내면, 특정 자세에서 두 축이 겹쳐 한 방향 회전을 잃는 <b>짐벌 락</b>이 생긴다. 사원수는 이런 문제가 없다. 또 두 자세 사이를 부드럽게 이어 주는 계산도 쉽다. 그래서 1843년의 발견이 지금 우리 손안의 기기에서 쓰이고 있다.</p>
+    </div>
+
+    <div class="law">
+      <span class="t">한눈에 정리</span>
+      <ol>
+        <li>해밀턴(1805–1865)은 복소수를 넘어 공간을 다룰 수를 찾다가 1843년 <b>사원수</b>를 발견했다.</li>
+        <li>사원수 q = a + bi + cj + dk, 규칙은 <b>i² = j² = k² = ijk = −1</b> 한 줄이다.</li>
+        <li>ij = k, ji = −k처럼 <b>곱셈의 교환법칙이 성립하지 않는다.</b></li>
+        <li>실수 부분은 <b>스칼라</b>, i·j·k 부분은 <b>벡터</b>라고 부른다. ‘벡터’라는 말이 여기서 나왔다.</li>
+        <li>복소수가 평면 회전을 나타내듯, 사원수는 <b>3차원 회전</b>을 나타낸다. 회전도 순서를 바꾸면 결과가 다르다.</li>
+      </ol>
+    </div>
+
+    <div class="qs">
+      <div class="q"><span class="qn">Q1</span><p>(1 + i)(1 + j)와 (1 + j)(1 + i)를 각각 전개해 보자. 어디가 다를까?</p>
+        <details><summary>답 보기</summary><div class="ans">(1 + i)(1 + j) = 1 + j + i + ij = <b>1 + i + j + k</b><br>(1 + j)(1 + i) = 1 + i + j + ji = <b>1 + i + j − k</b><br>k 성분의 부호만 다르다. ij = k, ji = −k이기 때문이다. STEP 4 계산기의 예시 버튼으로 확인해 보자.</div></details></div>
+      <div class="q"><span class="qn">Q2</span><p>k × i와 i × k는 각각 무엇일까? 순환도를 이용해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">k → i는 화살표 방향이므로 <b>k × i = j</b>이다. i → k는 거꾸로이므로 <b>i × k = −j</b>이다.</div></details></div>
+      <div class="q"><span class="qn">Q3</span><p>z축을 중심으로 90° 돌리는 사원수 q를 구해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">축 (0, 0, 1), θ = 90°이므로 q = cos 45° + sin 45°·k = <b>(√2/2)(1 + k)</b> ≈ 0.71 + 0.71k이다. STEP 5에서 z축, 90°로 놓고 값을 확인해 보자.</div></details></div>
+      <div class="q"><span class="qn">Q4</span><p>복소수 i는 평면에서 90° 회전이었다. 사원수에서 그냥 i를 곱하는 회전(q = i)은 어떤 회전일까?</p>
+        <details><summary>답 보기</summary><div class="ans">q = i = cos(θ/2) + sin(θ/2)·i로 보면 cos(θ/2) = 0, sin(θ/2) = 1이다. 그래서 θ/2 = 90°, 즉 <b>x축 중심 180° 회전</b>이다. 반각을 쓰기 때문에 복소수와 달리 90°가 아니라 180°가 된다.</div></details></div>
+      <div class="q"><span class="qn">Q5</span><p>해밀턴이 이름 붙인 ‘벡터’는 앞에서 배운 퍼셉트론과 어떻게 이어질까?</p>
+        <details><summary>답 보기</summary><div class="ans">퍼셉트론의 입력 (x1, x2)와 가중치 (w1, w2)는 둘 다 벡터다. 가중합 w1·x1 + w2·x2는 두 벡터의 <b>내적</b>이다. 사원수 곱셈 공식 안에도 이 내적(v₁·v₂)이 들어 있다. 해밀턴이 공간을 다루려고 만든 말과 계산이 오늘날 인공지능의 기본 언어가 되었다.</div></details></div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 해밀턴은 교환법칙을 포기하고 새로운 수를 얻었다. 수학에서 ‘당연한 규칙’을 하나 버리면 무엇이 새로 생길지 상상해 보자.</p>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+  function fm(v,d){d=d==null?2:d;var m=Math.pow(10,d);v=Math.round(v*m)/m;if(Object.is(v,-0)||Math.abs(v)<1e-9)v=0;return (v<0?'−':'')+Math.abs(v)}
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- routing ---------- */
+  var current=1;
+  function render(){
+    var m=/^#s([1-5])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=5;i++){$('s'+i).hidden=(i!==current);$('st'+i).setAttribute('aria-current',i===current?'step':'false');}
+    if(current===3) fillRecall();
+    if(current===5){draw5();drawOrd(ordT);}
+  }
+  function go(i){i=Math.max(1,Math.min(5,i));if(location.hash!=='#s'+i){location.hash='s'+i}else{render()}window.scrollTo(0,0);}
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  var belief=null;
+  document.querySelectorAll('#belief .chip').forEach(function(b){b.addEventListener('click',function(){
+    belief=b.getAttribute('data-v');
+    document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  })});
+  function fillRecall(){$('recall').innerHTML='STEP 1에서 고른 내 예상: <b>'+(belief||'아직 고르지 않음')+'</b> · 정답은 <b>곱셈의 교환법칙</b>이다. 위의 곱셈표에서 i×j와 j×i를 눌러 비교해 보자.';}
+
+  /* ---------- step 2: complex plane ---------- */
+  var z=[2,1], trail=[], anim=null;
+  var S=50,CX=180,CY=180;
+  function cpx(p){return CX+p[0]*S} function cpy(p){return CY-p[1]*S}
+  function drawPlane(cur,arc){
+    var s='<svg viewBox="0 0 360 360" role="img" aria-label="복소평면 위의 점 '+fm(cur[0])+' + '+fm(cur[1])+'i">';
+    for(var k=-3;k<=3;k++){s+='<line class="g-grid" x1="'+(CX+k*S)+'" y1="10" x2="'+(CX+k*S)+'" y2="350"/><line class="g-grid" x1="10" y1="'+(CY+k*S)+'" x2="350" y2="'+(CY+k*S)+'"/>';
+      if(k){s+='<text class="t-tk" x="'+(CX+k*S)+'" y="'+(CY+15)+'" text-anchor="middle">'+k+'</text><text class="t-tk" x="'+(CX-6)+'" y="'+(CY-k*S+4)+'" text-anchor="end">'+k+'i</text>'}}
+    s+='<line class="g-ax" x1="10" y1="'+CY+'" x2="350" y2="'+CY+'"/><line class="g-ax" x1="'+CX+'" y1="10" x2="'+CX+'" y2="350"/>';
+    s+='<text class="t-lb" x="348" y="'+(CY-8)+'" text-anchor="end">실수축</text><text class="t-lb" x="'+(CX+8)+'" y="22">허수축</text>';
+    var r=Math.hypot(cur[0],cur[1]);
+    s+='<circle class="g-unit" cx="'+CX+'" cy="'+CY+'" r="'+(r*S).toFixed(1)+'"/>';
+    if(arc) s+=arc;
+    trail.forEach(function(p,i){s+='<circle class="g-trail" cx="'+cpx(p).toFixed(1)+'" cy="'+cpy(p).toFixed(1)+'" r="4" opacity="'+(0.25+0.5*(i+1)/trail.length).toFixed(2)+'"/>'});
+    s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+cpx(cur).toFixed(1)+'" y2="'+cpy(cur).toFixed(1)+'" style="stroke:var(--red);stroke-width:1.6"/>';
+    s+='<circle class="g-pt" cx="'+cpx(cur).toFixed(1)+'" cy="'+cpy(cur).toFixed(1)+'" r="7"/>';
+    var lx=cpx(cur)+(cur[0]>=0?10:-10), ly=cpy(cur)+(cur[1]>=0?-10:18);
+    s+='<text class="t-pt" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="'+(cur[0]>=0?'start':'end')+'">'+fm(cur[0])+(cur[1]<0?' − ':' + ')+fm(Math.abs(cur[1]))+'i</text>';
+    $('cplane').innerHTML=s+'</svg>';
+  }
+  function cread(prev,mul,label){
+    if(!prev){$('cRead').innerHTML='<p>지금 점: <span class="eq">z = '+fm(z[0])+(z[1]<0?' − ':' + ')+fm(Math.abs(z[1]))+'i</span></p><p class="hint">버튼을 눌러 i를 곱해 보자. 원점에서의 거리는 그대로이고 방향만 바뀐다.</p>';return;}
+    $('cRead').innerHTML='<p class="eq">('+fm(prev[0])+(prev[1]<0?' − ':' + ')+fm(Math.abs(prev[1]))+'i) × '+label+' = <b>'+fm(z[0])+(z[1]<0?' − ':' + ')+fm(Math.abs(z[1]))+'i</b></p><p class="hint">원점에서의 거리: '+fm(Math.hypot(prev[0],prev[1]))+' → '+fm(Math.hypot(z[0],z[1]))+' (그대로)</p>';
+  }
+  function rotate(phi,label){
+    if(anim) return;
+    var start=z.slice(), r=Math.hypot(start[0],start[1]), a0=Math.atan2(start[1],start[0]), t0=null, dur=reduce?1:550;
+    trail.push(start); if(trail.length>8) trail.shift();
+    function frame(ts){
+      if(t0===null) t0=ts; var t=Math.min(1,(ts-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      var a=a0+phi*e, cur=[r*Math.cos(a),r*Math.sin(a)];
+      var R=r*S*0.45, large=Math.abs(phi*e)>Math.PI?1:0, sweep=phi>0?0:1;
+      var arc='';
+      if(Math.abs(phi*e)>0.01){var p0=[CX+R*Math.cos(a0),CY-R*Math.sin(a0)],p1=[CX+R*Math.cos(a),CY-R*Math.sin(a)];arc='<path class="g-arc" d="M'+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A'+R.toFixed(1)+' '+R.toFixed(1)+' 0 '+large+' '+sweep+' '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'"/>';}
+      drawPlane(cur,arc);
+      if(t<1){anim=requestAnimationFrame(frame)}else{
+        var c=Math.cos(phi),s=Math.sin(phi);
+        z=[start[0]*c-start[1]*s,start[0]*s+start[1]*c];
+        z=[Math.round(z[0]*1e6)/1e6,Math.round(z[1]*1e6)/1e6];
+        anim=null; drawPlane(z,arc); cread(start,phi,label);
+      }
+    }
+    anim=requestAnimationFrame(frame);
+  }
+  $('cI').addEventListener('click',function(){rotate(Math.PI/2,'i')});
+  $('cN').addEventListener('click',function(){rotate(Math.PI,'(−1)')});
+  $('cNI').addEventListener('click',function(){rotate(-Math.PI/2,'(−i)')});
+  $('cR').addEventListener('click',function(){if(anim)return;z=[2,1];trail=[];drawPlane(z);cread()});
+  $('cAng').addEventListener('input',function(){$('cAngV').textContent=this.value+'°'});
+  $('cRot').addEventListener('click',function(){var d=+$('cAng').value,ph=d*Math.PI/180;rotate(ph,'(cos '+d+'° + i sin '+d+'°)')});
+
+  /* ---------- step 3: ijk ---------- */
+  var U=['1','i','j','k'];
+  var T=[[[1,0],[1,1],[1,2],[1,3]],[[1,1],[-1,0],[1,3],[-1,2]],[[1,2],[-1,3],[-1,0],[1,1]],[[1,3],[1,2],[-1,1],[-1,0]]];
+  function uStr(e){return (e[0]<0?'−':'')+U[e[1]]}
+  var selCell=null;
+  function drawCycle(a,b){
+    var P={i:[150,40],j:[245,195],k:[55,195]}, R=26;
+    var s='<svg viewBox="0 0 300 240" role="img" aria-label="i에서 j, j에서 k, k에서 i로 가는 순환 화살표"><defs><marker id="cyA" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah"/></marker><marker id="cyB" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" class="ah-on"/></marker></defs>';
+    [['i','j'],['j','k'],['k','i']].forEach(function(e){
+      var p=P[e[0]],q=P[e[1]],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
+      var on=(a===e[0]&&b===e[1])||(a===e[1]&&b===e[0]);
+      var x1=p[0]+ux*(R+6),y1=p[1]+uy*(R+6),x2=q[0]-ux*(R+8),y2=q[1]-uy*(R+8);
+      var mx=(x1+x2)/2-uy*22,my=(y1+y2)/2+ux*22;
+      s+='<path class="cy-arr'+(on?' on':'')+'" d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+mx.toFixed(1)+' '+my.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1)+'" marker-end="url(#'+(on?'cyB':'cyA')+')"/>';
+    });
+    ['i','j','k'].forEach(function(n){var p=P[n],on=n===a||n===b;s+='<circle class="cy-node'+(on?' on':'')+'" cx="'+p[0]+'" cy="'+p[1]+'" r="'+R+'"/><text class="cy-t" x="'+p[0]+'" y="'+(p[1]+7)+'" text-anchor="middle">'+n+'</text>'});
+    $('cycle').innerHTML=s+'</svg>';
+  }
+  function buildMT(){
+    var h='<thead><tr><th>×</th>'+U.map(function(u){return '<th>'+u+'</th>'}).join('')+'</tr></thead><tbody>';
+    for(var r=0;r<4;r++){h+='<tr><th>'+U[r]+'</th>';for(var c=0;c<4;c++){var e=T[r][c];h+='<td><button data-r="'+r+'" data-c="'+c+'" class="'+(e[0]<0?'neg':'')+'" aria-label="'+U[r]+' 곱하기 '+U[c]+'">'+uStr(e)+'</button></td>'}h+='</tr>'}
+    $('mt').innerHTML=h+'</tbody>';
+    $('mt').querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){selCell=[+b.dataset.r,+b.dataset.c];showMT()})});
+  }
+  function showMT(){
+    var r=selCell[0],c=selCell[1],e=T[r][c],a=U[r],b=U[c];
+    $('mt').querySelectorAll('button').forEach(function(x){var rr=+x.dataset.r,cc=+x.dataset.c;x.classList.toggle('sel',rr===r&&cc===c);x.classList.toggle('pair',rr===c&&cc===r&&r!==c)});
+    var why;
+    if(r===0||c===0) why='1을 곱하면 그대로다.';
+    else if(r===c) why='다리에 새긴 규칙 '+a+'² = −1 그대로다.';
+    else{var fwd=(a==='i'&&b==='j')||(a==='j'&&b==='k')||(a==='k'&&b==='i');
+      why=fwd?a+' → '+b+'는 화살표 방향이라 <b>+</b>다.':a+' → '+b+'는 화살표를 거꾸로 가서 <b style="color:var(--red)">−</b>다.';
+      var e2=T[c][r]; why+=' 순서를 바꾼 '+b+' × '+a+' = '+uStr(e2)+'와 비교해 보자 (회색 칸).';}
+    $('mtRead').innerHTML='<p class="eq" style="font-size:17px">'+a+' × '+b+' = <b>'+uStr(e)+'</b></p><p>'+why+'</p>';
+    drawCycle(r>0&&c>0&&r!==c?a:null,r>0&&c>0&&r!==c?b:null);
+  }
+  var ijkStep=0, IJK=['ijk = (ij)k','= (k)k &nbsp;&nbsp;← ij = k','= k² ','= <b>−1</b> &nbsp;&nbsp;← k² = −1'];
+  function showIJK(){$('ijkRead').innerHTML=ijkStep?IJK.slice(0,ijkStep).map(function(x){return '<p class="eq">'+x+'</p>'}).join(''):'<p class="eq">ijk = ?</p>';$('ijkBtn').disabled=ijkStep>=IJK.length;}
+  $('ijkBtn').addEventListener('click',function(){ijkStep++;showIJK()});
+  $('ijkReset').addEventListener('click',function(){ijkStep=0;showIJK()});
+
+  /* ---------- quaternion math ---------- */
+  function qmul(p,q){return [p[0]*q[0]-p[1]*q[1]-p[2]*q[2]-p[3]*q[3], p[0]*q[1]+p[1]*q[0]+p[2]*q[3]-p[3]*q[2], p[0]*q[2]-p[1]*q[3]+p[2]*q[0]+p[3]*q[1], p[0]*q[3]+p[1]*q[2]-p[2]*q[1]+p[3]*q[0]]}
+  function qconj(q){return [q[0],-q[1],-q[2],-q[3]]}
+  function qrot(q,v){var r=qmul(qmul(q,[0,v[0],v[1],v[2]]),qconj(q));return [r[1],r[2],r[3]]}
+  function qaxis(ax,deg){var L=Math.hypot(ax[0],ax[1],ax[2]),h=deg*Math.PI/360,s=Math.sin(h);return [Math.cos(h),s*ax[0]/L,s*ax[1]/L,s*ax[2]/L]}
+  function qStr(q,d){var s=fm(q[0],d);['i','j','k'].forEach(function(u,n){var v=q[n+1],t=fm(Math.abs(v),d);if(t==='0')return;s+=(v<0?' − ':' + ')+(t==='1'?'':t)+u});return s}
+
+  /* ---------- step 4: calculator ---------- */
+  function mkIn(id){var h='';['','i','j','k'].forEach(function(u,n){h+='<label>'+'<input type="number" inputmode="numeric" step="1" id="'+id+n+'" aria-label="'+id+' '+(u||'실수')+' 계수">'+(u||'&nbsp;')+'</label>'});$(id+'in').innerHTML=h;}
+  mkIn('p');mkIn('q');
+  var EX=[[[0,1,0,0],[0,0,1,0]],[[1,1,0,0],[1,0,1,0]],[[2,3,0,0],[1,-1,0,0]],[[1,2,1,0],[0,0,0,3]]];
+  function setQ(p,q){for(var n=0;n<4;n++){$('p'+n).value=p[n];$('q'+n).value=q[n]}calc4()}
+  document.querySelectorAll('[data-ex]').forEach(function(b){b.addEventListener('click',function(){var e=EX[+b.dataset.ex];setQ(e[0],e[1])})});
+  for(var n=0;n<4;n++){['p','q'].forEach(function(id){$(id+n).addEventListener('input',calc4)})}
+  function readQ(id){var out=[],bad=false;for(var n=0;n<4;n++){var el=$(id+n),v=el.value.trim();var ok=v===''||/^-?\d{1,3}$/.test(v);el.classList.toggle('err',!ok);if(!ok)bad=true;out.push(ok&&v!==''?+v:0)}return {v:out,bad:bad}}
+  function term(c,u){if(c===0)return '0'+(u?U[u]:'');if(u===0)return ''+fm(c);return (c===1?'':c===-1?'−':fm(c))+U[u]}
+  function calc4(){
+    var P=readQ('p'),Q=readQ('q');
+    $('qerr').textContent=(P.bad||Q.bad)?'−999부터 999까지의 정수만 넣자. 빨간 칸은 0으로 계산했다.':'';
+    var p=P.v,q=Q.v,cls=['r','i','j','k'];
+    var h='<table class="exp"><thead><tr><th>p \\ q</th>'+q.map(function(c,u){return '<th>'+term(c,u)+'</th>'}).join('')+'</tr></thead><tbody>';
+    for(var r=0;r<4;r++){h+='<tr><th>'+term(p[r],r)+'</th>';for(var c=0;c<4;c++){var co=p[r]*q[c],e=T[r][c];
+      if(co===0){h+='<td class="z">0</td>'}else{var val=co*e[0];h+='<td class="'+cls[e[1]]+'">'+term(val,e[1])+'</td>'}}h+='</tr>'}
+    $('expBox').innerHTML=h+'</tbody></table>';
+    var pq=qmul(p,q),qp=qmul(q,p),g='<div class="h lab">&nbsp;</div><div class="h">실수(스칼라)</div><div class="h">i</div><div class="h">j</div><div class="h">k</div>';
+    var diff=[];for(var k=0;k<4;k++){if(pq[k]!==qp[k])diff.push(k)}
+    g+='<div class="lab">p × q</div>'+pq.map(function(v,k){return '<div class="'+(diff.indexOf(k)>-1?'diff':'')+'">'+fm(v)+'</div>'}).join('');
+    g+='<div class="lab">q × p</div>'+qp.map(function(v,k){return '<div class="'+(diff.indexOf(k)>-1?'diff':'')+'">'+fm(v)+'</div>'}).join('');
+    $('cmp').innerHTML=g;
+    $('cmpMsg').innerHTML='p × q = <span class="num">'+qStr(pq)+'</span><br>q × p = <span class="num">'+qStr(qp)+'</span><br>'+(diff.length?'<b>'+diff.map(function(k){return k?U[k]:'실수'}).join(', ')+' 성분이 다르다</b> → 교환법칙이 성립하지 않는다.':'이번에는 결과가 같다. 두 벡터 부분이 평행하거나 한쪽이 실수뿐일 때는 순서를 바꿔도 같다.');
+  }
+
+  /* ---------- 3D renderer ---------- */
+  var VQ=qmul(qaxis([1,0,0],22),qaxis([0,1,0],-35));
+  var V=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]].map(function(v){return [v[0]*.75,v[1]*.75,v[2]*.75]});
+  var F=[{v:[1,2,6,5],n:[1,0,0],c:'--red',s:1},{v:[0,4,7,3],n:[-1,0,0],c:'--red',s:0},{v:[3,7,6,2],n:[0,1,0],c:'--green',s:1},{v:[0,1,5,4],n:[0,-1,0],c:'--green',s:0},{v:[4,5,6,7],n:[0,0,1],c:'--blue',s:1},{v:[0,3,2,1],n:[0,0,-1],c:'--blue',s:0}];
+  function sizeCanvas(cv,h){var w=cv.parentElement.clientWidth;if(!w)return null;var dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:h}}
+  function draw3D(cv,q,opt){
+    opt=opt||{};var H=opt.h||300,k=sizeCanvas(cv,H);if(!k)return;var c=k.c,W=k.w,sc=Math.min(W,H)*0.27,cx=W/2,cy=H/2+8;
+    function view(v){return qrot(VQ,v)} function P(v){var p=view(v);return [cx+p[0]*sc,cy-p[1]*sc,p[2]]}
+    c.clearRect(0,0,W,H);
+    var ink=css('--ink'),muted=css('--muted');
+    [['x',[1,0,0],'--red'],['y',[0,1,0],'--green'],['z',[0,0,1],'--blue']].forEach(function(a){
+      var o=P([0,0,0]),e=P([a[1][0]*1.9,a[1][1]*1.9,a[1][2]*1.9]),n=P([-a[1][0]*1.9,-a[1][1]*1.9,-a[1][2]*1.9]);
+      c.strokeStyle=css(a[2]);c.globalAlpha=.55;c.lineWidth=1.4;c.beginPath();c.moveTo(n[0],n[1]);c.lineTo(e[0],e[1]);c.stroke();c.globalAlpha=1;
+      c.fillStyle=css(a[2]);c.font='600 13px '+css('--f-num');c.textAlign='center';c.textBaseline='middle';c.fillText(a[0],e[0]+(e[0]-o[0])*0.08,e[1]+(e[1]-o[1])*0.08);
+    });
+    if(opt.axis){var A=opt.axis,L=Math.hypot(A[0],A[1],A[2]),a1=P([A[0]/L*2.1,A[1]/L*2.1,A[2]/L*2.1]),a2=P([-A[0]/L*2.1,-A[1]/L*2.1,-A[2]/L*2.1]);c.strokeStyle=ink;c.setLineDash([6,5]);c.lineWidth=1.4;c.beginPath();c.moveTo(a2[0],a2[1]);c.lineTo(a1[0],a1[1]);c.stroke();c.setLineDash([]);}
+    var faces=F.map(function(f){var n=view(qrot(q,f.n));var pts=f.v.map(function(i){return P(qrot(q,V[i]))});return {f:f,n:n,pts:pts,z:pts.reduce(function(s,p){return s+p[2]},0)/4}}).filter(function(o){return o.n[2]>0}).sort(function(a,b){return a.z-b.z});
+    faces.forEach(function(o){c.beginPath();o.pts.forEach(function(p,i){i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])});c.closePath();
+      c.fillStyle=css(o.f.c);c.globalAlpha=o.f.s?0.88:0.32;c.fill();c.globalAlpha=1;c.strokeStyle=ink;c.lineWidth=1.2;c.stroke();});
+    var f0=P(qrot(q,[0,0,0.75])),f1=P(qrot(q,[0,0,1.55]));
+    c.strokeStyle=ink;c.fillStyle=ink;c.lineWidth=3;c.beginPath();c.moveTo(f0[0],f0[1]);c.lineTo(f1[0],f1[1]);c.stroke();
+    var ang=Math.atan2(f1[1]-f0[1],f1[0]-f0[0]);c.beginPath();c.moveTo(f1[0]+Math.cos(ang)*9,f1[1]+Math.sin(ang)*9);c.lineTo(f1[0]+Math.cos(ang+2.5)*9,f1[1]+Math.sin(ang+2.5)*9);c.lineTo(f1[0]+Math.cos(ang-2.5)*9,f1[1]+Math.sin(ang-2.5)*9);c.closePath();c.fill();
+    c.font='600 12px '+css('--f-body');c.fillText('앞',f1[0]+Math.cos(ang)*20,f1[1]+Math.sin(ang)*20);
+  }
+
+  /* ---------- step 5 ---------- */
+  var AX={x:[1,0,0],y:[0,1,0],z:[0,0,1],d:[1,1,1]}, axKey='y', spinRaf=null;
+  document.querySelectorAll('#axSeg button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#axSeg button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});axKey=b.dataset.ax;draw5();})});
+  $('ang5').addEventListener('input',function(){stopSpin();draw5()});
+  function draw5(){
+    var deg=+$('ang5').value,ax=AX[axKey],L=Math.hypot(ax[0],ax[1],ax[2]),q=qaxis(ax,deg);
+    $('ang5v').textContent=deg+'°';
+    draw3D($('cv5'),q,{axis:ax,h:320});
+    var h=deg/2,u=ax.map(function(t){return t/L});
+    $('q5Read').innerHTML='<p class="eq">축 (u, v, w) = ('+u.map(function(t){return fm(t)}).join(', ')+'), θ = '+deg+'°, θ/2 = '+fm(h,1)+'°</p>'+
+      '<p class="eq">q = cos '+fm(h,1)+'° + sin '+fm(h,1)+'°·('+qStr([0,u[0],u[1],u[2]]).replace(/^0 \+ |^0 /,'')+')</p>'+
+      '<p class="eq">&nbsp;&nbsp;= <b>'+qStr(q)+'</b></p>'+
+      '<p class="hint">q의 실수 부분(스칼라)은 회전량을, i·j·k 부분(벡터)은 회전축의 방향을 담고 있다.</p>';
+  }
+  function stopSpin(){if(spinRaf){cancelAnimationFrame(spinRaf);spinRaf=null}$('spin').textContent='▶ 한 바퀴 돌려 보기'}
+  $('spin').addEventListener('click',function(){
+    if(spinRaf){stopSpin();return}
+    var el=$('ang5'),t0=null,start=+el.value;$('spin').textContent='⏸ 멈추기';
+    function f(ts){if(t0===null)t0=ts;var d=Math.min(360,(ts-t0)/12);el.value=Math.round(((start+d)%360)/5)*5;draw5();if(d<360)spinRaf=requestAnimationFrame(f);else stopSpin()}
+    spinRaf=requestAnimationFrame(f);
+  });
+
+  var qx=qaxis([1,0,0],90),qy=qaxis([0,1,0],90),ordT=0,ordRaf=null;
+  function ordQ(first,second,t){var a=Math.min(1,t*2),b=Math.max(0,t*2-1);return qmul(qaxis(second,90*b),qaxis(first,90*a))}
+  function drawOrd(t){
+    draw3D($('cvA'),ordQ([1,0,0],[0,1,0],t),{h:230});
+    draw3D($('cvB'),ordQ([0,1,0],[1,0,0],t),{h:230});
+    if(t>=1){
+      var A=qmul(qy,qx),B=qmul(qx,qy);
+      $('qA').innerHTML='q<sub>y</sub>·q<sub>x</sub> = '+qStr(A);
+      $('qB').innerHTML='q<sub>x</sub>·q<sub>y</sub> = '+qStr(B);
+      $('ordMsg').innerHTML='두 상자의 ‘앞’ 방향과 면 색이 다르다. 사원수로도 k 성분의 부호만 다르게 나온다. <b>회전도 순서를 바꾸면 결과가 달라진다.</b> (나중에 하는 회전을 앞에 곱한다.)';
+    } else {$('qA').textContent=t>0?'회전 중…':'';$('qB').textContent=t>0?'회전 중…':''}
+  }
+  $('ordPlay').addEventListener('click',function(){
+    if(ordRaf) return; var t0=null,dur=reduce?1:2400;
+    function f(ts){if(t0===null)t0=ts;ordT=Math.min(1,(ts-t0)/dur);drawOrd(ordT);if(ordT<1)ordRaf=requestAnimationFrame(f);else ordRaf=null}
+    ordRaf=requestAnimationFrame(f);
+  });
+
+  function redraw(){if(current===5){draw5();drawOrd(ordT)}}
+  window.addEventListener('resize',redraw);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){redraw();drawCycle()})}catch(e){}
+  new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+  drawPlane(z);cread();buildMT();drawCycle();showIJK();setQ(EX[1][0],EX[1][1]);
+  render();
+})();
+</script>
+</body>
+</html>

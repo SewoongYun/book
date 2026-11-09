@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>벡터 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2E7D5B; --green-soft:#DDF0E6;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --muted:#9AA4B6; --rule:#2B3442;
+  --red:#FF6F80; --red-soft:#3B1D25; --amber:#E8B34E; --amber-soft:#3A2F16;
+  --slate:#9AA8BF; --slate-soft:#28323F; --blue:#93B3E8; --blue-soft:#1E2A3F;
+  --green:#6FCF9F; --green-soft:#17322A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.top{margin-bottom:12px}
+.book{font-size:13px;color:var(--muted);letter-spacing:.02em;margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4.4vw,34px);line-height:1.2;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:7px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:640px){.stepper{grid-template-columns:repeat(4,minmax(0,1fr))}.stepper .sl{font-size:12px}.stepper .sn{display:none}.stepper button{padding:7px 8px;gap:6px}}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:26px 22px;padding-inline:clamp(18px,4vw,38px);display:flex;flex-direction:column;gap:20px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3.6vw,28px);line-height:1.3;margin:4px 0 0}
+.lead{margin:0;max-width:64ch}
+h3{font-size:15px;font-weight:700;margin:0 0 6px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:25px;line-height:1.15;margin:0;transform:rotate(-2deg);transform-origin:left center}
+.scene{background:var(--paper);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scene p{margin:0}
+.hint{font-size:13.5px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14.5px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figcaption{font-size:14px;font-weight:700}
+figcaption .lg{font-weight:400;font-size:13px;color:var(--muted);margin-left:8px}
+.svgbox{border:1px solid var(--rule);border-radius:4px;background:var(--sheet);overflow:hidden}
+.svgbox svg,.svgbox canvas{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14.5px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.ghost{border-color:var(--rule);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--sheet);padding:8px 13px;cursor:pointer;font-weight:500;font-size:14.5px;border-left:1px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.sliders{display:grid;gap:6px;max-width:560px;width:100%}
+.sl-row{display:grid;grid-template-columns:5.5em 1fr 4.4em;align-items:center;gap:10px}
+.sl-k{font-weight:600;font-size:14.5px}
+.sl-v{text-align:right;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.readout{background:var(--paper);border-radius:4px;padding:12px 14px;display:grid;gap:4px;font-size:14.5px}
+.readout p{margin:0}
+.eq{font-family:var(--f-num);font-size:15px;overflow-wrap:anywhere}
+.eq b{color:var(--red)}
+.summary{margin:0;font-weight:500}
+.summary b{color:var(--red)}
+
+/* table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--rule)}
+thead th{font-size:12.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+.mt{max-width:420px}
+.mt th,.mt td{font-family:var(--f-num);font-size:17px;padding:0;border:1px solid var(--rule)}
+.mt thead th{color:var(--ink);background:var(--paper);height:44px;font-size:15px}
+.mt tbody th{background:var(--paper);width:52px}
+.mt td button{width:100%;height:46px;border:0;background:var(--sheet);cursor:pointer;font-family:var(--f-num);font-size:17px;font-weight:600}
+.mt td button:hover{background:var(--paper)}
+.mt td button.neg{color:var(--red)}
+.mt td button.sel{background:var(--amber-soft);outline:2px solid var(--amber);outline-offset:-2px}
+.mt td button.pair{background:var(--slate-soft)}
+.exp{border-collapse:collapse;font-size:13.5px}
+.exp th,.exp td{border:1px solid var(--rule);padding:6px 6px;font-family:var(--f-num)}
+.exp th{background:var(--paper);font-weight:600}
+.exp td.z{color:var(--muted);opacity:.55}
+.exp td.r{background:var(--green-soft)} .exp td.i{background:var(--red-soft)} .exp td.j{background:var(--blue-soft)} .exp td.k{background:var(--amber-soft)}
+.qin{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-width:460px}
+.qin label{display:flex;align-items:center;gap:4px;font-family:var(--f-num);font-size:14px}
+.qin input{width:100%;min-width:0;font-family:var(--f-num);font-size:16px;padding:6px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+.qin input.err{border-color:var(--red)}
+.qrow{display:flex;flex-direction:column;gap:4px}
+.qrow .qh{font-weight:700;font-size:14.5px}
+.err-msg{font-size:13px;color:var(--red);margin:0;min-height:1.2em}
+.cmp{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:4px;overflow:hidden;font-family:var(--f-num)}
+.cmp div{padding:8px 6px;text-align:center;border-bottom:1px solid var(--rule);border-left:1px solid var(--rule)}
+.cmp div.h{background:var(--paper);font-size:12.5px;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.cmp div.lab{border-left:0;text-align:left;font-family:var(--f-body);font-weight:700;font-size:13.5px;background:var(--paper)}
+.cmp div.diff{background:var(--red-soft);color:var(--red);font-weight:700}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.card{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.card p{margin:0}
+.card .ct{font-weight:700}
+.card .cs{font-size:14.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.law .t{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.law p{margin:0}
+.law ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 14px}
+.recall b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:4px 10px;padding:12px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:14.5px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:13.5px;width:max-content}
+details[open] summary{margin-bottom:4px}
+.ans{background:var(--paper);padding:10px 12px;border-radius:4px}
+.more{font-size:14.5px}
+.mine{margin:0;font-size:14.5px;color:var(--muted)}
+.mine b{color:var(--ink)}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.navbtn{border:1px solid var(--rule);background:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+
+/* vector page */
+.mat{display:inline-flex;flex-direction:column;align-items:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:4px;padding:0 7px;line-height:1.35;font-family:var(--f-num);vertical-align:middle;min-width:2.4em}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--f-num);font-size:16px}
+.vec-a{color:var(--red);font-weight:700} .vec-b{color:var(--blue);font-weight:700} .vec-c{color:var(--amber);font-weight:700} .vec-w{color:var(--green);font-weight:700}
+.drag{touch-action:none;cursor:crosshair}
+.v-a{stroke:var(--red);fill:var(--red)} .v-b{stroke:var(--blue);fill:var(--blue)} .v-c{stroke:var(--ink);fill:var(--ink)} .v-u{stroke:var(--amber);fill:var(--amber)} .v-w{stroke:var(--green);fill:var(--green)} .v-f{stroke:var(--muted);fill:var(--muted)}
+.g-grid{stroke:var(--rule);stroke-width:1}
+.g-ax{stroke:var(--muted);stroke-width:1.3}
+.t-tk{font-family:var(--f-num);font-size:10.5px;fill:var(--muted)}
+.t-lb{font-size:12px;fill:var(--muted)}
+.t-v{font-family:var(--f-num);font-size:12.5px;font-weight:600}
+.t-va{fill:var(--red)} .t-vb{fill:var(--blue)} .t-vc{fill:var(--ink)} .t-vu{fill:var(--amber)} .t-vw{fill:var(--green)} .t-vm{fill:var(--muted)}
+.dash{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4;fill:none}
+.dash-f{stroke-width:1.4;stroke-dasharray:6 4;fill:none}
+.shadow{stroke:var(--amber);stroke-width:7;stroke-linecap:round;opacity:.45}
+.arc{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-dasharray:3 3}
+.hdl{fill:var(--sheet);stroke-width:2.4;cursor:grab}
+.hdl.a{stroke:var(--red)} .hdl.b{stroke:var(--blue)} .hdl.w{stroke:var(--green)} .hdl.x{stroke:var(--amber)}
+.reg-p{fill:var(--red-soft)} .reg-n{fill:var(--slate-soft)}
+.pt-p{fill:var(--red)} .pt-n{fill:var(--slate)} .pt-bad{fill:none;stroke:var(--ink);stroke-width:1.6}
+.walker{fill:var(--amber);stroke:var(--ink);stroke-width:1.2}
+.ucirc{fill:none;stroke:var(--amber);stroke-width:1;stroke-dasharray:3 3}
+.sign{display:inline-block;padding:2px 10px;border-radius:4px;font-weight:700;font-size:14px}
+.sign.p{background:var(--red-soft);color:var(--red)} .sign.z{background:var(--green-soft);color:var(--green)} .sign.n{background:var(--slate-soft);color:var(--ink)}
+td.ok,.ok{color:var(--blue);font-weight:700} td.bad,.bad{color:var(--red);font-weight:700}
+.checks{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14.5px}
+.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.checks input{accent-color:var(--ink);width:17px;height:17px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">「여기에선 모두가 숫자에 불과하다」 37~53쪽 · 벡터, 점곱, 행렬, 퍼셉트론</p>
+    <h1>벡터 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="학습 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">크기·방향</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">덧셈·뺄셈</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">스칼라 곱</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">점곱</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">퍼셉트론</span></button></li>
+    <li><button id="st6" data-go="6"><span class="sn">6</span><span class="sl">초평면·편향</span></button></li>
+    <li><button id="st7" data-go="7"><span class="sn">7</span><span class="sl">행렬</span></button></li>
+    <li><button id="st8" data-go="8"><span class="sn">8</span><span class="sl">종합</span></button></li>
+    </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 8 · 벡터란?</p>
+      <h2 id="h1s">크기와 방향을 함께 가진 화살표</h2>
+    </div>
+    <div class="scene">
+      <p>어떤 사람이 출발점에서 <b>동쪽으로 4km</b>, <b>북쪽으로 3km</b> 걸었다.</p>
+      <p>이 이동은 화살표 하나로 나타낼 수 있다. 화살표의 길이는 ‘얼마나’(크기), 화살표가 가리키는 쪽은 ‘어디로’(방향)를 뜻한다. 이것이 <b>벡터</b>다. (4, 3)처럼 숫자 두 개로 쓴다.</p>
+    </div>
+
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">x 성분</span><input type="range" id="v1x" min="-4" max="9" step="1" value="4"><span class="num sl-v" id="v1xv">4</span></label>
+      <label class="sl-row"><span class="sl-k">y 성분</span><input type="range" id="v1y" min="-4" max="9" step="1" value="3"><span class="num sl-v" id="v1yv">3</span></label>
+    </div>
+    <div class="checks"><label><input type="checkbox" id="v1move"> 다른 곳에서 출발시켜 보기</label></div>
+
+    <figure>
+      <figcaption>좌표평면 위의 벡터 <span class="lg">점선 = x 성분과 y 성분</span></figcaption>
+      <div class="svgbox"><svg id="fig1" viewBox="0 0 360 360" role="img" aria-label="벡터와 성분"></svg></div>
+    </figure>
+    <div class="readout" id="r1"></div>
+
+    <div class="two">
+      <div class="card"><p class="ct">크기 = 피타고라스 정리</p><p class="cs">x 성분과 y 성분이 직각삼각형의 두 변이 된다. 벡터의 크기(길이)는 빗변이다. (4, 3)의 크기는 √(4² + 3²) = 5다.</p></div>
+      <div class="card"><p class="ct">벡터는 ‘위치’가 아니라 ‘이동’</p><p class="cs">길이와 방향만 같으면 어디에 그려도 같은 벡터다(39쪽). 체크박스를 켜서 확인해 보자.</p></div>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 덧셈·뺄셈 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 8 · 벡터 더하기와 빼기</p>
+      <h2 id="h2s">(4, 3)만큼 걷고, 또 (2, 6)만큼 걸으면?</h2>
+    </div>
+    <p class="lead">37쪽의 사람은 (4, 3)에 도착한 뒤 동쪽으로 2km, 북쪽으로 6km를 더 걸어 (6, 9)에 도착한다. 두 이동을 이어 붙이면 출발점에서 도착점까지 가는 화살표 하나가 생긴다. 이것이 <b>합성 벡터</b>다.</p>
+
+    <div>
+      <h3>예상해 보자: 실제로 걸은 거리와 출발점~도착점 직선거리 중 어느 쪽이 길까?</h3>
+      <div class="chips" id="pred2" role="group" aria-label="내 예상">
+        <button class="chip" data-v="걸은 거리" aria-pressed="false">실제로 걸은 거리</button>
+        <button class="chip" data-v="직선거리" aria-pressed="false">직선거리</button>
+        <button class="chip" data-v="같다" aria-pressed="false">같다</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <span class="ctl-label">보기</span>
+      <div class="seg" role="group" aria-label="보기 방식" id="m2">
+        <button data-m="walk" aria-pressed="true">이어 걷기</button>
+        <button data-m="para" aria-pressed="false">평행사변형(힘)</button>
+        <button data-m="sub" aria-pressed="false">빼기 a − b</button>
+      </div>
+      <button class="btn primary" id="walk2">▶ 걸어 보기</button>
+    </div>
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k vec-b">b의 x</span><input type="range" id="b2x" min="-4" max="6" step="1" value="2"><span class="num sl-v" id="b2xv">2</span></label>
+      <label class="sl-row"><span class="sl-k vec-b">b의 y</span><input type="range" id="b2y" min="-4" max="6" step="1" value="6"><span class="num sl-v" id="b2yv">6</span></label>
+    </div>
+
+    <figure>
+      <figcaption>벡터 a = (4, 3)과 b <span class="lg"><span class="vec-a">빨강 a</span> · <span class="vec-b">파랑 b</span> · 검정 = 결과</span></figcaption>
+      <div class="svgbox"><svg id="fig2" viewBox="0 0 360 360" role="img" aria-label="벡터의 덧셈과 뺄셈"></svg></div>
+    </figure>
+    <div class="readout" id="r2"></div>
+    <p class="summary" id="msg2"></p>
+
+    <div class="card"><p class="ct">뉴턴의 평행사변형 (38쪽)</p><p class="cs">한 물체에 두 힘이 동시에 작용하면, 두 힘을 두 변으로 하는 평행사변형의 <b>대각선</b> 방향으로 움직인다. 가속도 (2, 6)과 (4, 3)이 동시에 생기면 실제 가속도는 대각선 (6, 9)이다. 크기는 약 10.82m/s²다. 걷기든 힘이든 계산은 똑같이 <b>성분끼리 더하기</b>다.</p></div>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 스칼라 곱 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 8 · 스칼라 곱과 단위벡터</p>
+      <h2 id="h3s">숫자를 곱하면 길이가 늘고, i와 j로 쪼갤 수 있다</h2>
+    </div>
+    <p class="lead">벡터에 숫자(스칼라) k를 곱하면 각 성분에 k가 곱해진다. 방향은 그대로이고 길이만 |k|배가 된다. k가 음수이면 방향이 반대로 뒤집힌다.</p>
+
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">스칼라 k</span><input type="range" id="k3" min="-1" max="2" step="0.25" value="1"><span class="num sl-v" id="k3v">1</span></label>
+    </div>
+    <div class="controls"><button class="btn" id="k3five">책 예시: k = 5</button></div>
+    <div class="checks">
+      <label><input type="checkbox" id="c3ij" checked> i, j로 쪼개 보기</label>
+      <label><input type="checkbox" id="c3u"> 단위벡터(길이 1) 보기</label>
+    </div>
+
+    <figure>
+      <figcaption>k × (4, 3) <span class="lg">흐린 화살표 = 원래 벡터 (4, 3)</span></figcaption>
+      <div class="svgbox"><svg id="fig3" viewBox="0 0 360 330" role="img" aria-label="스칼라 곱"></svg></div>
+    </figure>
+    <div class="readout" id="r3"></div>
+
+    <div class="two">
+      <div class="card"><p class="ct">단위벡터 i와 j (40쪽)</p><p class="cs">i = (1, 0)은 x축 방향, j = (0, 1)은 y축 방향의 길이 1짜리 벡터다. 그래서 (4, 3) = <b>4i + 3j</b>로 쓸 수 있다. “x축으로 4칸, y축으로 3칸”이라는 뜻이다.</p></div>
+      <div class="card"><p class="ct">해밀턴의 i, j, k와 같은 글자!</p><p class="cs">사원수 실험실에서 본 i, j, k가 바로 여기서 쓰인다. 해밀턴이 사원수의 ‘벡터 부분’을 i, j, k로 쓴 데서 지금의 표기가 나왔다.</p></div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 점곱 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 8 · 점곱(내적)</p>
+      <h2 id="h4s">한 벡터에 다른 벡터의 그림자를 드리우면</h2>
+    </div>
+    <p class="lead">두 벡터 a, b의 <b>점곱</b> a·b는 “a의 크기 × (a 방향으로 비친 b의 그림자 길이)”다. 그림자를 <b>사영</b>(projection)이라고 한다. 식으로는 a·b = ‖a‖ × ‖b‖ × cos θ다(41쪽). 결과는 벡터가 아니라 <b>숫자 하나</b>다.</p>
+
+    <div class="controls">
+      <span class="ctl-label">책 예시</span>
+      <button class="btn" data-p4="0">(4,0)·(5,5)</button>
+      <button class="btn" data-p4="1">(1,0)·(3,3)</button>
+      <button class="btn" data-p4="2">45° 단위벡터·(1,3)</button>
+      <button class="btn" data-p4="3">수직인 두 벡터</button>
+    </div>
+
+    <figure>
+      <figcaption>점곱과 그림자 <span class="lg">동그란 손잡이를 끌어 보자 · 노란 띠 = b의 그림자</span></figcaption>
+      <div class="svgbox"><svg id="fig4" class="drag" viewBox="0 0 360 360" role="img" aria-label="두 벡터의 점곱과 사영"></svg></div>
+    </figure>
+    <div class="readout" id="r4"></div>
+
+    <div class="law">
+      <span class="t">왜 a·b = a1b1 + a2b2일까? (44쪽)</span>
+      <p class="eq">a·b = (a1<b>i</b> + a2<b>j</b>)·(b1<b>i</b> + b2<b>j</b>)<br>&nbsp;&nbsp;&nbsp;&nbsp;= a1b1(<b>i·i</b>) + a1b2(<b>i·j</b>) + a2b1(<b>j·i</b>) + a2b2(<b>j·j</b>)</p>
+      <p>i와 j는 서로 수직이라 cos 90° = 0이다. 그래서 <b>i·j = j·i = 0</b>이다. 또 i·i = 1 × 1 × cos 0° = 1이고 j·j = 1이다. 가운데 두 항이 사라지고 남는 것은</p>
+      <p class="eq" style="font-size:17px"><b>a·b = a1b1 + a2b2</b></p>
+      <p>각도를 몰라도 성분끼리 곱해서 더하기만 하면 된다. 위 계산판에서 두 방법의 답이 항상 같은지 확인해 보자.</p>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 퍼셉트론 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 8 · 기계와 벡터</p>
+      <h2 id="h5s">퍼셉트론의 가중합은 사실 점곱이었다</h2>
+    </div>
+    <p class="lead">퍼셉트론의 가중치를 벡터 <span class="vec-w">w = (w1, w2)</span>로, 데이터 점을 벡터 <span class="vec-c">x = (x1, x2)</span>로 보자. 가중합 w1x1 + w2x2는 바로 점곱 <b>w·x</b>다. 그래서 퍼셉트론의 판정은 이렇게 쓸 수 있다(44쪽).</p>
+    <div class="readout"><p class="eq" style="text-align:center">w·x + b &gt; 0 이면 +1, &nbsp;아니면 −1</p></div>
+
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">편향 b</span><input type="range" id="b5" min="-10" max="10" step="1" value="0"><span class="num sl-v" id="b5v">0</span></label>
+    </div>
+    <div class="controls"><button class="btn" id="hint5">정답 하나 보기</button><button class="btn ghost" id="reset5">처음으로</button></div>
+
+    <figure>
+      <figcaption>가중치 벡터와 구분선 <span class="lg"><span class="vec-w">초록 손잡이 = w</span> · <span class="vec-c">노란 손잡이 = 판정할 점 x</span> · ● +1, ▲ −1</span></figcaption>
+      <div class="svgbox"><svg id="fig5" class="drag" viewBox="0 0 360 360" role="img" aria-label="가중치 벡터와 퍼셉트론 구분선"></svg></div>
+    </figure>
+    <div class="readout" id="r5"></div>
+    <p class="summary" id="msg5"></p>
+
+    <div class="two">
+      <div class="card"><p class="ct">구분선은 언제나 w와 수직</p><p class="cs">구분선 위의 점은 모두 w·x = −b를 만족한다. 즉 w 방향으로 비친 그림자 길이가 모두 같다. 그런 점들을 이으면 w에 <b>수직</b>인 직선이 된다. w를 돌리면 선도 같이 돈다.</p></div>
+      <div class="card"><p class="ct">판정 = 그림자 길이 비교</p><p class="cs">w·x를 ‖w‖로 나누면 x를 w 방향으로 비춘 그림자 길이다. 이 길이가 기준 −b/‖w‖보다 길면 +1, 짧으면 −1이다. 편향 b는 이 기준점을 w 방향으로 밀고 당긴다.</p></div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button><button class="navbtn" data-go="6">STEP 6 · 초평면과 편향 →</button></div>
+  </section>
+
+  <!-- STEP 6 -->
+  <section class="sheet" id="s6" aria-labelledby="h6s" hidden>
+    <div>
+      <p class="eyebrow">STEP 6 / 8 · 초평면과 편향</p>
+      <h2 id="h6s">점곱의 부호가 ‘어느 쪽’인지 알려 준다</h2>
+    </div>
+    <p class="lead">48쪽의 네 데이터 점 <b>a(3, 1), b(2, −1), c(−2, 1), d(−1, −3)</b>을 가중치 벡터 w와 점곱해 보자. 점곱이 양수이면 구분선의 한쪽, 음수이면 반대쪽에 있다. 점곱의 크기는 구분선에서 얼마나 떨어져 있는지 알려 준다. 2차원에서는 선이지만, 차원이 높아지면 이런 경계를 <b>초평면</b>이라고 부른다.</p>
+
+    <div class="controls">
+      <span class="ctl-label">정답 라벨</span>
+      <div class="seg" role="group" aria-label="라벨" id="lab6">
+        <button data-l="geo" aria-pressed="true">a, b / c, d</button>
+        <button data-l="real" aria-pressed="false">a, b, c / d (스릴러 예시)</button>
+      </div>
+    </div>
+    <div class="sliders">
+      <label class="sl-row"><span class="sl-k">편향 b</span><input type="range" id="b6" min="-8" max="8" step="0.5" value="0"><span class="num sl-v" id="b6v">0</span></label>
+    </div>
+    <div class="controls"><button class="btn" id="ans6">선만 옮겨서 해결하기</button><button class="btn ghost" id="reset6">처음으로</button></div>
+
+    <figure>
+      <figcaption>가중치 벡터와 네 데이터 점 <span class="lg"><span class="vec-w">초록 손잡이 = w</span> · 빨강 = 라벨 +1 · 회색 = 라벨 −1 · 점선 = w 방향으로 비춘 그림자</span></figcaption>
+      <div class="svgbox"><svg id="fig6" class="drag" viewBox="0 0 360 360" role="img" aria-label="가중치 벡터, 구분선, 네 데이터 점"></svg></div>
+    </figure>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>점</th><th>x</th><th>w·x</th><th>w·x + b</th><th>선까지 거리</th><th>판정</th><th>라벨</th><th>일치?</th></tr></thead>
+        <tbody id="tt6"></tbody>
+      </table>
+    </div>
+    <p class="summary" id="msg6"></p>
+
+    <div class="two">
+      <div class="card"><p class="ct">편향 = 방향은 그대로, 선만 평행 이동 (48쪽)</p><p class="cs">b = 0이면 구분선은 반드시 원점을 지난다. 라벨이 ‘a, b, c / d’이면 c가 틀린 쪽에 남는다. 이때 편향 b를 더하면 w의 방향(선의 기울기)은 그대로 두고 선만 옮길 수 있다.</p></div>
+      <div class="card"><p class="ct">정답 선은 무한히 많다 (49쪽)</p><p class="cs">c와 d 사이로 지나가는 직선은 셀 수 없이 많다. 퍼셉트론은 그중 <b>하나</b>를 찾는다는 것만 보장한다. 처음 보는 데이터까지 잘 맞히는 ‘최상의’ 선을 찾는다는 보장은 없다. w를 끌어서 다른 정답도 찾아보자.</p></div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="5">← STEP 5</button><button class="navbtn" data-go="7">STEP 7 · 행렬로 쓰기 →</button></div>
+  </section>
+
+  <!-- STEP 7 -->
+  <section class="sheet" id="s7" aria-labelledby="h7s" hidden>
+    <div>
+      <p class="eyebrow">STEP 7 / 8 · 벡터를 행렬로 쓰기</p>
+      <h2 id="h7s">컴퓨터는 화살표 대신 수의 배열을 본다</h2>
+    </div>
+    <p class="lead">퍼셉트론을 프로그램으로 만들 때 필요한 것은 그림이 아니라 <b>수를 다루는 일</b>이다(49~50쪽). 데이터 점 (x1, x2)도, 가중치 (w1, w2)도 결국 수의 배열이다.</p>
+
+    <div class="two">
+      <div class="card"><p class="ct">행렬</p><p class="cs">수를 행(가로줄)과 열(세로줄)로 배열한 것이다. 행이 m개, 열이 n개이면 <b>m × n 행렬</b>이라고 한다.</p><div class="mrow" style="margin-top:6px"><span class="mat" style="flex-direction:column"><span>1&nbsp;&nbsp;2&nbsp;&nbsp;3</span><span>4&nbsp;&nbsp;5&nbsp;&nbsp;6</span></span><span style="font-size:13px;color:var(--muted)">2 × 3 행렬</span></div></div>
+      <div class="card"><p class="ct">벡터 = 행이나 열이 하나인 행렬</p><p class="cs">열이 하나면 <b>열행렬</b>(n × 1), 행이 하나면 <b>행행렬</b>(1 × n)이다. 열행렬을 옆으로 눕히는 것을 <b>전치</b>(transpose)라고 하고, Aᵀ로 쓴다.</p><div class="mrow" style="margin-top:6px">A = <span class="mat"><span>4</span><span>3</span></span> → Aᵀ = <span class="mat" style="flex-direction:row;gap:10px"><span>4</span><span>3</span></span></div></div>
+    </div>
+
+    <div>
+      <h3>행렬로 점곱하기: AᵀB</h3>
+      <p class="lead" style="margin-bottom:10px">두 열행렬은 그대로는 곱할 수 없다. 행렬의 곱은 <b>앞 행렬의 열 개수 = 뒤 행렬의 행 개수</b>일 때만 된다. 그래서 하나를 전치해서 (1 × n) × (n × 1) 꼴로 만든다. 결과는 1 × 1, 즉 숫자 하나다.</p>
+      <div class="controls">
+        <span class="ctl-label">차원</span>
+        <div class="seg" role="group" aria-label="차원" id="dim7"><button data-d="2" aria-pressed="true">2개</button><button data-d="3" aria-pressed="false">3개</button></div>
+        <button class="btn" id="ex7">책 예시 [4, 3]·[2, 6]</button>
+      </div>
+      <div class="qrow" style="margin-top:10px"><span class="qh vec-a">A (열행렬)</span><div class="qin" id="a7in"></div></div>
+      <div class="qrow" style="margin-top:6px"><span class="qh vec-b">B (열행렬)</span><div class="qin" id="b7in"></div></div>
+      <p class="err-msg" id="err7" role="alert"></p>
+      <div class="readout" id="r7"></div>
+    </div>
+
+    <div class="card"><p class="ct">이게 왜 중요할까?</p><p class="cs">코사인이나 각도를 구할 필요 없이 <b>곱하고 더하기만</b> 하면 점곱이 나온다(51쪽). 데이터 점이 수천 개여도, 각 점과 w를 이렇게 곱하기만 하면 구분선(초평면)에서 어느 쪽에 얼마나 떨어져 있는지 알 수 있다. 컴퓨터가 가장 잘하는 일이다.</p></div>
+
+    <div class="nav"><button class="navbtn" data-go="6">← STEP 6</button><button class="navbtn" data-go="8">STEP 8 · 종합 →</button></div>
+  </section>
+
+  <!-- STEP 8 -->
+  <section class="sheet" id="s8" aria-labelledby="h8s" hidden>
+    <div>
+      <p class="eyebrow">STEP 8 / 8 · 종합</p>
+      <h2 id="h8s">퍼셉트론을 한 줄로: y = f(wᵀx)</h2>
+    </div>
+    <p class="lead">입력 [x1, x2, …, xn]을 열벡터 <b>x</b>, 가중치 [w1, w2, …, wn]을 열벡터 <b>w</b>로 쓰면 가중합 w1x1 + … + wnxn은 <b>wᵀx</b>다(52쪽).</p>
+    <div class="readout"><p class="eq" style="text-align:center">y = −1 (wᵀx + b ≤ 0), &nbsp;&nbsp; y = 1 (wᵀx + b &gt; 0)</p></div>
+
+    <div>
+      <h3>편향도 가중치로 만드는 기술 (53쪽)</h3>
+      <p class="lead" style="margin-bottom:10px">편향 b만 따로 노는 것이 어색해 보인다. 그래서 언제나 1인 가짜 입력 <b>x0 = 1</b>을 하나 더 넣고, b를 그 입력의 가중치 <b>w0</b>로 본다. 그러면 w0·x0 = b·1 = b라서 계산 결과는 똑같고, 식은 더 단순해진다.</p>
+    </div>
+    <figure>
+      <figcaption>편향을 포함한 퍼셉트론 <span class="lg">x0 = 1, w0 = b</span></figcaption>
+      <div class="svgbox"><svg id="fig8" viewBox="0 0 400 210" role="img" aria-label="w0x0, w1x1, w2x2가 들어가는 퍼셉트론"></svg></div>
+    </figure>
+    <div class="readout"><p class="eq" style="text-align:center">x = [x0, x1, x2] = [1, x1, x2], &nbsp;w = [w0, w1, w2] = [b, w1, w2]</p><p class="eq" style="text-align:center"><b>y = −1 (wᵀx ≤ 0), &nbsp; y = 1 (wᵀx &gt; 0)</b></p></div>
+
+    <div>
+      <h3>STEP 6의 값으로 직접 계산해 보기</h3>
+      <div class="controls"><span class="ctl-label">데이터 점</span><div class="seg" role="group" aria-label="데이터 점" id="pt8"><button data-p="0" aria-pressed="true">a</button><button data-p="1" aria-pressed="false">b</button><button data-p="2" aria-pressed="false">c</button><button data-p="3" aria-pressed="false">d</button></div></div>
+      <div class="readout" id="r8" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card"><p class="ct">퍼셉트론 실험실과 이어 보기</p><p class="cs">학습 규칙 b ← b + y는 w0 ← w0 + y·x0 (x0 = 1)과 같다. 편향을 가중치로 바꾸면 <b>모든 가중치를 같은 규칙 하나로</b> 고칠 수 있다. 그래서 실제 프로그램은 대부분 이 방식을 쓴다.</p></div>
+
+    <div class="law">
+      <span class="t">한눈에 정리</span>
+      <ol>
+        <li>벡터는 <b>크기와 방향</b>을 가진 양이다. (4, 3)처럼 성분으로 쓰고, 크기는 √(4² + 3²) = 5다.</li>
+        <li>벡터 덧셈·뺄셈은 <b>성분끼리</b> 한다. 이어 걷기와 평행사변형의 대각선이 같은 결과다.</li>
+        <li>스칼라 k를 곱하면 길이가 |k|배가 된다. (4, 3) = 4i + 3j처럼 단위벡터로 쪼갤 수 있다.</li>
+        <li>점곱 a·b = ‖a‖‖b‖cos θ = a1b1 + a2b2. 그림자(사영)의 길이를 재는 계산이고, 0이면 두 벡터는 <b>수직</b>이다.</li>
+        <li>퍼셉트론의 가중합은 점곱 w·x다. 구분선(초평면)은 <b>w에 수직</b>이고, 점곱의 부호가 어느 쪽인지 알려 준다.</li>
+        <li>편향 b는 선의 방향은 그대로 두고 <b>평행 이동</b>시킨다. 데이터를 나누는 선은 무한히 많고, 퍼셉트론은 그중 하나를 찾는다.</li>
+        <li>벡터는 행이나 열이 하나인 <b>행렬</b>이다. 점곱은 AᵀB, 즉 (1 × n) × (n × 1) 행렬 곱으로 계산한다.</li>
+        <li>x0 = 1, w0 = b로 두면 퍼셉트론은 <b>y = f(wᵀx)</b> 한 줄로 정리된다.</li>
+      </ol>
+    </div>
+
+    <div class="qs">
+      <div class="q"><span class="qn">Q1</span><p>(4, 3)과 (2, 6)을 이어 걸었을 때, 걸은 거리는 약 11.32km이고 직선거리는 약 10.82km다. 왜 직선거리가 항상 더 짧거나 같을까?</p>
+        <details><summary>답 보기</summary><div class="ans">두 벡터와 합성 벡터가 삼각형을 이룬다. 삼각형에서 두 변의 길이의 합은 나머지 한 변보다 길다. 그래서 ‖a‖ + ‖b‖ ≥ ‖a + b‖이다(삼각부등식). 두 벡터의 방향이 같을 때만 등호가 성립한다.</div></details></div>
+      <div class="q"><span class="qn">Q2</span><p>5 × (4, 3) = (20, 15)의 크기가 정확히 5 × 5 = 25가 되는 이유를 식으로 보여 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">√(20² + 15²) = √(5²·4² + 5²·3²) = √(5²(4² + 3²)) = 5 × √(4² + 3²) = 5 × 5 = <b>25</b>. 일반적으로 ‖k·v‖ = |k|·‖v‖다.</div></details></div>
+      <div class="q"><span class="qn">Q3</span><p>(3, 4)와 (−4, 3)의 점곱을 구하고, 두 벡터 사이의 각을 말해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">3 × (−4) + 4 × 3 = −12 + 12 = <b>0</b>. 점곱이 0이므로 cos θ = 0, 즉 θ = <b>90°</b>(수직)이다.</div></details></div>
+      <div class="q"><span class="qn">Q4</span><p>a = (1, 0), b = (1, 1) 사이의 각을 점곱으로 구해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">a·b = 1 × 1 + 0 × 1 = 1, ‖a‖ = 1, ‖b‖ = √2. cos θ = a·b / (‖a‖‖b‖) = 1/√2이므로 θ = <b>45°</b>다. 점곱을 쓰면 각도를 몰라도 각도를 거꾸로 구할 수 있다.</div></details></div>
+      <div class="q"><span class="qn">Q5</span><p>퍼셉트론에서 w = (1, 2), b = −4일 때 구분선의 방정식을 쓰고, 그 선이 w와 수직인지 확인해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">w·x + b = 0 → <b>x1 + 2x2 = 4</b>. 이 선은 (4, 0)과 (0, 2)를 지나므로 선의 방향 벡터는 (−4, 2)다. (−4, 2)·(1, 2) = −4 + 4 = 0이므로 <b>수직</b>이다. STEP 5에서 w를 (1, 2), b를 −4로 맞춰 확인해 보자.</div></details></div>
+      <div class="q"><span class="qn">Q6</span><p>b = 0일 때 어떤 데이터 점이 구분선 바로 위에 있다면, 그 점(벡터)과 w의 관계는?</p>
+        <details><summary>답 보기</summary><div class="ans">구분선 위의 점은 w·x = 0을 만족한다. 점곱이 0이므로 그 점의 벡터는 <b>w와 수직</b>이다(52쪽). 그래서 원점을 지나는 구분선은 w에 수직인 직선이 된다.</div></details></div>
+      <div class="q"><span class="qn">Q7</span><p>STEP 6에서 w = (3, 1)일 때, 라벨 ‘a, b, c / d’를 모두 맞히는 b의 범위를 구해 보자.</p>
+        <details><summary>답 보기</summary><div class="ans">c가 +1이 되려면 w·c + b = −6 + 1 + b = −5 + b &gt; 0, 즉 b &gt; 5다. d가 −1이 되려면 w·d + b = −3 − 3 + b = −6 + b ≤ 0, 즉 b ≤ 6이다. a(10 + b), b(5 + b)는 이 범위에서 저절로 양수다. 그래서 <b>5 &lt; b ≤ 6</b>이다. 선을 옮길 수 있는 폭이 아주 좁다. w의 방향을 바꾸면 더 넉넉한 선도 찾을 수 있다.</div></details></div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 데이터를 나누는 선이 무한히 많다면, 그중 ‘가장 좋은’ 선은 어떤 기준으로 고르면 좋을까? 내 생각을 한 문장으로 적어 보자.</p>
+
+    <div class="nav"><button class="navbtn" data-go="7">← STEP 7</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function fm(v,d){d=d==null?2:d;var m=Math.pow(10,d);v=Math.round(v*m)/m;if(Object.is(v,-0)||Math.abs(v)<1e-9)v=0;return (v<0?'−':'')+Math.abs(v)}
+  function mat(x,y,cls){return '<span class="mat '+(cls||'')+'"><span>'+fm(x)+'</span><span>'+fm(y)+'</span></span>'}
+  function len(v){return Math.hypot(v[0],v[1])}
+  function pv(v){return v<0?'('+fm(v)+')':fm(v)}
+  function sq(v){var s=v[0]*v[0]+v[1]*v[1];var r=Math.sqrt(s);return Math.abs(r-Math.round(r))<1e-9?''+Math.round(r):'√'+fm(s)}
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- routing ---------- */
+  var current=1;
+  function render(){
+    var m=/^#s([1-8])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=8;i++){$('s'+i).hidden=(i!==current);$('st'+i).setAttribute('aria-current',i===current?'step':'false');}
+  }
+  function go(i){i=Math.max(1,Math.min(8,i));if(location.hash!=='#s'+i){location.hash='s'+i}else{render()}window.scrollTo(0,0);}
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  /* ---------- grid helper ---------- */
+  function Grid(o){
+    var W=o.W,H=o.H,P=26,u=Math.min((W-2*P)/(o.xmax-o.xmin),(H-2*P)/(o.ymax-o.ymin));
+    var ox=(W-u*(o.xmax-o.xmin))/2,oy=(H-u*(o.ymax-o.ymin))/2;
+    var G={u:u,o:o};
+    G.px=function(x){return ox+(x-o.xmin)*u}; G.py=function(y){return H-oy-(y-o.ymin)*u};
+    G.inv=function(sx,sy){return [(sx-ox)/u+o.xmin,(H-oy-sy)/u+o.ymin]};
+    var s='',st=o.tick||1;
+    for(var x=Math.ceil(o.xmin);x<=o.xmax;x++) s+='<line class="g-grid" x1="'+G.px(x)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(x)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(var y=Math.ceil(o.ymin);y<=o.ymax;y++) s+='<line class="g-grid" x1="'+G.px(o.xmin)+'" y1="'+G.py(y)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(y)+'"/>';
+    s+='<line class="g-ax" x1="'+G.px(o.xmin)+'" y1="'+G.py(0)+'" x2="'+G.px(o.xmax)+'" y2="'+G.py(0)+'"/><line class="g-ax" x1="'+G.px(0)+'" y1="'+G.py(o.ymin)+'" x2="'+G.px(0)+'" y2="'+G.py(o.ymax)+'"/>';
+    for(x=Math.ceil(o.xmin/st)*st;x<=o.xmax;x+=st) if(x) s+='<text class="t-tk" x="'+G.px(x)+'" y="'+(G.py(0)+13)+'" text-anchor="middle">'+(x<0?'−'+(-x):x)+'</text>';
+    for(y=Math.ceil(o.ymin/st)*st;y<=o.ymax;y+=st) if(y) s+='<text class="t-tk" x="'+(G.px(0)-5)+'" y="'+(G.py(y)+4)+'" text-anchor="end">'+(y<0?'−'+(-y):y)+'</text>';
+    if(o.xl) s+='<text class="t-lb" x="'+(G.px(o.xmax)-2)+'" y="'+(G.py(0)-6)+'" text-anchor="end">'+o.xl+'</text>';
+    if(o.yl) s+='<text class="t-lb" x="'+(G.px(0)+6)+'" y="'+(G.py(o.ymax)+12)+'">'+o.yl+'</text>';
+    G.base=s;
+    G.arrow=function(a,b,cls,w){
+      var x1=G.px(a[0]),y1=G.py(a[1]),x2=G.px(b[0]),y2=G.py(b[1]),dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);w=w||2.4;
+      if(L<2) return '';
+      var hl=Math.min(11,L*0.45),ux=dx/L,uy=dy/L,bx=x2-ux*hl,by=y2-uy*hl;
+      return '<line class="'+cls+'" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y2="'+by.toFixed(1)+'" stroke-width="'+w+'"/>'+
+        '<polygon class="'+cls+'" stroke-width="1" points="'+x2.toFixed(1)+','+y2.toFixed(1)+' '+(bx-uy*5.5).toFixed(1)+','+(by+ux*5.5).toFixed(1)+' '+(bx+uy*5.5).toFixed(1)+','+(by-ux*5.5).toFixed(1)+'"/>';
+    };
+    G.line=function(a,b,cls){return '<line class="'+cls+'" x1="'+G.px(a[0]).toFixed(1)+'" y1="'+G.py(a[1]).toFixed(1)+'" x2="'+G.px(b[0]).toFixed(1)+'" y2="'+G.py(b[1]).toFixed(1)+'"/>'};
+    G.text=function(p,t,cls,dx,dy,anc){return '<text class="t-v '+cls+'" x="'+(G.px(p[0])+(dx||0)).toFixed(1)+'" y="'+(G.py(p[1])+(dy||0)).toFixed(1)+'" text-anchor="'+(anc||'middle')+'">'+t+'</text>'};
+    G.clipLine=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],pts=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var p=R[i],q=R[(i+1)%4],fp=f(p),fq=f(q);if(fp===0)pts.push(p);else if(fp*fq<0){var t=fp/(fp-fq);pts.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])])}}
+      return pts.length>=2?[pts[0],pts[1]]:null;};
+    G.clipPoly=function(A,B,C){var o=G.o,R=[[o.xmin,o.ymin],[o.xmax,o.ymin],[o.xmax,o.ymax],[o.xmin,o.ymax]],poly=[];
+      function f(p){return A*p[0]+B*p[1]+C}
+      for(var i=0;i<4;i++){var a=R[i],b=R[(i+1)%4],fa=f(a),fb=f(b);if(fa>0)poly.push(a);if((fa>0)!==(fb>0)&&fa!==fb){var t=fa/(fa-fb);poly.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}}
+      return poly;};
+    return G;
+  }
+  function svgPoint(svg,e){var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;var m=svg.getScreenCTM();if(!m)return null;var p=pt.matrixTransform(m.inverse());return [p.x,p.y]}
+  function dragger(svg,G,setters,onChange){
+    var active=null;
+    svg.addEventListener('pointerdown',function(e){var h=e.target.getAttribute&&e.target.getAttribute('data-h');if(!h)return;active=h;try{svg.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+    svg.addEventListener('pointermove',function(e){if(!active)return;var p=svgPoint(svg,e);if(!p)return;var d=G.inv(p[0],p[1]),o=G.o;
+      var x=Math.max(o.xmin,Math.min(o.xmax,Math.round(d[0]))),y=Math.max(o.ymin,Math.min(o.ymax,Math.round(d[1])));setters[active](x,y);onChange()});
+    function end(){active=null} svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+  }
+  function hdl(G,p,name){return '<circle class="hdl '+name+'" data-h="'+name+'" cx="'+G.px(p[0]).toFixed(1)+'" cy="'+G.py(p[1]).toFixed(1)+'" r="10"/>'}
+
+  /* ---------- step 1 ---------- */
+  var G1=Grid({W:360,H:360,xmin:-8,xmax:10,ymin:-5,ymax:10,tick:2,xl:'동쪽(x)',yl:'북쪽(y)'});
+  function draw1(){
+    var x=+$('v1x').value,y=+$('v1y').value,mv=$('v1move').checked;
+    $('v1xv').textContent=x;$('v1yv').textContent=y;
+    var S=mv?[x>=0?-7:3,y>=0?-4:5]:[0,0],T=[S[0]+x,S[1]+y],s=G1.base;
+    if(mv) s+=G1.arrow([0,0],[x,y],'v-f',1.6);
+    if(x&&y){s+=G1.line(S,[T[0],S[1]],'dash')+G1.line([T[0],S[1]],T,'dash');
+      s+=G1.text([(S[0]+T[0])/2,S[1]],'x = '+fm(x),'t-vm',0,y>0?14:-6)+G1.text([T[0],(S[1]+T[1])/2],'y = '+fm(y),'t-vm',x>0?6:-6,4,x>0?'start':'end');}
+    s+=G1.arrow(S,T,'v-a',2.8);
+    if(x||y) s+=G1.text([(S[0]+T[0])/2,(S[1]+T[1])/2],'크기 '+fm(len([x,y])),'t-va',x*y>=0?-10:10,y>=0?-8:14,x*y>=0?'end':'start');
+    $('fig1').innerHTML=s;
+    var deg=Math.atan2(y,x)*180/Math.PI;
+    $('r1').innerHTML='<div class="mrow">벡터 = '+mat(x,y,'vec-a')+' = ('+fm(x)+', '+fm(y)+')</div>'+
+      '<p class="eq">크기 = √('+fm(x)+'² + '+fm(y)+'²) = √'+(x*x+y*y)+' = <b>'+(x||y?fm(len([x,y])):'0')+'</b></p>'+
+      '<p class="eq">방향 = x축에서 '+(x||y?fm(deg,1)+'°':'(크기 0이라 방향 없음)')+'</p>'+
+      (mv?'<p class="hint">흐린 화살표(원점 출발)와 빨간 화살표는 시작점만 다르고 길이와 방향이 같다. 그래서 같은 벡터다.</p>':'');
+  }
+  ['v1x','v1y','v1move'].forEach(function(id){$(id).addEventListener('input',draw1)});
+
+  /* ---------- step 2 ---------- */
+  var G2=Grid({W:360,H:360,xmin:-4,xmax:11,ymin:-4,ymax:11,tick:2,xl:'동쪽',yl:'북쪽'}), mode2='walk', walkT=null, walked=false, pred=null;
+  document.querySelectorAll('#m2 button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#m2 button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});mode2=b.dataset.m;$('walk2').disabled=mode2!=='walk';draw2();})});
+  document.querySelectorAll('#pred2 .chip').forEach(function(b){b.addEventListener('click',function(){pred=b.dataset.v;document.querySelectorAll('#pred2 .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')})})});
+  ['b2x','b2y'].forEach(function(id){$(id).addEventListener('input',function(){walked=false;draw2()})});
+  function draw2(wp){
+    var A=[4,3],B=[+$('b2x').value,+$('b2y').value],S=[A[0]+B[0],A[1]+B[1]],D=[A[0]-B[0],A[1]-B[1]],s=G2.base;
+    $('b2xv').textContent=B[0];$('b2yv').textContent=B[1];
+    if(mode2==='walk'){
+      s+=G2.arrow([0,0],S,'v-c',2.2)+G2.arrow([0,0],A,'v-a',2.8)+G2.arrow(A,S,'v-b',2.8);
+      s+=G2.text(A,'(4, 3)','t-va',8,12,'start')+G2.text(S,'('+S[0]+', '+S[1]+')','t-vc',0,-10);
+      if(wp) s+='<circle class="walker" cx="'+G2.px(wp[0]).toFixed(1)+'" cy="'+G2.py(wp[1]).toFixed(1)+'" r="7"/>';
+    } else if(mode2==='para'){
+      s+=G2.line(A,S,'dash')+G2.line(B,S,'dash');
+      s+=G2.arrow([0,0],S,'v-c',2.2)+G2.arrow([0,0],A,'v-a',2.8)+G2.arrow([0,0],B,'v-b',2.8);
+      s+=G2.text(S,'('+S[0]+', '+S[1]+')','t-vc',0,-10);
+    } else {
+      s+=G2.arrow([0,0],D,'v-f',1.6)+G2.arrow([0,0],A,'v-a',2.8)+G2.arrow([0,0],B,'v-b',2.8)+G2.arrow(B,A,'v-c',2.4);
+      s+=G2.text(D,'a − b','t-vm',0,D[1]>=0?-8:16);
+    }
+    $('fig2').innerHTML=s;
+    var la=5,lb=len(B),ls=len(S);
+    if(mode2==='sub'){
+      $('r2').innerHTML='<div class="mrow">'+mat(4,3,'vec-a')+' − '+mat(B[0],B[1],'vec-b')+' = '+mat(D[0],D[1])+'</div><p class="hint">검은 화살표는 b의 끝에서 a의 끝으로 간다. “b에서 a로 가려면 얼마나 움직여야 하나?”가 a − b다. 흐린 화살표는 같은 벡터를 원점으로 옮겨 그린 것이다.</p>';
+      $('msg2').textContent='';return;
+    }
+    $('r2').innerHTML='<div class="mrow">'+mat(4,3,'vec-a')+' + '+mat(B[0],B[1],'vec-b')+' = '+mat(S[0],S[1])+'</div>'+
+      '<p class="eq">각 벡터의 크기: ‖a‖ = 5, ‖b‖ = '+sq(B)+(sq(B).charAt(0)==='√'?' ≈ '+fm(lb):'')+'</p>'+
+      '<p class="eq">실제로 걸은 거리 = 5 + '+fm(lb)+' = <b>'+fm(la+lb)+'</b>km</p>'+
+      '<p class="eq">출발점~도착점 직선거리 = '+sq(S)+' ≈ <b>'+fm(ls)+'</b>km</p>';
+    if(mode2==='walk'&&walked){
+      var ans=Math.abs(la+lb-ls)<1e-9?'같다':'걸은 거리';
+      $('msg2').innerHTML=(pred?'내 예상: '+(pred==='걸은 거리'?'실제로 걸은 거리':pred)+' → ':'')+(ans==='같다'?'두 벡터의 방향이 같아서 <b>거리가 같다</b>.':'<b>실제로 걸은 거리가 더 길다</b> ('+fm(la+lb)+' > '+fm(ls)+'). 벡터의 크기는 ‘순(net) 이동 거리’다.');
+    } else $('msg2').textContent=mode2==='walk'?'‘걸어 보기’를 눌러 확인해 보자.':'두 벡터를 원점에 같이 놓고 평행사변형을 그리면, 대각선이 합성 벡터다. 이어 걷기의 결과와 같다.';
+  }
+  $('walk2').addEventListener('click',function(){
+    if(walkT) return;var A=[4,3],B=[+$('b2x').value,+$('b2y').value],t0=null,dur=reduce?1:2200;
+    function f(ts){if(t0===null)t0=ts;var t=Math.min(1,(ts-t0)/dur),p=t<.5?[A[0]*t*2,A[1]*t*2]:[A[0]+B[0]*(t*2-1),A[1]+B[1]*(t*2-1)];draw2(p);
+      if(t<1)walkT=requestAnimationFrame(f);else{walkT=null;walked=true;draw2(p)}}
+    walkT=requestAnimationFrame(f);
+  });
+
+  /* ---------- step 3 ---------- */
+  var G3=Grid({W:360,H:330,xmin:-5,xmax:9,ymin:-4,ymax:7,tick:1});
+  function draw3(){
+    var k=+$('k3').value,V=[4*k,3*k],s=G3.base;$('k3v').textContent=fm(k);
+    s+=G3.arrow([0,0],[4,3],'v-f',1.6);
+    if($('c3ij').checked&&k){s+=G3.arrow([0,0],[V[0],0],'v-u',2)+G3.arrow([V[0],0],V,'v-w',2);
+      s+=G3.text([V[0]/2,0],fm(V[0])+'i','t-vu',0,V[1]>=0?15:-7)+G3.text([V[0],V[1]/2],fm(V[1])+'j','t-vw',V[0]>=0?6:-6,4,V[0]>=0?'start':'end');}
+    s+=G3.arrow([0,0],V,'v-a',2.8);
+    if($('c3u').checked){s+='<circle class="ucirc" cx="'+G3.px(0)+'" cy="'+G3.py(0)+'" r="'+G3.u+'"/>'+G3.arrow([0,0],[0.8,0.6],'v-c',2.4)+G3.text([1.2,-1.6],'단위벡터 (0.8, 0.6)','t-vc',0,0,'start');}
+    $('fig3').innerHTML=s;
+    $('r3').innerHTML='<div class="mrow">'+fm(k)+' × '+mat(4,3)+' = '+mat(V[0],V[1],'vec-a')+'</div>'+
+      '<p class="eq">크기 = √('+fm(V[0])+'² + '+fm(V[1])+'²) = <b>'+fm(len(V))+'</b> = |'+fm(k)+'| × 5</p>'+
+      '<p class="eq">= '+fm(V[0])+'i + '+fm(V[1])+'j</p>'+
+      '<p class="hint">'+(k<0?'k가 음수라서 방향이 반대로 뒤집혔다.':k===0?'k = 0이면 길이 0인 영벡터가 된다.':'방향은 그대로, 길이만 '+fm(k)+'배.')+(($('c3u').checked)?' · 단위벡터: (4, 3) ÷ 5 = (0.8, 0.6), 크기 √(0.64 + 0.36) = 1':'')+'</p>';
+  }
+  ['k3','c3ij','c3u'].forEach(function(id){$(id).addEventListener('input',draw3)});
+  $('k3five').addEventListener('click',function(){
+    $('r3').innerHTML='<div class="mrow">5 × '+mat(4,3)+' = '+mat(20,15,'vec-a')+'</div><p class="eq">크기 = √(20² + 15²) = √(400 + 225) = √625 = <b>25</b> = 5 × 5</p><p class="hint">(20, 15)는 그림 밖으로 나가서 숫자로만 보여 준다. 슬라이더를 움직이면 다시 그림이 나온다.</p>';
+  });
+
+  /* ---------- step 4 ---------- */
+  var G4=Grid({W:360,H:360,xmin:-3,xmax:7,ymin:-3,ymax:7,tick:1}), A4=[4,0], B4=[5,5];
+  var P4=[[[4,0],[5,5]],[[1,0],[3,3]],[[Math.SQRT1_2,Math.SQRT1_2],[1,3]],[[2,1],[-1,2]]];
+  document.querySelectorAll('[data-p4]').forEach(function(b){b.addEventListener('click',function(){var p=P4[+b.dataset.p4];A4=p[0].slice();B4=p[1].slice();draw4()})});
+  dragger($('fig4'),G4,{a:function(x,y){if(x||y)A4=[x,y]},b:function(x,y){if(x||y)B4=[x,y]}},draw4);
+  function draw4(){
+    var s=G4.base,a=A4,b=B4,la=len(a),lb=len(b),dot=a[0]*b[0]+a[1]*b[1],cos=dot/(la*lb),th=Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI;
+    var t=dot/(la*la),F=[a[0]*t,a[1]*t];
+    var ln=G4.clipLine(-a[1],a[0],0); if(ln) s+=G4.line(ln[0],ln[1],'dash');
+    s+=G4.line([0,0],F,'shadow');
+    s+=G4.line(b,F,'dash');
+    var r=Math.min(1.1,la*0.5,lb*0.5),a0=Math.atan2(a[1],a[0]),b0=Math.atan2(b[1],b[0]),d=b0-a0;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+    var p0=[r*Math.cos(a0),r*Math.sin(a0)],p1=[r*Math.cos(a0+d),r*Math.sin(a0+d)],R=r*G4.u;
+    if(Math.abs(d)>0.02) s+='<path class="arc" d="M'+G4.px(p0[0]).toFixed(1)+' '+G4.py(p0[1]).toFixed(1)+' A'+R.toFixed(1)+' '+R.toFixed(1)+' 0 0 '+(d>0?0:1)+' '+G4.px(p1[0]).toFixed(1)+' '+G4.py(p1[1]).toFixed(1)+'"/>';
+    var mid=a0+d/2; s+=G4.text([(r+0.45)*Math.cos(mid),(r+0.45)*Math.sin(mid)],'θ','t-vc',0,4);
+    s+=G4.arrow([0,0],b,'v-b',2.8)+G4.arrow([0,0],a,'v-a',2.8);
+    s+=G4.text(a,'a','t-va',a[0]>=0?10:-10,a[1]>=0?-8:16)+G4.text(b,'b ('+fm(b[0])+', '+fm(b[1])+')','t-vb',0,b[1]>=0?-14:22);
+    s+=hdl(G4,a,'a')+hdl(G4,b,'b');
+    $('fig4').innerHTML=s;
+    var sg=Math.abs(dot)<1e-9?'<span class="sign z">0 · 수직 (θ = 90°)</span>':dot>0?'<span class="sign p">양수 · 예각 (θ &lt; 90°)</span>':'<span class="sign n">음수 · 둔각 (θ &gt; 90°)</span>';
+    $('r4').innerHTML='<p>a = <span class="vec-a">('+fm(a[0])+', '+fm(a[1])+')</span>, b = <span class="vec-b">('+fm(b[0])+', '+fm(b[1])+')</span> &nbsp;'+sg+'</p>'+
+      '<p><b>방법 1 · 성분으로</b></p><p class="eq">a·b = '+fm(a[0])+'×'+fm(b[0])+' + '+fm(a[1])+'×'+fm(b[1])+' = <b>'+fm(dot)+'</b></p>'+
+      '<p><b>방법 2 · 크기와 각으로</b></p><p class="eq">‖a‖ = '+fm(la)+', ‖b‖ = '+fm(lb)+', θ = '+fm(th,1)+'°, cos θ = '+fm(cos,3)+'</p>'+
+      '<p class="eq">a·b = '+fm(la)+' × '+fm(lb)+' × '+fm(cos,3)+' = <b>'+fm(la*lb*cos)+'</b></p>'+
+      '<p><b>그림자로 보기</b></p><p class="eq">b의 그림자 길이 = ‖b‖cos θ = '+fm(lb*cos)+' → a·b = ‖a‖ × 그림자 = '+fm(la)+' × '+fm(lb*cos)+' = '+fm(dot)+'</p>'+
+      (Math.abs(la-1)<1e-9?'<p class="hint">a가 단위벡터(크기 1)라서 점곱이 곧 b의 그림자 길이다(42쪽).</p>':'');
+  }
+
+  /* ---------- step 5 ---------- */
+  var G5=Grid({W:360,H:360,xmin:-5,xmax:5,ymin:-5,ymax:5,tick:1}), W5=[2,-1], X5=[3,2];
+  var D5=[[2,3,1],[3,1,1],[4,4,1],[1,4,1],[-2,-1,-1],[-3,2,-1],[0,-3,-1],[-1,-4,-1]];
+  dragger($('fig5'),G5,{w:function(x,y){if(x||y)W5=[x,y]},x:function(x,y){X5=[x,y]}},draw5);
+  $('b5').addEventListener('input',draw5);
+  $('hint5').addEventListener('click',function(){W5=[1,1];$('b5').value=-1;draw5()});
+  $('reset5').addEventListener('click',function(){W5=[2,-1];X5=[3,2];$('b5').value=0;draw5()});
+  function draw5(){
+    var w=W5,b=+$('b5').value,x=X5,s='',lw=len(w);$('b5v').textContent=fm(b);
+    var poly=G5.clipPoly(w[0],w[1],b),o=G5.o;
+    s+='<rect class="reg-n" x="'+G5.px(o.xmin)+'" y="'+G5.py(o.ymax)+'" width="'+(G5.px(o.xmax)-G5.px(o.xmin))+'" height="'+(G5.py(o.ymin)-G5.py(o.ymax))+'"/>';
+    if(poly.length>2) s+='<polygon class="reg-p" points="'+poly.map(function(p){return G5.px(p[0]).toFixed(1)+','+G5.py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    s+=G5.base;
+    var wl=G5.clipLine(-w[1],w[0],0); if(wl) s+=G5.line(wl[0],wl[1],'dash');
+    var dl=G5.clipLine(w[0],w[1],b); if(dl) s+='<line class="v-c" stroke-width="2.4" x1="'+G5.px(dl[0][0]).toFixed(1)+'" y1="'+G5.py(dl[0][1]).toFixed(1)+'" x2="'+G5.px(dl[1][0]).toFixed(1)+'" y2="'+G5.py(dl[1][1]).toFixed(1)+'"/>';
+    var bad=0;
+    D5.forEach(function(d){var z=w[0]*d[0]+w[1]*d[1]+b,p=z>0?1:-1,X=G5.px(d[0]),Y=G5.py(d[1]);if(p!==d[2]){bad++;s+='<circle class="pt-bad" cx="'+X+'" cy="'+Y+'" r="10"/>'}
+      s+=d[2]>0?'<circle class="pt-p" cx="'+X+'" cy="'+Y+'" r="6"/>':'<polygon class="pt-n" points="'+X+','+(Y-7)+' '+(X+7)+','+(Y+5.6)+' '+(X-7)+','+(Y+5.6)+'"/>'});
+    var t=(w[0]*x[0]+w[1]*x[1])/(lw*lw),F=[w[0]*t,w[1]*t],T0=-b/(lw*lw),TP=[w[0]*T0,w[1]*T0];
+    s+=G5.line([0,0],F,'shadow')+G5.line(x,F,'dash');
+    s+='<circle cx="'+G5.px(TP[0]).toFixed(1)+'" cy="'+G5.py(TP[1]).toFixed(1)+'" r="4" class="v-c"/>';
+    s+=G5.arrow([0,0],w,'v-w',3);
+    s+=G5.text(w,'w','t-vw',w[0]>=0?12:-12,w[1]>=0?-8:16);
+    s+='<circle class="walker" cx="'+G5.px(x[0])+'" cy="'+G5.py(x[1])+'" r="6"/>'+G5.text(x,'x','t-vu',0,-12);
+    s+=hdl(G5,w,'w')+hdl(G5,x,'x');
+    $('fig5').innerHTML=s;
+    var wx=w[0]*x[0]+w[1]*x[1],z=wx+b;
+    $('r5').innerHTML='<p>w = <span class="vec-w">('+fm(w[0])+', '+fm(w[1])+')</span>, x = <span class="vec-c">('+fm(x[0])+', '+fm(x[1])+')</span>, b = '+fm(b)+'</p>'+
+      '<p class="eq">w·x = '+fm(w[0])+'×'+fm(x[0])+' + '+fm(w[1])+'×'+fm(x[1])+' = '+fm(wx)+'</p>'+
+      '<p class="eq">w·x + b = '+fm(wx)+' + ('+fm(b)+') = <b>'+fm(z)+'</b> → 판정 <b>'+(z>0?'+1':'−1')+'</b></p>'+
+      '<p class="eq">그림자 길이 w·x/‖w‖ = '+fm(wx/lw)+' &nbsp;vs&nbsp; 기준 −b/‖w‖ = '+fm(-b/lw)+'</p>'+
+      '<p class="hint">검은 실선 = 구분선(w·x + b = 0), 점선 = w 방향, 노란 띠 = x의 그림자, 검은 점 = 구분선이 w 방향 직선과 만나는 곳</p>';
+    $('msg5').innerHTML=bad?'●와 ▲ 중 <b>'+bad+'개</b>가 잘못 판정되었다(테두리 표시). w를 끌고 b를 움직여 모두 맞혀 보자.':'<b>모두 맞혔다!</b> 구분선이 w와 수직인 것도 확인해 보자.';
+  }
+
+
+  /* ---------- step 6: hyperplane & bias ---------- */
+  var G6=Grid({W:360,H:360,xmin:-5,xmax:5,ymin:-5,ymax:5,tick:1}), W6=[3,1], lab6='geo';
+  var P6=[['a',[3,1]],['b',[2,-1]],['c',[-2,1]],['d',[-1,-3]]];
+  function label6(i){return lab6==='geo'?(i<2?1:-1):(i<3?1:-1)}
+  document.querySelectorAll('#lab6 button').forEach(function(bt){bt.addEventListener('click',function(){
+    document.querySelectorAll('#lab6 button').forEach(function(x){x.setAttribute('aria-pressed',x===bt?'true':'false')});lab6=bt.dataset.l;draw6();draw8();})});
+  dragger($('fig6'),G6,{w:function(x,y){if(x||y)W6=[x,y]}},function(){draw6();draw8()});
+  $('b6').addEventListener('input',function(){draw6();draw8()});
+  $('ans6').addEventListener('click',function(){W6=[3,1];$('b6').value=5.5;
+    document.querySelectorAll('#lab6 button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.l==='real'?'true':'false')});lab6='real';draw6();draw8()});
+  $('reset6').addEventListener('click',function(){W6=[3,1];$('b6').value=0;
+    document.querySelectorAll('#lab6 button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.l==='geo'?'true':'false')});lab6='geo';draw6();draw8()});
+  function draw6(){
+    var w=W6,b=+$('b6').value,lw=len(w),s='',o=G6.o;$('b6v').textContent=fm(b);
+    var poly=G6.clipPoly(w[0],w[1],b);
+    s+='<rect class="reg-n" x="'+G6.px(o.xmin)+'" y="'+G6.py(o.ymax)+'" width="'+(G6.px(o.xmax)-G6.px(o.xmin))+'" height="'+(G6.py(o.ymin)-G6.py(o.ymax))+'"/>';
+    if(poly.length>2) s+='<polygon class="reg-p" points="'+poly.map(function(p){return G6.px(p[0]).toFixed(1)+','+G6.py(p[1]).toFixed(1)}).join(' ')+'"/>';
+    s+=G6.base;
+    var wl=G6.clipLine(-w[1],w[0],0); if(wl) s+=G6.line(wl[0],wl[1],'dash');
+    var dl=G6.clipLine(w[0],w[1],b); if(dl) s+='<line class="v-c" stroke-width="2.4" x1="'+G6.px(dl[0][0]).toFixed(1)+'" y1="'+G6.py(dl[0][1]).toFixed(1)+'" x2="'+G6.px(dl[1][0]).toFixed(1)+'" y2="'+G6.py(dl[1][1]).toFixed(1)+'"/>';
+    var rows='',bad=0;
+    P6.forEach(function(p,i){
+      var x=p[1],wx=w[0]*x[0]+w[1]*x[1],z=wx+b,pr=z>0?1:-1,L=label6(i),ok=pr===L;if(!ok)bad++;
+      var t=wx/(lw*lw),F=[w[0]*t,w[1]*t];
+      s+=G6.line(x,F,'dash');
+      s+=G6.arrow([0,0],x,L>0?'v-a':'v-f',2.4);
+      if(!ok) s+='<circle class="pt-bad" cx="'+G6.px(x[0])+'" cy="'+G6.py(x[1])+'" r="11"/>';
+      s+=G6.text(x,p[0],L>0?'t-va':'t-vm',x[0]>=0?10:-10,x[1]>=0?-6:14);
+      rows+='<tr><td><b>'+p[0]+'</b></td><td class="num">('+fm(x[0])+', '+fm(x[1])+')</td><td class="num">'+fm(wx)+'</td><td class="num">'+fm(z)+'</td><td class="num">'+fm(z/lw)+'</td><td class="num"><b>'+(pr>0?'+1':'−1')+'</b></td><td class="num">'+(L>0?'+1':'−1')+'</td><td class="'+(ok?'ok':'bad')+'">'+(ok?'○':'✕')+'</td></tr>';
+    });
+    s+=G6.arrow([0,0],w,'v-w',3.2)+G6.text(w,'w','t-vw',w[0]>=0?12:-12,w[1]>=0?-8:16)+hdl(G6,w,'w');
+    $('fig6').innerHTML=s;$('tt6').innerHTML=rows;
+    var msg;
+    if(!bad) msg='<b>네 점 모두 맞혔다!</b> w = ('+w[0]+', '+w[1]+'), b = '+fm(b)+'. '+(lab6==='real'?'다른 w와 b로도 맞힐 수 있는지 찾아보자. (예: w = (1, 1), b = 2)':'이번에는 라벨을 ‘a, b, c / d’로 바꿔 보자.');
+    else if(lab6==='real'&&b===0) msg='<b>'+bad+'개</b>가 틀렸다. b = 0이면 선은 원점을 지나야 한다. 편향 b를 움직여 선을 평행 이동해 보자.';
+    else msg='<b>'+bad+'개</b>가 틀렸다(테두리 표시). w를 끌거나 b를 움직여 보자.';
+    $('msg6').innerHTML=msg+' <span style="font-weight:400;color:var(--muted)">‘선까지 거리’ = (w·x + b) ÷ ‖w‖, 부호는 어느 쪽인지를 뜻한다.</span>';
+  }
+
+  /* ---------- step 7: matrices ---------- */
+  var dim7=2;
+  function mk7(){['a','b'].forEach(function(id){var h='';for(var n=0;n<dim7;n++){h+='<label><input type="number" inputmode="numeric" step="1" id="'+id+'7'+n+'" aria-label="'+id.toUpperCase()+' '+(n+1)+'행">'+'</label>'}$(id+'7in').innerHTML=h;
+    for(var n2=0;n2<dim7;n2++) $(id+'7'+n2).addEventListener('input',calc7)})}
+  function set7(A,B){for(var n=0;n<dim7;n++){$('a7'+n).value=A[n];$('b7'+n).value=B[n]}calc7()}
+  document.querySelectorAll('#dim7 button').forEach(function(bt){bt.addEventListener('click',function(){
+    document.querySelectorAll('#dim7 button').forEach(function(x){x.setAttribute('aria-pressed',x===bt?'true':'false')});dim7=+bt.dataset.d;mk7();set7(dim7===2?[4,3]:[1,2,3],dim7===2?[2,6]:[4,-1,2])})});
+  $('ex7').addEventListener('click',function(){if(dim7!==2){dim7=2;document.querySelectorAll('#dim7 button').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.d==='2'?'true':'false')});mk7()}set7([4,3],[2,6])});
+  function rd7(id){var o=[],bad=false;for(var n=0;n<dim7;n++){var el=$(id+'7'+n),v=el.value.trim(),ok=v===''||/^-?\d{1,3}$/.test(v);el.classList.toggle('err',!ok);if(!ok)bad=true;o.push(ok&&v!==''?+v:0)}return {v:o,bad:bad}}
+  function calc7(){
+    var A=rd7('a'),B=rd7('b'),a=A.v,b=B.v,n=dim7;
+    $('err7').textContent=(A.bad||B.bad)?'−999부터 999까지의 정수만 넣자. 빨간 칸은 0으로 계산했다.':'';
+    var cols=['var(--red)','var(--blue)','var(--green)'];
+    var row='<span class="mat" style="flex-direction:row;gap:10px">'+a.map(function(v,i){return '<span style="color:'+cols[i]+'">'+fm(v)+'</span>'}).join('')+'</span>';
+    var col='<span class="mat">'+b.map(function(v,i){return '<span style="color:'+cols[i]+'">'+fm(v)+'</span>'}).join('')+'</span>';
+    var terms=a.map(function(v,i){return '<span style="color:'+cols[i]+'">'+fm(v)+'×'+pv(b[i])+'</span>'}).join(' + ');
+    var dot=a.reduce(function(s,v,i){return s+v*b[i]},0);
+    var sum=a.map(function(v,i){return pv(v*b[i])}).join(' + ');
+    $('r7').innerHTML='<div class="mrow">A = '+'<span class="mat">'+a.map(function(v){return '<span>'+fm(v)+'</span>'}).join('')+'</span> &nbsp;→&nbsp; Aᵀ = '+row+'</div>'+
+      '<div class="mrow" style="margin-top:6px">AᵀB = '+row+' × '+col+'</div>'+
+      '<p class="eq">('+'1 × '+n+') × ('+n+' × 1) → 1 × 1 행렬 = 숫자 하나</p>'+
+      '<p class="eq">= '+terms+' = '+sum+' = <b>'+fm(dot)+'</b></p>'+
+      '<p class="hint">같은 색끼리 짝지어 곱한다. 첫째 행렬의 열('+n+'개)과 둘째 행렬의 행('+n+'개)이 짝을 이룬다. BᵀA로 계산해도 결과는 같다. 반면 A × B(열 × 열)는 (n × 1) × (n × 1)이라 열 1개 ≠ 행 '+n+'개여서 곱할 수 없다.</p>'+
+      (dot===0&&a.some(function(v){return v})&&b.some(function(v){return v})?'<p class="summary">점곱이 0이다 → 두 벡터는 <b>수직</b>이다.</p>':'');
+  }
+
+  /* ---------- step 8: bias as weight ---------- */
+  var pt8=0;
+  document.querySelectorAll('#pt8 button').forEach(function(bt){bt.addEventListener('click',function(){
+    document.querySelectorAll('#pt8 button').forEach(function(x){x.setAttribute('aria-pressed',x===bt?'true':'false')});pt8=+bt.dataset.p;draw8()})});
+  function draw8(){
+    var w=W6,b=+$('b6').value,p=P6[pt8],x=p[1],L=label6(pt8);
+    var wx=w[0]*x[0]+w[1]*x[1],z=b+wx,pr=z>0?1:-1;
+    var cx=250,cy=105,r=62,ys=[45,105,165],labs=['w0·x0 = '+fm(b)+'×1','w1·x1 = '+fm(w[0])+'×'+fm(x[0]),'w2·x2 = '+fm(w[1])+'×'+fm(x[1])];
+    var s='<defs><marker id="m8" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" style="fill:var(--muted)"/></marker></defs>';
+    ys.forEach(function(yy,i){var dx=Math.sqrt(r*r-(yy-cy)*(yy-cy)),ex=cx-dx-4;
+      s+='<rect x="4" y="'+(yy-16)+'" width="130" height="32" rx="4" style="fill:'+(i===0?'var(--amber-soft)':'var(--paper)')+';stroke:'+(i===0?'var(--amber)':'var(--rule)')+'"/>';
+      s+='<text class="t-v t-vc" x="69" y="'+(yy+5)+'" text-anchor="middle">'+labs[i]+'</text>';
+      s+='<line x1="136" y1="'+yy+'" x2="'+ex.toFixed(1)+'" y2="'+(yy+(cy-yy)*0.15).toFixed(1)+'" style="stroke:var(--muted);stroke-width:2" marker-end="url(#m8)"/>'});
+    s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" style="fill:var(--sheet);stroke:var(--ink);stroke-width:1.6"/><line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'" style="stroke:var(--ink);stroke-width:1.2"/>';
+    s+='<text x="'+(cx-30)+'" y="'+(cy-14)+'" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:18px;fill:var(--ink)">g</text><text class="t-v t-vc" x="'+(cx-30)+'" y="'+(cy+16)+'" text-anchor="middle">'+fm(z)+'</text>';
+    s+='<text x="'+(cx+30)+'" y="'+(cy-14)+'" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:18px;fill:var(--ink)">f</text><text class="t-v t-vm" x="'+(cx+30)+'" y="'+(cy+16)+'" text-anchor="middle">&gt; 0 ?</text>';
+    s+='<line x1="'+(cx+r+2)+'" y1="'+cy+'" x2="352" y2="'+cy+'" style="stroke:var(--muted);stroke-width:2" marker-end="url(#m8)"/>';
+    s+='<text class="t-v '+(pr>0?'t-va':'t-vm')+'" x="378" y="'+(cy+5)+'" text-anchor="middle" style="font-size:16px">'+(pr>0?'+1':'−1')+'</text><text class="t-lb" x="378" y="'+(cy-18)+'" text-anchor="middle">y</text>';
+    s+='<text class="t-lb" x="69" y="200" text-anchor="middle">x0 = 1은 언제나 1</text>';
+    $('fig8').innerHTML=s;
+    $('r8').innerHTML='<p>점 '+p[0]+' = ('+fm(x[0])+', '+fm(x[1])+'), STEP 6의 w = ('+fm(w[0])+', '+fm(w[1])+'), b = '+fm(b)+'</p>'+
+      '<div class="mrow">x = <span class="mat"><span style="color:var(--amber)">1</span><span>'+fm(x[0])+'</span><span>'+fm(x[1])+'</span></span> &nbsp; w = <span class="mat"><span style="color:var(--amber)">'+fm(b)+'</span><span>'+fm(w[0])+'</span><span>'+fm(w[1])+'</span></span></div>'+
+      '<p class="eq">wᵀx = '+pv(b)+'×1 + '+pv(w[0])+'×'+pv(x[0])+' + '+pv(w[1])+'×'+pv(x[1])+' = <b>'+fm(z)+'</b></p>'+
+      '<p class="eq">(비교) w·x + b = '+fm(wx)+' + '+pv(b)+' = '+fm(z)+' → 같다!</p>'+
+      '<p class="eq">판정 y = <b>'+(pr>0?'+1':'−1')+'</b> · 라벨 '+(L>0?'+1':'−1')+' · '+(pr===L?'<span class="ok">맞음</span>':'<span class="bad">틀림</span>')+'</p>';
+  }
+
+  draw1();draw2();draw3();draw4();draw5();draw6();mk7();set7([4,3],[2,6]);draw8();
+  render();
+})();
+</script>
+</body>
+</html>

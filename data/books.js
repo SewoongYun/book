@@ -142,7 +142,25 @@ window.BOOKS = [
           }
         ]
       },
-      { no: 2,  title: "여기에선 모두가 숫자에 불과하다", page: 34,  programs: [] },
+      {
+        no: 2, title: "여기에선 모두가 숫자에 불과하다", page: 34,
+        programs: [
+          {
+            id: "quaternion-lab", title: "사원수 실험실",
+            file: "programs/사원수 실험실.html",
+            type: "실험", session: "", pages: "34~36쪽",
+            summary: "해밀턴이 다리에 새긴 수식에서 출발해, i를 곱하면 90° 도는 복소수부터 i·j·k 세 허수의 곱셈표, 교환법칙이 깨지는 p×q와 q×p, 공간 회전까지 5단계로 따라가기",
+            concepts: ["해밀턴", "복소수", "회전", "사원수", "허수 i·j·k", "교환법칙", "3차원 회전"]
+          },
+          {
+            id: "vector-lab", title: "벡터 실험실",
+            file: "programs/벡터 실험실.html",
+            type: "실험", session: "", pages: "37~53쪽",
+            summary: "크기와 방향을 가진 화살표로 벡터의 덧셈·스칼라 곱·정사영을 만져 보고, 퍼셉트론의 가중합이 점곱이며 y = f(wᵀx) 한 줄로 쓰인다는 것까지 8단계로 따라가기",
+            concepts: ["벡터", "크기", "방향", "벡터 덧셈", "스칼라 곱", "단위벡터", "정사영", "점곱", "행렬", "퍼셉트론"]
+          }
+        ]
+      },
       { no: 3,  title: "그릇의 바닥", page: 72,  programs: [] },
       { no: 4,  title: "십중팔구", page: 103, programs: [] },
       { no: 5,  title: "유유상종", page: 152, programs: [] },
