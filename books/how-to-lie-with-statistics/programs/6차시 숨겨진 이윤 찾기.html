@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>숨겨진 이윤 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+/* Layout: 4-step lab notebook (예상·용어 → 장부 실험 → 손계산 → 정리); same token system as 「돈자루 그림의 함정」 */
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --ink2:#384356; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2F7A4B;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --ink2:#C3CAD6; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25;
+    --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F;
+    --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6CC48F;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:820px;margin:0 auto;padding:20px 16px 48px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+b{font-weight:700}
+
+.top{margin-bottom:14px}
+.book{font-size:13.5px;color:var(--muted);margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4.6vw,36px);line-height:1.25;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:560px){.stepper .sl{font-size:13px}.stepper button{padding:8px 8px;gap:6px}}
+
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:28px 24px;padding-inline:clamp(18px,4vw,40px);display:flex;flex-direction:column;gap:28px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(23px,3.8vw,29px);line-height:1.35;margin:6px 0 0}
+.lead{margin:0;color:var(--ink2)}
+.lead b{color:var(--red)}
+h3{font-size:17px;font-weight:700;margin:0 0 10px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:27px;line-height:1.25;margin:0;transform:rotate(-1.5deg);transform-origin:left center}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+
+.scene{background:var(--paper);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.scene p{margin:0}
+.scene b{color:var(--red)}
+.quote{font-family:var(--f-display);font-weight:700;font-size:17.5px;line-height:1.6;border-left:3px solid var(--red);padding-left:14px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;min-width:0;background:var(--sheet)}
+.tile .k{font-size:13.5px;color:var(--muted);display:block}
+.tile .v{font-family:var(--f-num);font-weight:600;font-size:clamp(21px,3.4vw,26px);line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+.tile.warn{border-color:var(--red)}
+.tile.warn .v{color:var(--red)}
+@media (max-width:560px){.facts{grid-template-columns:1fr 1fr}.facts .tile:last-child{grid-column:1/-1}}
+
+/* glossary */
+.gloss{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.gloss{grid-template-columns:1fr}}
+.term{border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.term .nm{font-size:18px;font-weight:700;margin:0;display:flex;align-items:baseline;gap:8px}
+.term .nm small{font-size:13px;font-weight:500;color:var(--muted)}
+.term .def{margin:0}
+.term .ex{margin:0;font-size:14.5px;color:var(--ink2);background:var(--paper);border-radius:4px;padding:8px 10px}
+.term .trick{margin:0;font-size:14.5px;color:var(--red)}
+.term .trick b{font-weight:700}
+.key{margin:0;border:2px solid var(--ink);border-radius:4px;padding:12px 16px;font-weight:500}
+.key b{color:var(--red)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:15px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.predict{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border-top:2px solid var(--ink);padding:12px 2px 0}
+.pin{display:flex;align-items:center;gap:6px}
+.pin input,.calc input{width:5.5em;font-family:var(--f-num);font-size:16px;padding:7px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:15px;font-weight:700}
+.chartbox{border:1px solid var(--rule);border-radius:4px;padding:6px 4px 2px;background:var(--sheet)}
+.chartbox svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+/* slider cards */
+.sliders{display:flex;flex-direction:column;gap:10px}
+.slc{border:1px solid var(--rule);border-left:5px solid var(--c);border-radius:4px;padding:12px 14px 8px}
+.slc .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.slc .hd label{font-size:16.5px;font-weight:700}
+.slc .hd b{font-family:var(--f-num);font-size:18px;font-weight:600}
+.slc .what{display:block;font-size:14px;color:var(--ink2);margin:2px 0 4px}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:560px){.stats{grid-template-columns:1fr 1fr}.stats .tile:first-child{grid-column:1/-1}}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 16px}
+.recall b{color:var(--red)}
+.verdict{margin:0;border-left:4px solid var(--ink);padding:8px 0 8px 14px;font-weight:700;font-size:17px}
+.verdict.bad{border-color:var(--red);color:var(--red)}
+
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+tr.hid td:first-child{color:var(--red)}
+tr.tot td{border-top:2px solid var(--ink);border-bottom:0;font-weight:700}
+td.num{font-family:var(--f-num);font-weight:500}
+tr.tot td.num{font-weight:600}
+td.big{color:var(--red)}
+.tablebox{overflow-x:auto}
+td.ex{background:var(--paper)}
+.calc input{width:4.4em;font-size:15px;padding:5px 6px}
+.mark{display:inline-block;min-width:1.4em;font-weight:700;text-align:center}
+.mark.ok{color:var(--green)} .mark.no{color:var(--red)}
+
+.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:4px}
+.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16.5px,2.6vw,19px);line-height:1.6}
+.formula small{font-size:14px;color:var(--muted)}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.law .t{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--muted)}
+.law p{margin:0}
+.law .main{font-family:var(--f-display);font-weight:800;font-size:clamp(19px,2.9vw,22px);line-height:1.55}
+.law b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:6px 10px;padding:14px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:15px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:14.5px;width:max-content}
+details[open] summary{margin-bottom:6px}
+.ans{background:var(--paper);padding:12px 14px;border-radius:4px}
+.mine{margin:0;font-size:15px;color:var(--ink2)}
+
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+.navbtn{border:1px solid var(--rule);background:none;padding:9px 14px;border-radius:4px;cursor:pointer;font-size:14.5px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">『새빨간 거짓말, 통계』 140쪽 · 숨겨진 이윤</p>
+    <h1>숨겨진 이윤 찾기</h1>
+  </header>
+
+  <ol class="stepper" aria-label="실험 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">예상</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">장부</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">손계산</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">정리</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 4 · 예상하고 용어 익히기</p>
+      <h2 id="h1s">“올해 이윤은 겨우 120억입니다”</h2>
+    </div>
+
+    <div class="facts">
+      <div class="tile"><span class="k">올해 매출</span><span class="v">1,000억</span></div>
+      <div class="tile hl"><span class="k">발표한 이윤</span><span class="v">120억</span></div>
+      <div class="tile"><span class="k">매출 대비 이익률</span><span class="v">12%</span></div>
+    </div>
+
+    <div class="scene">
+      <p>어느 회사가 장부를 공개하며 말한다.<br>“1,000억어치를 팔았지만 남은 건 120억뿐입니다.”</p>
+      <p>그런데 책에는 이런 문장이 있다.</p>
+      <p class="quote">발표한 이윤은 실제 이윤의 반 또는 3분의 1도 되지 않는다. 나머지는 감가상각, 특별상각, 비상적립금 등의 항목 아래에 감추어 놓았다.</p>
+    </div>
+
+    <div>
+      <h3>먼저 알아 둘 말 4개</h3>
+      <div class="gloss">
+        <div class="term" style="--c:var(--blue)">
+          <p class="nm">이윤 <small>남은 돈</small></p>
+          <p class="def">번 돈(매출)에서 쓴 돈(비용)을 뺀 것.</p>
+          <p class="ex">이윤 = 매출 − 비용</p>
+          <p class="trick">핵심: <b>비용을 크게 적을수록 이윤은 작아 보인다.</b></p>
+        </div>
+        <div class="term" style="--c:var(--red)">
+          <p class="nm">감가상각 <small>낡는 만큼 비용</small></p>
+          <p class="def">기계·건물·트럭은 쓸수록 낡는다. 낡은 만큼을 해마다 나눠서 비용으로 적는 것.</p>
+          <p class="ex">1,000만 원짜리 트럭을 10년 쓴다면 → 매년 100만 원씩 비용</p>
+          <p class="trick">숨기는 법: “5년밖에 못 쓴다”고 적으면 매년 200만 원. <b>이윤이 100만 원 줄어 보인다.</b></p>
+        </div>
+        <div class="term" style="--c:var(--amber)">
+          <p class="nm">특별상각 <small>한꺼번에 비용</small></p>
+          <p class="def">감가상각을 정해진 몫보다 한꺼번에 많이 처리하는 것.</p>
+          <p class="ex">새 기계값 대부분을 산 첫해에 비용으로 적기</p>
+          <p class="trick">숨기는 법: 아직 멀쩡한 자산을 올해 비용으로 털어 버린다. <b>올해 이윤이 확 줄어 보인다.</b></p>
+        </div>
+        <div class="term" style="--c:var(--slate)">
+          <p class="nm">비상적립금 <small>만일을 위한 저금</small></p>
+          <p class="def">앞으로 생길지 모를 손해(화재, 소송 등)에 대비해 이윤 일부를 따로 떼어 두는 돈.</p>
+          <p class="ex">“혹시 모르니 50억은 따로 쌓아 두자”</p>
+          <p class="trick">숨기는 법: 필요보다 훨씬 많이 떼어 두고 <b>‘이윤’으로 발표하지 않는다.</b></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="key">세 항목 모두 원래는 <b>정당한 회계 방법</b>이다. 문제는 실제보다 <b>부풀려 적을 때</b>다. 돈은 회사 안에 그대로 있는데, 장부의 ‘이윤’ 칸만 작아진다.</p>
+
+    <div>
+      <h3>발표된 120억, 얼마나 믿을 수 있을까?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 느낌">
+        <button class="chip" data-v="거의 그대로일 것" aria-pressed="false">거의 그대로일 것</button>
+        <button class="chip" data-v="조금 더 벌었을 것" aria-pressed="false">조금 더 벌었을 것</button>
+        <button class="chip" data-v="2~3배는 벌었을 것" aria-pressed="false">2~3배는 벌었을 것</button>
+      </div>
+      <div class="predict" style="margin-top:14px">
+        <label for="pReal">실제로 남긴 이윤은 몇 억일까?</label>
+        <span class="pin"><input id="pReal" type="number" inputmode="decimal" placeholder="?"> 억</span>
+      </div>
+      <p class="hint">책 문장을 단서로 짐작해 보자. STEP 2에서 확인한다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 장부 고치기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 4 · 장부 고치기</p>
+      <h2 id="h2s">실제 이윤 300억을 숨겨 보자</h2>
+    </div>
+    <p class="lead">실제 비용은 700억, 실제 이윤은 <b>300억</b>이다.<br>슬라이더를 움직여 이윤을 다른 칸으로 옮겨 보자.</p>
+
+    <figure>
+      <figcaption>매출 1,000억이 장부에 적히는 방식</figcaption>
+      <div class="chartbox"><svg id="bars" viewBox="0 0 640 220" role="img" aria-label="실제 장부와 발표 장부의 매출 구성 비교 막대"></svg></div>
+    </figure>
+
+    <div class="sliders">
+      <div class="slc" style="--c:var(--red)">
+        <div class="hd"><label for="sA">감가상각 부풀리기</label><b id="vA">0억</b></div>
+        <span class="what">트럭·기계 수명을 실제보다 짧게 적기</span>
+        <input type="range" id="sA" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="slc" style="--c:var(--amber)">
+        <div class="hd"><label for="sB">특별상각</label><b id="vB">0억</b></div>
+        <span class="what">멀쩡한 자산을 올해 한꺼번에 비용 처리</span>
+        <input type="range" id="sB" min="0" max="100" step="5" value="0">
+      </div>
+      <div class="slc" style="--c:var(--slate)">
+        <div class="hd"><label for="sC">비상적립금</label><b id="vC">0억</b></div>
+        <span class="what">“만일을 대비해” 필요 이상으로 떼어 두기</span>
+        <input type="range" id="sC" min="0" max="100" step="5" value="0">
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" data-p="0,0,0">정직하게</button>
+      <button class="btn" data-p="80,60,40">발표 장부로 (120억)</button>
+      <button class="btn" data-p="100,60,50">3분의 1도 안 되게</button>
+    </div>
+
+    <div class="stats">
+      <div class="tile" id="tRBox"><span class="k">발표 이윤</span><span class="v" id="tR">300억</span></div>
+      <div class="tile" id="tPBox"><span class="k">실제 이윤 대비</span><span class="v" id="tP">100%</span></div>
+      <div class="tile"><span class="k">매출 대비 이익률</span><span class="v" id="tM">30%</span></div>
+    </div>
+    <p class="verdict" id="verdict">숨긴 돈 없음</p>
+
+    <div>
+      <h3>두 장부 나란히 보기</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>항목</th><th>실제 장부</th><th>발표 장부</th></tr></thead>
+          <tbody>
+            <tr><td>매출</td><td class="num">1,000</td><td class="num">1,000</td></tr>
+            <tr><td>실제 비용</td><td class="num">−700</td><td class="num">−700</td></tr>
+            <tr class="hid"><td>감가상각 (부풀린 몫)</td><td class="num">0</td><td class="num" id="lA">0</td></tr>
+            <tr class="hid"><td>특별상각</td><td class="num">0</td><td class="num" id="lB">0</td></tr>
+            <tr class="hid"><td>비상적립금</td><td class="num">0</td><td class="num" id="lC">0</td></tr>
+            <tr class="tot"><td>이윤 (억)</td><td class="num">300</td><td class="num" id="lR">300</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="recall" id="recallTxt">STEP 1 내 예상: <b>아직 적지 않음</b></p>
+
+    <p class="pen">숨긴 돈은 사라진 게 아니다. 다른 칸에 앉아 있을 뿐!</p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 손계산 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 4 · 손계산</p>
+      <h2 id="h3s">발표 이윤은 실제의 몇 %일까?</h2>
+    </div>
+
+    <div class="formula">
+      <span class="f">발표 이윤 = 300 − 숨긴 금액</span>
+      <span class="f">실제 대비(%) = 발표 이윤 ÷ 300 × 100</span>
+      <span class="f">이익률(%) = 발표 이윤 ÷ 1,000 × 100</span>
+      <small>숨긴 금액 = 감가상각 + 특별상각 + 비상적립금 · 소수 첫째 자리까지</small>
+    </div>
+
+    <div>
+      <h3>표를 채워 보자 <span style="font-weight:400;color:var(--muted);font-size:14px">(단위: 억)</span></h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>숨긴 금액</th><th>발표 이윤</th><th>실제 대비 %</th><th>이익률 %</th><th></th></tr></thead>
+          <tbody class="calc">
+            <tr><td class="num ex">0+0+0</td><td class="num ex">300</td><td class="num ex">100</td><td class="num ex">30</td><td class="ex"><span class="mark">예</span></td></tr>
+            <tr data-h="100"><td class="num">50+30+20</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
+            <tr data-h="180"><td class="num">80+60+40</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
+            <tr data-h="210"><td class="num">100+60+50</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="controls"><button class="btn primary" id="grade">채점하기</button></div>
+    <p class="hint" id="gradeMsg" style="margin:-16px 0 0">어느 줄부터 ‘반도 안 되는’ 상황이 될까?</p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">더</span>
+        <p>발표 이윤이 실제의 <b>정확히 반</b>이 되려면 얼마를 숨겨야 할까? <b>3분의 1</b>이 되려면?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">반: 300 − x = 150 → x = <b>150억</b><br>3분의 1: 300 − x = 100 → x = <b>200억</b><br>“3분의 1도 되지 않는다”는 200억보다 더 숨겼다는 뜻이다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>회사가 사업에 투자한 돈이 400억이라면, 이윤은 투자액의 몇 %일까? (실제 300억일 때, 발표 120억일 때)</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">실제: 300 ÷ 400 = <b>75%</b><br>발표: 120 ÷ 400 = <b>30%</b><br>같은 회사도 매출 기준이면 12%, 투자액 기준이면 30%가 된다. 다음 문단의 GM(매출 대비 12.6%, 투자 대비 44.8%)과 같은 구조다.</div>
+        </details>
+      </div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 4 · 정리하기</p>
+      <h2 id="h4s">이윤은 ‘어느 칸에 적느냐’의 문제</h2>
+    </div>
+
+    <div class="law">
+      <span class="t">오늘의 정리</span>
+      <p class="main">돈이 회사 안에 그대로 있어도 <b>비용·적립금 칸으로 옮기면</b> 발표 이윤은 작아진다.</p>
+      <p>숫자는 하나도 틀리지 않았다. 어떤 돈을 ‘이윤’이라고 부를지를 회사가 고른 것이다.</p>
+    </div>
+
+    <div>
+      <h3>세 항목 한눈에</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>항목</th><th style="text-align:left">원래 뜻</th><th style="text-align:left">부풀리면</th></tr></thead>
+          <tbody>
+            <tr><td><b>감가상각</b></td><td style="text-align:left;white-space:normal">낡는 만큼 해마다 비용</td><td style="text-align:left;white-space:normal" class="big">수명을 짧게 적어 비용↑</td></tr>
+            <tr><td><b>특별상각</b></td><td style="text-align:left;white-space:normal">한꺼번에 많이 비용</td><td style="text-align:left;white-space:normal" class="big">멀쩡한 자산을 올해 털기</td></tr>
+            <tr><td><b>비상적립금</b></td><td style="text-align:left;white-space:normal">만일을 위해 떼어 둔 돈</td><td style="text-align:left;white-space:normal" class="big">필요 이상 떼어 이윤에서 빼기</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="recall" id="recall2">STEP 1에서 고른 내 느낌: <b>아직 고르지 않음</b></p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">Q1</span>
+        <p>회사는 왜 이윤을 <b>작게</b> 보이고 싶어 할까? 반대로 크게 보이고 싶을 때는 언제일까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">작게: “폭리”라는 비난, 임금 인상 요구, 가격 인하 압박을 피하고 싶을 때. 바로 뒤 A&amp;P 독자 투고도 “1.1%밖에 못 남겼다”며 회사를 옹호한다.<br>크게: 투자자를 모으거나 주가를 올리고 싶을 때.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q2</span>
+        <p>장부를 볼 수 없는 바깥 사람은 발표 이윤을 어떻게 의심해 볼 수 있을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">감가상각·적립금이 해마다 갑자기 늘었는지, 이윤은 줄었는데 회사에 쌓인 돈은 늘었는지 함께 본다. “무엇을 빼고 남은 숫자인가?”를 묻는 습관이 핵심이다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q3</span>
+        <p>‘평균급여의 속임수’, ‘세로축 자르기’와 오늘의 ‘숨겨진 이윤’은 어떤 점이 같을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">세 경우 모두 숫자 자체는 거짓이 아니다. 어떤 평균을 쓸지, 축을 어디서 시작할지, 어떤 돈을 이윤이라 부를지 <b>고르는 순간</b> 인상이 바뀐다.</div>
+        </details>
+      </div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 뉴스에서 “○○기업, 영업이익 감소”라는 기사를 보면 무엇을 더 확인해야 할까?</p>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var NS='http://www.w3.org/2000/svg';
+  var REAL=300, SALES=1000, COST=700;
+  var belief=null, current=1, A=0, B=0, C=0;
+
+  function render(){
+    var m=/^#s([1-4])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=4;i++){
+      $('s'+i).hidden=(i!==current);
+      $('st'+i).setAttribute('aria-current',i===current?'step':'false');
+    }
+    if(current===2){update();fillRecall();}
+    if(current===4) $('recall2').innerHTML='STEP 1에서 고른 내 느낌: <b>'+(belief||'아직 고르지 않음')+'</b><br>실제는 300억, 발표(120억)의 2.5배였다.';
+  }
+  function go(i){ if(location.hash!=='#s'+i){location.hash='s'+i}else{render()} window.scrollTo(0,0); }
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  document.querySelectorAll('#belief .chip').forEach(function(b){
+    b.addEventListener('click',function(){
+      belief=b.getAttribute('data-v');
+      document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    });
+  });
+  function fillRecall(){
+    var v=$('pReal').value.trim();
+    if(v===''){$('recallTxt').innerHTML='STEP 1 내 예상: <b>아직 적지 않음</b> · 정답은 <b>300억</b>';return}
+    var d=Math.round(REAL-(+v));
+    $('recallTxt').innerHTML='STEP 1 내 예상: <b>'+v+'억</b> · 정답 300억 · '+(d===0?'정확히 맞혔다!':(d>0?'실제가 '+d+'억 더 많다':'실제보다 '+(-d)+'억 높게 예상'));
+  }
+
+  function el(p,t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+  function txt(p,a,s){var e=el(p,'text',a);e.textContent=s;return e}
+
+  function drawBars(){
+    var svg=$('bars'); svg.innerHTML='';
+    var W=Math.max(300,Math.round(svg.parentElement.clientWidth-8)||640), H=222;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var L=48, R=12, bw=W-L-R, bh=46, y1=40, y2=y1+bh+56, sc=bw/SALES;
+    function seg(y,x0,val,fill){ if(val<=0)return x0; el(svg,'rect',{x:L+x0*sc,y:y,width:val*sc,height:bh,fill:fill,stroke:'var(--ink)','stroke-width':1}); return x0+val; }
+    function lab(y,x0,val,s,col){ if(val*sc<24)return; txt(svg,{x:L+(x0+val/2)*sc,y:y+bh/2+5,'text-anchor':'middle','font-size':13.5,'font-family':'var(--f-num)','font-weight':600,fill:col},s) }
+    txt(svg,{x:4,y:y1+bh/2+5,'font-size':14.5,'font-weight':700,fill:'var(--ink)'},'실제');
+    txt(svg,{x:4,y:y2+bh/2+5,'font-size':14.5,'font-weight':700,fill:'var(--ink)'},'발표');
+    var x=seg(y1,0,COST,'var(--slate-soft)'); lab(y1,0,COST,'비용 700','var(--ink)');
+    seg(y1,x,REAL,'var(--blue)'); lab(y1,x,REAL,'이윤 300','var(--sheet)');
+    var r=REAL-A-B-C;
+    x=seg(y2,0,COST,'var(--slate-soft)'); lab(y2,0,COST,'비용 700','var(--ink)');
+    var xa=x; x=seg(y2,x,A,'var(--red)'); lab(y2,xa,A,A,'var(--sheet)');
+    var xb=x; x=seg(y2,x,B,'var(--amber)'); lab(y2,xb,B,B,'var(--sheet)');
+    var xc=x; x=seg(y2,x,C,'var(--slate)'); lab(y2,xc,C,C,'var(--sheet)');
+    var xr=x; seg(y2,x,r,'var(--blue)'); lab(y2,xr,r,r,'var(--sheet)');
+    var bx0=L+COST*sc, bx1=L+SALES*sc;
+    el(svg,'path',{d:'M'+bx0+','+(y1-6)+' v-6 H'+bx1+' v6',fill:'none',stroke:'var(--red)','stroke-width':1.6});
+    txt(svg,{x:bx1,y:y1-18,'text-anchor':'end','font-size':13.5,'font-weight':700,fill:'var(--red)'},'실제로 남긴 돈 300억');
+    el(svg,'line',{x1:bx0,x2:bx0,y1:y1+bh,y2:y2,stroke:'var(--red)','stroke-dasharray':'3 3'});
+    el(svg,'line',{x1:bx1-0.5,x2:bx1-0.5,y1:y1+bh,y2:y2,stroke:'var(--red)','stroke-dasharray':'3 3'});
+    if(A+B+C>0){
+      var hx1=L+(COST+A+B+C)*sc;
+      el(svg,'path',{d:'M'+bx0+','+(y2+bh+6)+' v6 H'+hx1+' v-6',fill:'none',stroke:'var(--red)','stroke-width':1.6});
+      txt(svg,{x:W-R,y:y2+bh+30,'text-anchor':'end','font-size':13.5,'font-weight':700,fill:'var(--red)'},'비용처럼 적어 숨긴 돈 '+(A+B+C)+'억');
+    }
+  }
+
+  function update(){
+    var r=REAL-A-B-C, p=r/REAL*100, mg=r/SALES*100;
+    $('vA').textContent=A+'억'; $('vB').textContent=B+'억'; $('vC').textContent=C+'억';
+    $('lA').textContent=A?'−'+A:'0'; $('lB').textContent=B?'−'+B:'0'; $('lC').textContent=C?'−'+C:'0';
+    $('lR').textContent=r;
+    $('tR').textContent=r+'억';
+    $('tP').textContent=(Math.round(p*10)/10)+'%';
+    $('tM').textContent=(Math.round(mg*10)/10)+'%';
+    var bad=r*2<REAL;
+    $('tPBox').classList.toggle('warn',bad); $('tRBox').classList.toggle('warn',bad);
+    var t;
+    if(r===REAL) t='숨긴 돈 없음';
+    else if(r*3<REAL) t='실제의 3분의 1도 안 된다 → 책 속 상황';
+    else if(r*2<REAL) t='실제의 반도 안 된다 → 책 속 상황';
+    else t=(A+B+C)+'억을 숨겼다. 아직 반 이상은 보인다';
+    $('verdict').textContent=t; $('verdict').classList.toggle('bad',bad);
+    drawBars();
+  }
+  [['sA',function(x){A=x}],['sB',function(x){B=x}],['sC',function(x){C=x}]].forEach(function(p){
+    $(p[0]).addEventListener('input',function(){p[1](+this.value);update()});
+  });
+  document.querySelectorAll('[data-p]').forEach(function(b){b.addEventListener('click',function(){
+    var v=b.getAttribute('data-p').split(',').map(Number); A=v[0];B=v[1];C=v[2];
+    $('sA').value=A;$('sB').value=B;$('sC').value=C; update();
+  })});
+  window.addEventListener('resize',function(){if(current===2)drawBars()});
+
+  $('grade').addEventListener('click',function(){
+    var ok=0,total=0;
+    document.querySelectorAll('tr[data-h]').forEach(function(tr){
+      var h=+tr.getAttribute('data-h'), r=REAL-h, want={r:r,p:r/REAL*100,m:r/SALES*100}, tol={r:.01,p:.06,m:.06};
+      var good=true;
+      ['r','p','m'].forEach(function(key){
+        var s=tr.querySelector('[data-k="'+key+'"]').value.trim();
+        if(s===''||Math.abs(+s-want[key])>tol[key]) good=false;
+      });
+      var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no');
+      total++; if(good) ok++;
+    });
+    $('gradeMsg').textContent=ok===total?'모두 맞았다! 180억을 숨긴 줄부터 실제의 반도 안 된다(40%).':ok+' / '+total+' 맞음 · 발표 이윤 = 300 − 숨긴 금액부터 다시 확인해 보자.';
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
