@@ -66,14 +66,16 @@ h3{font-size:17px;font-weight:700;margin:0 0 10px}
 .scene p{margin:0}
 .scene b{color:var(--red)}
 .quote{font-family:var(--f-display);font-weight:700;font-size:17.5px;line-height:1.6;border-left:3px solid var(--red);padding-left:14px}
-.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .tile{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;min-width:0;background:var(--sheet)}
 .tile .k{font-size:13.5px;color:var(--muted);display:block}
 .tile .v{font-family:var(--f-num);font-weight:600;font-size:clamp(21px,3.4vw,26px);line-height:1.3}
 .tile.hl{border-color:var(--ink)}
 .tile.warn{border-color:var(--red)}
 .tile.warn .v{color:var(--red)}
-@media (max-width:560px){.facts{grid-template-columns:1fr 1fr}.facts .tile:last-child{grid-column:1/-1}}
+@media (max-width:560px){.facts{grid-template-columns:1fr 1fr}}
+.tile.up{border-color:var(--green)}
+.tile.up .v{color:var(--green)}
 
 /* glossary */
 .gloss{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -112,8 +114,8 @@ svg text{font-family:var(--f-body)}
 input[type=range]{width:100%;accent-color:var(--ink);height:28px}
 
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-@media (max-width:560px){.stats{grid-template-columns:1fr 1fr}.stats .tile:first-child{grid-column:1/-1}}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.stats{grid-template-columns:1fr 1fr}}
 .btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px}
 .btn:hover{background:var(--paper)}
 .btn.primary{background:var(--ink);color:var(--sheet)}
@@ -137,8 +139,13 @@ td.ex{background:var(--paper)}
 .mark{display:inline-block;min-width:1.4em;font-weight:700;text-align:center}
 .mark.ok{color:var(--green)} .mark.no{color:var(--red)}
 
-.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:4px}
-.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16.5px,2.6vw,19px);line-height:1.6}
+.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:14px}
+.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16.5px,2.6vw,19px);line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:.35em}
+.frac{display:inline-flex;flex-direction:column;align-items:center;text-align:center}
+.frac>span{padding:0 .35em;line-height:1.4;white-space:nowrap}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding-bottom:2px}
+.frac>span:last-child{padding-top:2px}
+.formula .f.sub{font-size:clamp(14.5px,2.2vw,16px);color:var(--muted);padding-left:1em}
 .formula small{font-size:14px;color:var(--muted)}
 
 .law{border:2px solid var(--ink);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
@@ -188,10 +195,11 @@ details[open] summary{margin-bottom:6px}
       <div class="tile"><span class="k">올해 매출</span><span class="v">1,000억</span></div>
       <div class="tile hl"><span class="k">발표한 이윤</span><span class="v">120억</span></div>
       <div class="tile"><span class="k">매출 대비 이익률</span><span class="v">12%</span></div>
+      <div class="tile warn"><span class="k">작년(200억) 대비</span><span class="v">−40%</span></div>
     </div>
 
     <div class="scene">
-      <p>어느 회사가 장부를 공개하며 말한다.<br>“1,000억어치를 팔았지만 남은 건 120억뿐입니다.”</p>
+      <p>어느 회사가 장부를 공개하며 말한다.<br>“1,000억어치를 팔았지만 남은 건 120억뿐입니다. 작년 200억보다 <b>40%나 줄었습니다</b>.”</p>
       <p>그런데 책에는 이런 문장이 있다.</p>
       <p class="quote">발표한 이윤은 실제 이윤의 반 또는 3분의 1도 되지 않는다. 나머지는 감가상각, 특별상각, 비상적립금 등의 항목 아래에 감추어 놓았다.</p>
     </div>
@@ -286,6 +294,7 @@ details[open] summary{margin-bottom:6px}
       <div class="tile" id="tRBox"><span class="k">발표 이윤</span><span class="v" id="tR">300억</span></div>
       <div class="tile" id="tPBox"><span class="k">실제 이윤 대비</span><span class="v" id="tP">100%</span></div>
       <div class="tile"><span class="k">매출 대비 이익률</span><span class="v" id="tM">30%</span></div>
+      <div class="tile" id="tYBox"><span class="k">작년(200억) 대비</span><span class="v" id="tY">+50%</span></div>
     </div>
     <p class="verdict" id="verdict">숨긴 돈 없음</p>
 
@@ -301,6 +310,7 @@ details[open] summary{margin-bottom:6px}
             <tr class="hid"><td>특별상각</td><td class="num">0</td><td class="num" id="lB">0</td></tr>
             <tr class="hid"><td>비상적립금</td><td class="num">0</td><td class="num" id="lC">0</td></tr>
             <tr class="tot"><td>이윤 (억)</td><td class="num">300</td><td class="num" id="lR">300</td></tr>
+            <tr><td>작년(200억) 대비 증감률</td><td class="num">+50%</td><td class="num" id="lY">+50%</td></tr>
           </tbody>
         </table>
       </div>
@@ -322,21 +332,23 @@ details[open] summary{margin-bottom:6px}
 
     <div class="formula">
       <span class="f">발표 이윤 = 300 − 숨긴 금액</span>
-      <span class="f">실제 대비(%) = 발표 이윤 ÷ 300 × 100</span>
-      <span class="f">이익률(%) = 발표 이윤 ÷ 1,000 × 100</span>
-      <small>숨긴 금액 = 감가상각 + 특별상각 + 비상적립금 · 소수 첫째 자리까지</small>
+      <div class="f"><span>실제 대비(%) =</span><span class="frac"><span>발표 이윤</span><span>300</span></span><span>× 100</span></div>
+      <div class="f"><span>이익률(%) =</span><span class="frac"><span>발표 이윤</span><span>1,000</span></span><span>× 100</span></div>
+      <div class="f"><span>증감률(%) =</span><span class="frac"><span>현년도 − 전년도</span><span>전년도</span></span><span>× 100</span></div>
+      <div class="f sub"><span>이 회사는 →</span><span class="frac"><span>발표 이윤 − 200</span><span>200</span></span><span>× 100</span></div>
+      <small>숨긴 금액 = 감가상각 + 특별상각 + 비상적립금 · 전년도 이윤 200억 · 줄었으면 음수(−) · 소수 첫째 자리까지</small>
     </div>
 
     <div>
       <h3>표를 채워 보자 <span style="font-weight:400;color:var(--muted);font-size:14px">(단위: 억)</span></h3>
       <div class="tablebox">
         <table>
-          <thead><tr><th>숨긴 금액</th><th>발표 이윤</th><th>실제 대비 %</th><th>이익률 %</th><th></th></tr></thead>
+          <thead><tr><th>숨긴 금액</th><th>발표 이윤</th><th>실제 대비 %</th><th>이익률 %</th><th>작년 대비 %</th><th></th></tr></thead>
           <tbody class="calc">
-            <tr><td class="num ex">0+0+0</td><td class="num ex">300</td><td class="num ex">100</td><td class="num ex">30</td><td class="ex"><span class="mark">예</span></td></tr>
-            <tr data-h="100"><td class="num">50+30+20</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
-            <tr data-h="180"><td class="num">80+60+40</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
-            <tr data-h="210"><td class="num">100+60+50</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><span class="mark"></span></td></tr>
+            <tr><td class="num ex">0+0+0</td><td class="num ex">300</td><td class="num ex">100</td><td class="num ex">30</td><td class="num ex">+50</td><td class="ex"><span class="mark">예</span></td></tr>
+            <tr data-h="100"><td class="num">50+30+20</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="y"></td><td><span class="mark"></span></td></tr>
+            <tr data-h="180"><td class="num">80+60+40</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="y"></td><td><span class="mark"></span></td></tr>
+            <tr data-h="210"><td class="num">100+60+50</td><td><input type="number" inputmode="decimal" step="0.1" data-k="r"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="p"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="m"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="y"></td><td><span class="mark"></span></td></tr>
           </tbody>
         </table>
       </div>
@@ -350,6 +362,20 @@ details[open] summary{margin-bottom:6px}
         <p>발표 이윤이 실제의 <b>정확히 반</b>이 되려면 얼마를 숨겨야 할까? <b>3분의 1</b>이 되려면?</p>
         <details><summary>풀이 보기</summary>
           <div class="ans">반: 300 − x = 150 → x = <b>150억</b><br>3분의 1: 300 − x = 100 → x = <b>200억</b><br>“3분의 1도 되지 않는다”는 200억보다 더 숨겼다는 뜻이다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>회사는 “작년보다 40% 줄었다”고 했다. 그런데 실제 이윤 300억으로 계산하면 작년 대비 몇 %일까?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">실제: (300 − 200) ÷ 200 × 100 = <b>+50%</b><br>발표: (120 − 200) ÷ 200 × 100 = <b>−40%</b><br>같은 회사가 ‘50% 성장’에서 ‘40% 감소’로 바뀌었다. 숨긴 180억 때문이다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>200억 → 120억은 40% 감소다. 내년에 다시 200억이 되려면 <b>40%만 늘면</b> 될까?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">120 × 1.4 = 168억이라 모자란다.<br>(200 − 120) ÷ 120 × 100 ≈ <b>66.7%</b> 늘어야 한다.<br>증감률의 기준(분모)은 늘 ‘작년’이다. 줄어든 뒤에는 기준이 작아져서 같은 금액을 회복해도 %가 더 크게 나온다.</div>
         </details>
       </div>
       <div class="q">
@@ -375,6 +401,7 @@ details[open] summary{margin-bottom:6px}
       <span class="t">오늘의 정리</span>
       <p class="main">돈이 회사 안에 그대로 있어도 <b>비용·적립금 칸으로 옮기면</b> 발표 이윤은 작아진다.</p>
       <p>숫자는 하나도 틀리지 않았다. 어떤 돈을 ‘이윤’이라고 부를지를 회사가 고른 것이다.</p>
+      <p>증감률도 함께 뒤집힌다. 실제로는 작년보다 <b>50% 늘었는데</b>, 발표로는 <b>40% 줄었다</b>.</p>
     </div>
 
     <div>
@@ -427,7 +454,8 @@ details[open] summary{margin-bottom:6px}
 (function(){
   var $=function(id){return document.getElementById(id)};
   var NS='http://www.w3.org/2000/svg';
-  var REAL=300, SALES=1000, COST=700;
+  var REAL=300, SALES=1000, COST=700, PREV=200;
+  function sg(x){x=Math.round(x*10)/10; return (x>0?'+':x<0?'−':'')+Math.abs(x)+'%'}
   var belief=null, current=1, A=0, B=0, C=0;
 
   function render(){
@@ -437,7 +465,7 @@ details[open] summary{margin-bottom:6px}
       $('st'+i).setAttribute('aria-current',i===current?'step':'false');
     }
     if(current===2){update();fillRecall();}
-    if(current===4) $('recall2').innerHTML='STEP 1에서 고른 내 느낌: <b>'+(belief||'아직 고르지 않음')+'</b><br>실제는 300억, 발표(120억)의 2.5배였다.';
+    if(current===4) $('recall2').innerHTML='STEP 1에서 고른 내 느낌: <b>'+(belief||'아직 고르지 않음')+'</b><br>실제는 300억, 발표(120억)의 2.5배였다. 작년 대비로는 실제 +50%, 발표 −40%.';
   }
   function go(i){ if(location.hash!=='#s'+i){location.hash='s'+i}else{render()} window.scrollTo(0,0); }
   document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
@@ -496,6 +524,9 @@ details[open] summary{margin-bottom:6px}
     $('tR').textContent=r+'억';
     $('tP').textContent=(Math.round(p*10)/10)+'%';
     $('tM').textContent=(Math.round(mg*10)/10)+'%';
+    var y=(r-PREV)/PREV*100;
+    $('tY').textContent=sg(y); $('lY').textContent=sg(y);
+    $('tYBox').classList.toggle('warn',y<0); $('tYBox').classList.toggle('up',y>0);
     var bad=r*2<REAL;
     $('tPBox').classList.toggle('warn',bad); $('tRBox').classList.toggle('warn',bad);
     var t;
@@ -518,16 +549,16 @@ details[open] summary{margin-bottom:6px}
   $('grade').addEventListener('click',function(){
     var ok=0,total=0;
     document.querySelectorAll('tr[data-h]').forEach(function(tr){
-      var h=+tr.getAttribute('data-h'), r=REAL-h, want={r:r,p:r/REAL*100,m:r/SALES*100}, tol={r:.01,p:.06,m:.06};
+      var h=+tr.getAttribute('data-h'), r=REAL-h, want={r:r,p:r/REAL*100,m:r/SALES*100,y:(r-PREV)/PREV*100}, tol={r:.01,p:.06,m:.06,y:.06};
       var good=true;
-      ['r','p','m'].forEach(function(key){
+      ['r','p','m','y'].forEach(function(key){
         var s=tr.querySelector('[data-k="'+key+'"]').value.trim();
         if(s===''||Math.abs(+s-want[key])>tol[key]) good=false;
       });
       var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no');
       total++; if(good) ok++;
     });
-    $('gradeMsg').textContent=ok===total?'모두 맞았다! 180억을 숨긴 줄부터 실제의 반도 안 된다(40%).':ok+' / '+total+' 맞음 · 발표 이윤 = 300 − 숨긴 금액부터 다시 확인해 보자.';
+    $('gradeMsg').textContent=ok===total?'모두 맞았다! 180억을 숨긴 줄부터 실제의 반도 안 되고(40%), 작년 대비로는 −40%가 된다.':ok+' / '+total+' 맞음 · 발표 이윤 = 300 − 숨긴 금액부터 다시 확인해 보자.';
   });
 
   render();
