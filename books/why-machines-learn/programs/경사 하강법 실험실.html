@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>경사 하강법 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+/* Layout: 6-step lab notebook (예상 → 1차원 → 편도함수 → 2차원 → 손계산 → 정리); same token system as the lab series */
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --ink2:#384356; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5; --blue-deep:#9DB4DA;
+  --green:#2F7A4B;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --ink2:#C3CAD6; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25;
+    --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F;
+    --blue:#93B3E8; --blue-soft:#1E2A3F; --blue-deep:#33507E;
+    --green:#6CC48F;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,summary:focus-visible,canvas:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+.top{margin-bottom:14px}
+.book{font-size:13.5px;color:var(--muted);margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4.6vw,36px);line-height:1.25;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;gap:7px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:560px){.stepper .sl{font-size:12.5px}.stepper button{padding:6px 4px;gap:0;flex-direction:column;align-items:center}}
+
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:28px 24px;padding-inline:clamp(18px,4vw,40px);display:flex;flex-direction:column;gap:26px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(23px,3.8vw,29px);line-height:1.35;margin:6px 0 0}
+.lead{margin:0;color:var(--ink2)}
+.lead b{color:var(--red)}
+h3{font-size:17px;font-weight:700;margin:0 0 10px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:27px;line-height:1.25;margin:0;transform:rotate(-1.5deg);transform-origin:left center}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+
+.scene{background:var(--paper);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.scene p{margin:0}
+.scene b{color:var(--red)}
+.rule-box{border:2px solid var(--ink);border-radius:4px;padding:14px 18px;text-align:center;font-family:var(--f-display);font-weight:800;font-size:clamp(19px,3.2vw,24px);line-height:1.5}
+.rule-box small{display:block;font-family:var(--f-body);font-weight:400;font-size:14px;color:var(--muted)}
+.rule-box .eta{color:var(--red)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;min-width:0;background:var(--sheet)}
+.tile .k{font-size:13.5px;color:var(--muted);display:block}
+.tile .v{font-family:var(--f-num);font-weight:600;font-size:clamp(19px,3.2vw,24px);line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.sliders2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:620px){.sliders2{grid-template-columns:1fr}}
+.key{margin:0;border:2px solid var(--ink);border-radius:4px;padding:12px 16px;font-weight:500}
+.key b{color:var(--red)}
+.xyz .pin input{width:4em}
+.chartbox svg.sq{max-width:400px;margin:0 auto}
+.f2 .tile .v{font-size:clamp(16px,2.6vw,20px);white-space:nowrap}
+.tile.warn{border-color:var(--red)} .tile.warn .v{color:var(--red)}
+.tile.ok{border-color:var(--green)} .tile.ok .v{color:var(--green)}
+@media (max-width:560px){.facts{grid-template-columns:1fr 1fr}.facts .tile:last-child{grid-column:1/-1}}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:15px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.predict{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border-top:2px solid var(--ink);padding:12px 2px 0}
+.pin{display:flex;align-items:center;gap:6px}
+.pin input,.calc input{width:5.5em;font-family:var(--f-num);font-size:16px;padding:7px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+figcaption .lg{font-weight:400;font-size:13.5px;color:var(--muted)}
+.chartbox{border:1px solid var(--rule);border-radius:4px;padding:6px 4px 2px;background:var(--sheet)}
+.chartbox svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+.canvasbox{border:1px solid var(--rule);border-radius:4px;background:var(--sheet);padding:8px;display:flex;justify-content:center}
+.canvasbox canvas{display:block;width:100%;max-width:520px;aspect-ratio:1/1;touch-action:none;cursor:crosshair;border-radius:2px}
+
+.slc{border:1px solid var(--rule);border-left:5px solid var(--red);border-radius:4px;padding:12px 14px 8px}
+.slc .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.slc .hd label{font-size:16.5px;font-weight:700}
+.slc .hd b{font-family:var(--f-num);font-size:18px;font-weight:600}
+.slc .what{display:block;font-size:14px;color:var(--ink2);margin:2px 0 4px}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-label{font-size:14px;color:var(--muted);margin-right:2px}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.small{padding:6px 11px;font-size:14px;border-color:var(--rule)}
+.btn.small[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--sheet)}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:var(--sheet);padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px;border-left:1px solid var(--ink)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.status{margin:0;border-left:4px solid var(--ink);padding:8px 0 8px 14px;font-weight:700;font-size:17px}
+.status.bad{border-color:var(--red);color:var(--red)}
+.status.good{border-color:var(--green);color:var(--green)}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 16px}
+.recall b{color:var(--red)}
+
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 8px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:13px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+td.num{font-family:var(--f-num);font-weight:500}
+td.ex{background:var(--paper)}
+tr.cur td{background:var(--amber-soft)}
+.tablebox{overflow-x:auto}
+.calc input{width:4.6em;font-size:15px;padding:5px 6px}
+.mark{display:inline-block;min-width:1.4em;font-weight:700;text-align:center}
+.mark.ok{color:var(--green)} .mark.no{color:var(--red)}
+
+.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:4px}
+.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16.5px,2.6vw,19px);line-height:1.6}
+.formula small{font-size:14px;color:var(--muted)}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.law .t{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--muted)}
+.law p{margin:0}
+.law .main{font-family:var(--f-display);font-weight:800;font-size:clamp(19px,2.9vw,22px);line-height:1.55}
+.law b{color:var(--red)}
+.gloss{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.gloss{grid-template-columns:1fr}}
+.term{border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.term .nm{font-size:17px;font-weight:700;margin:0}
+.term p{margin:0;font-size:15px}
+.term .ex{font-size:14.5px;color:var(--ink2);background:var(--paper);border-radius:4px;padding:6px 10px}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:6px 10px;padding:14px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:15px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:14.5px;width:max-content}
+details[open] summary{margin-bottom:6px}
+.ans{background:var(--paper);padding:12px 14px;border-radius:4px}
+.mine{margin:0;font-size:15px;color:var(--ink2)}
+
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+.navbtn{border:1px solid var(--rule);background:none;padding:9px 14px;border-radius:4px;cursor:pointer;font-size:14.5px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">「그릇의 바닥」 · 경사 하강법</p>
+    <h1>경사 하강법 실험실</h1>
+  </header>
+
+  <ol class="stepper" aria-label="실험 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">예상</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">1차원</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">편미분</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">2차원</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">손계산</span></button></li>
+    <li><button id="st6" data-go="6"><span class="sn">6</span><span class="sl">정리</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 6 · 예상하기</p>
+      <h2 id="h1s">눈을 가리고 그릇 바닥 찾기</h2>
+    </div>
+
+    <div class="scene">
+      <p>그릇 모양 곡선 <b>y = x²</b> 위, 점 (1, 1)에 공이 놓여 있다. 공은 바닥이 어디인지 모른다. 아는 것은 <b>지금 서 있는 곳의 기울기</b>뿐이다.</p>
+      <p>그래서 이렇게 움직이기로 한다. 기울기가 오르막이면 반대쪽으로, 기울기가 클수록 크게 한 걸음.</p>
+    </div>
+
+    <div class="rule-box">x<sub>new</sub> = x<sub>old</sub> − <span class="eta">η</span> · 기울기
+      <small>y = x²의 기울기는 dy/dx = 2x · η(에타)는 걸음 크기를 정하는 작은 수</small>
+    </div>
+
+    <div class="facts">
+      <div class="tile"><span class="k">출발점</span><span class="v">x = 1</span></div>
+      <div class="tile"><span class="k">그 점의 기울기</span><span class="v">2x = 2</span></div>
+      <div class="tile hl"><span class="k">걸음 크기 η</span><span class="v">0.1</span></div>
+    </div>
+
+    <div>
+      <h3>감으로 적어 보자</h3>
+      <div class="predict">
+        <label for="pX">첫 걸음 뒤 공의 x 좌표는?</label>
+        <span class="pin"><input id="pX" type="number" inputmode="decimal" step="0.01" placeholder="?"></span>
+      </div>
+    </div>
+
+    <div>
+      <h3>η를 1.1처럼 크게 잡으면 공은 어떻게 될까?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 예상">
+        <button class="chip" data-v="바닥에 더 빨리 간다" aria-pressed="false">바닥에 더 빨리 간다</button>
+        <button class="chip" data-v="바닥 양쪽을 왔다 갔다 한다" aria-pressed="false">바닥 양쪽을 왔다 갔다 한다</button>
+        <button class="chip" data-v="바닥에서 점점 멀어진다" aria-pressed="false">바닥에서 점점 멀어진다</button>
+      </div>
+      <p class="hint">STEP 2에서 직접 굴려 보며 확인한다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 1차원 굴리기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 6 · 1차원 굴리기</p>
+      <h2 id="h2s">y = x², 한 걸음씩 내려가기</h2>
+    </div>
+    <p class="lead">‘한 걸음’을 눌러 공을 굴려 보자. 점선은 지금 서 있는 곳의 <b>접선(기울기)</b>이다.</p>
+
+    <figure>
+      <figcaption>y = x² <span class="lg">빨간 점: 지나온 자리 · 노란 점: 출발점</span></figcaption>
+      <div class="chartbox"><svg id="g1" viewBox="0 0 640 340" role="img" aria-label="y=x² 곡선 위에서 경사 하강법으로 움직이는 점"></svg></div>
+    </figure>
+
+    <div class="slc">
+      <div class="hd"><label for="eta1">걸음 크기 η</label><b id="eta1V">0.10</b></div>
+      <span class="what">기울기에 곱해서 한 번에 얼마나 움직일지 정한다</span>
+      <input type="range" id="eta1" min="0.01" max="1.1" step="0.01" value="0.1">
+    </div>
+    <div class="controls">
+      <span class="ctl-label">η 바로가기</span>
+      <button class="btn small" data-eta="0.02">0.02 너무 작게</button>
+      <button class="btn small" data-eta="0.1">0.1 책의 예</button>
+      <button class="btn small" data-eta="0.5">0.5 한 번에?</button>
+      <button class="btn small" data-eta="0.95">0.95 지그재그</button>
+      <button class="btn small" data-eta="1.05">1.05 너무 크게</button>
+    </div>
+    <div class="slc" style="--c:var(--amber);border-left-color:var(--amber)">
+      <div class="hd"><label for="x0">출발점 x</label><b id="x0V">1.0</b></div>
+      <input type="range" id="x0" min="-1.8" max="1.8" step="0.1" value="1">
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="step1">한 걸음</button>
+      <button class="btn" id="run1">끝까지 굴리기</button>
+      <button class="btn" id="reset1">처음으로</button>
+    </div>
+
+    <div class="facts">
+      <div class="tile"><span class="k">걸음 수</span><span class="v" id="n1">0</span></div>
+      <div class="tile"><span class="k">지금 x</span><span class="v" id="x1">1.000</span></div>
+      <div class="tile" id="g1Box"><span class="k">기울기 2x</span><span class="v" id="d1">2.000</span></div>
+    </div>
+    <p class="status" id="stat1">출발 준비. ‘한 걸음’을 눌러 보자.</p>
+
+    <div>
+      <h3>걸음 기록</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>걸음</th><th>x<sub>old</sub></th><th>기울기 2x</th><th>η × 기울기</th><th>x<sub>new</sub></th></tr></thead>
+          <tbody id="log1"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="logNote">최근 8걸음만 보여 준다.</p>
+    </div>
+
+    <p class="recall" id="recall1">STEP 1 내 예상: <b>아직 적지 않음</b></p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 편도함수 →</button></div>
+  </section>
+
+  <!-- STEP 3 편도함수 -->
+  <section class="sheet" id="s3" aria-labelledby="hps" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 6 · 편도함수</p>
+      <h2 id="hps">변수가 둘이면, 기울기도 둘</h2>
+    </div>
+    <p class="lead">그릇 z = x² + y² 위의 한 점에 서 있다. 이제 움직일 수 있는 방향이 x와 y 두 가지다. <b>한 변수만 움직이고 나머지는 그대로 둔 채</b> 잰 기울기를 편도함수라고 한다.</p>
+
+    <div class="sliders2">
+      <div class="slc" style="border-left-color:var(--blue)">
+        <div class="hd"><label for="pdx">서 있는 점의 x</label><b id="pdxV">3</b></div>
+        <input type="range" id="pdx" min="-4" max="4" step="0.5" value="3">
+      </div>
+      <div class="slc" style="border-left-color:var(--amber)">
+        <div class="hd"><label for="pdy">서 있는 점의 y</label><b id="pdyV">4</b></div>
+        <input type="range" id="pdy" min="-4" max="4" step="0.5" value="4">
+      </div>
+    </div>
+
+    <div class="two">
+      <figure>
+        <figcaption>x만 움직이기 <span class="lg" id="capx">y = 4로 고정 → z = x² + 16</span></figcaption>
+        <div class="chartbox"><svg id="secx" viewBox="0 0 300 220" role="img" aria-label="y를 고정하고 자른 단면 곡선과 접선"></svg></div>
+      </figure>
+      <figure>
+        <figcaption>y만 움직이기 <span class="lg" id="capy">x = 3으로 고정 → z = y² + 9</span></figcaption>
+        <div class="chartbox"><svg id="secy" viewBox="0 0 300 220" role="img" aria-label="x를 고정하고 자른 단면 곡선과 접선"></svg></div>
+      </figure>
+    </div>
+
+    <div class="facts">
+      <div class="tile"><span class="k">∂z/∂x = 2x</span><span class="v" id="pvx">6</span></div>
+      <div class="tile"><span class="k">∂z/∂y = 2y</span><span class="v" id="pvy">8</span></div>
+      <div class="tile hl"><span class="k">기울기 벡터</span><span class="v" id="pvg">[6, 8]</span></div>
+    </div>
+
+    <div class="key">두 편도함수를 묶은 <b>[∂z/∂x, ∂z/∂y]</b>가 <b>기울기(벡터)</b>다. 크기와 방향이 있는 화살표 하나로 “어느 쪽이 가장 가파른 오르막인지”를 알려 준다.</div>
+
+    <figure>
+      <figcaption>위에서 본 그릇과 기울기 화살표 <span class="lg">원: 같은 높이 · 화살표 길이는 0.3배로 줄여 그림</span></figcaption>
+      <div class="chartbox"><svg id="gvec" class="sq" viewBox="0 0 340 340" role="img" aria-label="위에서 본 그릇 위의 기울기 벡터와 반대 방향 화살표"></svg></div>
+      <div class="legend"><span><i class="dot" style="background:var(--red)"></i>기울기: 바닥에서 멀어지는 방향</span><span><i class="dot" style="background:var(--blue)"></i>−기울기: 내려가는 방향</span></div>
+    </figure>
+    <p class="status" id="pstat">기울기 [6, 8]은 바닥 반대쪽을 가리킨다. 그래서 반대 방향 [−6, −8] 쪽으로 한 걸음.</p>
+
+    <div>
+      <h3>변수가 셋이면? 그릴 수는 없어도 계산은 된다</h3>
+      <div class="rule-box" style="font-size:clamp(17px,2.8vw,21px)">f(x, y, z) = x² + 3y³ + z⁵
+        <small>변수 3개 + 함숫값 = 4차원이라 그림으로 볼 수 없다</small>
+      </div>
+      <div class="tablebox" style="margin-top:12px">
+        <table>
+          <thead><tr><th>편도함수</th><th style="text-align:left">구하는 법</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>∂f/∂x</td><td style="text-align:left;white-space:normal">y, z는 상수 취급 → x²만 미분</td><td class="num">2x</td></tr>
+            <tr><td>∂f/∂y</td><td style="text-align:left;white-space:normal">x, z는 상수 취급 → 3y³만 미분</td><td class="num">9y²</td></tr>
+            <tr><td>∂f/∂z</td><td style="text-align:left;white-space:normal">x, y는 상수 취급 → z⁵만 미분</td><td class="num">5z⁴</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="predict xyz" style="margin-top:14px;justify-content:flex-start">
+        <span class="pin">x <input id="vx" type="number" inputmode="decimal" step="0.5" value="1"></span>
+        <span class="pin">y <input id="vy" type="number" inputmode="decimal" step="0.5" value="2"></span>
+        <span class="pin">z <input id="vz" type="number" inputmode="decimal" step="0.5" value="1"></span>
+      </div>
+      <p class="recall" style="margin-top:10px">이 점에서의 기울기 [2x, 9y², 5z⁴] = <b class="num" id="vout">[2, 36, 5]</b></p>
+      <p class="hint">숫자를 바꿔 보자. 변수가 몇 개든 같은 방법으로 기울기를 구한다.</p>
+    </div>
+
+    <div>
+      <h3>반대 방향으로 한 걸음: 좌표가 실제로 어떻게 바뀔까</h3>
+      <div class="formula" style="margin-bottom:12px">
+        <span class="f">새 위치 = 지금 위치 − η × 기울기</span>
+        <small>x, y, z 각각에 같은 규칙을 따로 적용한다</small>
+      </div>
+      <div class="predict xyz" style="justify-content:flex-start;margin-bottom:10px">
+        <span class="pin">걸음 크기 η <input id="veta" type="number" inputmode="decimal" step="0.01" min="0" value="0.01" style="width:5em"></span>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>좌표</th><th>지금</th><th>기울기</th><th>−η×기울기</th><th>새 위치</th></tr></thead>
+          <tbody id="vtab"></tbody>
+        </table>
+      </div>
+      <div class="facts" style="margin-top:12px">
+        <div class="tile"><span class="k">지금 함숫값 f</span><span class="v" id="vf0">26</span></div>
+        <div class="tile" id="vfBox"><span class="k">한 걸음 뒤 f</span><span class="v" id="vf1">14.97</span></div>
+        <div class="tile"><span class="k">걸음 수</span><span class="v" id="vn">0</span></div>
+      </div>
+      <p class="status" id="vstat" style="margin-top:12px"></p>
+      <div class="controls" style="margin-top:12px">
+        <button class="btn primary" id="vstep">새 위치로 한 걸음 이동</button>
+        <button class="btn" id="vreset">처음으로 (1, 2, 1)</button>
+      </div>
+      <p class="hint">그림 없이 숫자만으로도 “내려가고 있다”를 확인할 수 있다. 다만 이 함수는 y³, z⁵ 때문에 바닥이 없어서, 계속 걸으면 끝없이 내려간다.</p>
+    </div>
+
+    <p class="pen">한 번에 한 변수씩, 나머지는 상수 취급!</p>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 2차원 그릇 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 6 · 2차원 굴리기</p>
+      <h2 id="h3s">그릇과 안장, 3차원으로 보기</h2>
+    </div>
+    <p class="lead">변수가 x, y 두 개면 기울기도 두 개다. x 방향 기울기 <b>∂z/∂x</b>와 y 방향 기울기 <b>∂z/∂y</b>를 각각 구해 두 좌표를 동시에 옮긴다. 그림을 <b>끌어서</b> 돌려 보자.</p>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="표면 고르기" id="surf">
+        <button data-s="bowl" aria-pressed="true">그릇 z = x² + y²</button>
+        <button data-s="saddle" aria-pressed="false">안장 z = y² − x²</button>
+      </div>
+      <div class="seg" role="group" aria-label="보는 방법" id="view">
+        <button data-view="3d" aria-pressed="true">3차원</button>
+        <button data-view="top" aria-pressed="false">위에서 보기</button>
+      </div>
+    </div>
+
+    <figure>
+      <figcaption id="cap2">위에서 본 z = x² + y² <span class="lg">진할수록 낮은 곳 · 같은 색 띠 = 같은 높이</span></figcaption>
+      <div class="canvasbox"><canvas id="cv" tabindex="0" aria-label="표면 그림. 3차원에서는 끌어서 돌리고, 위에서 보기에서는 눌러서 출발점을 고른다"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:var(--amber)"></i>출발점</span><span><i class="dot" style="background:var(--red)"></i>지나온 자리</span><span>화살표: 내려가는 방향(−기울기)</span></div>
+    </figure>
+
+    <div class="slc">
+      <div class="hd"><label for="eta2">걸음 크기 η</label><b id="eta2V">0.10</b></div>
+      <input type="range" id="eta2" min="0.01" max="1.05" step="0.01" value="0.1">
+    </div>
+    <div class="controls" id="presets2"></div>
+    <div class="controls">
+      <button class="btn primary" id="step2">한 걸음</button>
+      <button class="btn" id="run2">끝까지 굴리기</button>
+      <button class="btn" id="reset2">처음으로</button>
+    </div>
+
+    <div class="facts f2">
+      <div class="tile"><span class="k">지금 위치 (x, y)</span><span class="v" id="p2">(3, 4)</span></div>
+      <div class="tile"><span class="k">기울기 (∂z/∂x, ∂z/∂y)</span><span class="v" id="d2">(6, 8)</span></div>
+      <div class="tile"><span class="k">높이 z · 걸음</span><span class="v" id="z2">25 · 0</span></div>
+    </div>
+    <p class="status" id="stat2">출발 준비.</p>
+
+    <p class="pen" id="pen2">그릇에선 어디서 출발해도 바닥으로!</p>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 손계산 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s5" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 6 · 손계산</p>
+      <h2 id="h4s">공식에 직접 넣어 보기</h2>
+    </div>
+
+    <div class="formula">
+      <span class="f">1차원: x<sub>new</sub> = x<sub>old</sub> − η · 2x<sub>old</sub></span>
+      <span class="f">2차원: (x, y)<sub>new</sub> = (x, y)<sub>old</sub> − η · (2x, 2y)</span>
+      <small>소수 셋째 자리까지 · 시뮬레이션의 걸음 기록과 맞춰 볼 수 있다</small>
+    </div>
+
+    <div>
+      <h3>A. y = x², 출발 x = 1, η = 0.1</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>걸음</th><th>x<sub>old</sub></th><th>기울기</th><th>x<sub>new</sub></th><th></th></tr></thead>
+          <tbody class="calc">
+            <tr><td class="num ex">1</td><td class="num ex">1</td><td class="num ex">2</td><td class="num ex">0.8</td><td class="ex"><span class="mark">예</span></td></tr>
+            <tr data-a="2"><td class="num">2</td><td class="num">0.8</td><td><input type="number" inputmode="decimal" step="0.001" data-k="g"></td><td><input type="number" inputmode="decimal" step="0.001" data-k="x"></td><td><span class="mark"></span></td></tr>
+            <tr data-a="3"><td class="num">3</td><td class="num" id="a3old">?</td><td><input type="number" inputmode="decimal" step="0.001" data-k="g"></td><td><input type="number" inputmode="decimal" step="0.001" data-k="x"></td><td><span class="mark"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3>B. z = x² + y², 출발 (3, 4), η = 0.1</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>구할 것</th><th>x 성분</th><th>y 성분</th><th></th></tr></thead>
+          <tbody class="calc">
+            <tr data-b="g"><td>기울기 (2x, 2y)</td><td><input type="number" inputmode="decimal" step="0.01" data-k="bx"></td><td><input type="number" inputmode="decimal" step="0.01" data-k="by"></td><td><span class="mark"></span></td></tr>
+            <tr data-b="p"><td>새 위치</td><td><input type="number" inputmode="decimal" step="0.01" data-k="bx"></td><td><input type="number" inputmode="decimal" step="0.01" data-k="by"></td><td><span class="mark"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="controls"><button class="btn primary" id="grade">채점하기</button></div>
+    <p class="hint" id="gradeMsg" style="margin-top:-14px">B의 새 위치에서 높이 z는 25에서 얼마로 줄었을까?</p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">더</span>
+        <p>y = x²에서 x<sub>new</sub> = x − η·2x를 정리하면 x<sub>new</sub> = (□) · x 꼴이 된다. □는?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">x<sub>new</sub> = (1 − 2η) · x. 한 걸음마다 x에 같은 수 (1 − 2η)를 곱하는 <b>등비수열</b>이다. η = 0.1이면 0.8씩 곱해져 1, 0.8, 0.64, 0.512, …</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>공이 바닥(x = 0)에 가까워지려면 η는 어떤 범위여야 할까? η = 0.5, η = 1이면?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">|1 − 2η| &lt; 1 → <b>0 &lt; η &lt; 1</b>.<br>η = 0.5: 1 − 2η = 0이라 한 걸음에 바로 바닥.<br>η = 1: 1 − 2η = −1이라 1, −1, 1, −1… 영원히 왕복.<br>η &gt; 1: |1 − 2η| &gt; 1이라 점점 멀어진다.</div>
+        </details>
+      </div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button><button class="navbtn" data-go="6">STEP 6 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s6" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 6 / 6 · 정리하기</p>
+      <h2 id="h5s">기울기를 거슬러, 조금씩</h2>
+    </div>
+
+    <div class="law">
+      <span class="t">오늘의 정리</span>
+      <p class="main">경사 하강법은 <b>기울기의 반대 방향</b>으로 <b>η만큼 조금씩</b> 움직이기를 반복해 바닥(최솟값)을 찾는다.</p>
+      <p>바닥이 어디인지 몰라도, 지금 자리의 기울기만 알면 된다. 바닥에 가까워질수록 기울기가 작아져 걸음도 저절로 작아진다.</p>
+    </div>
+
+    <div class="gloss">
+      <div class="term" style="--c:var(--red)">
+        <p class="nm">걸음 크기 η</p>
+        <p>너무 작으면 느리고, 너무 크면 바닥을 지나쳐 튕겨 나간다.</p>
+        <p class="ex">y = x²에서는 0 &lt; η &lt; 1이어야 수렴</p>
+      </div>
+      <div class="term" style="--c:var(--blue)">
+        <p class="nm">편도함수</p>
+        <p>변수가 여러 개면 하나씩만 움직였을 때의 기울기를 따로 구한다.</p>
+        <p class="ex">z = x² + y² → ∂z/∂x = 2x, ∂z/∂y = 2y</p>
+      </div>
+      <div class="term" style="--c:var(--amber)">
+        <p class="nm">전역 · 지역 최솟값</p>
+        <p>그릇 전체에서 가장 낮은 곳이 전역, 움푹한 곳마다 있는 바닥이 지역 최솟값이다.</p>
+        <p class="ex">바닥이 여러 개면 출발점에 따라 도착지가 달라진다</p>
+      </div>
+      <div class="term" style="--c:var(--slate)">
+        <p class="nm">안장점</p>
+        <p>기울기가 0인데 최솟값이 아닌 점. 한쪽은 오목, 다른 쪽은 볼록하다.</p>
+        <p class="ex">z = y² − x²의 (0, 0)</p>
+      </div>
+    </div>
+
+    <p class="recall" id="recall2">STEP 1 내 예상: <b>아직 고르지 않음</b></p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">Q1</span>
+        <p>안장 표면에서 x = 0인 능선 위 정확히 출발하면 공은 어디서 멈출까? x를 0.1만 벗어나면?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">x = 0이면 ∂z/∂x = −2x = 0이라 x는 영원히 0이고, y만 줄어 안장점 (0, 0)에 멈춘다. 기울기가 0이니 바닥인 줄 착각하는 셈이다. x가 조금만 0이 아니어도 x<sub>new</sub> = (1 + 2η)x로 점점 커져 옆으로 굴러떨어진다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q2</span>
+        <p>인공지능이 ‘학습한다’는 것과 경사 하강법은 어떤 관계일까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">기계 학습에서는 예측이 얼마나 틀렸는지를 나타내는 오차 함수를 만들고, 그 값이 가장 작아지는 매개변수를 찾는다. 오차 함수가 곧 ‘그릇’이고, 경사 하강법은 그 바닥으로 내려가는 방법이다. 변수가 수백만 개여도 원리는 같다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q3</span>
+        <p>바닥이 두 개인 그릇에서 경사 하강법을 쓰면 어떤 문제가 생길 수 있을까? 해결 아이디어는?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">출발점 근처의 지역 최솟값에 갇혀 더 낮은 전역 최솟값을 놓칠 수 있다. 여러 출발점에서 굴려 보거나, 걸음 크기를 바꿔 가며 시도하는 방법이 있다.</div>
+        </details>
+      </div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 산에서 안개 때문에 앞이 안 보일 때 가장 빨리 내려가는 방법과 경사 하강법은 무엇이 닮았을까?</p>
+
+    <div class="nav"><button class="navbtn" data-go="5">← STEP 5</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var NS='http://www.w3.org/2000/svg';
+  var current=1, belief=null;
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  function f3(v){return (Math.round(v*1000)/1000).toFixed(3)}
+  function fs(v){var r=Math.round(v*100)/100; return (Object.is(r,-0)?0:r).toString()}
+
+  /* ---------- steps ---------- */
+  function render(){
+    var m=/^#s([1-6])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=6;i++){ $('s'+i).hidden=(i!==current); $('st'+i).setAttribute('aria-current',i===current?'step':'false'); }
+    if(current===2){draw1();fillRecall();}
+    if(current===3){drawP();f3v();}
+    if(current===4){draw2();}
+    if(current===6){$('recall2').innerHTML='STEP 1 내 예상: <b>'+(belief||'아직 고르지 않음')+'</b><br>η = 1.1이면 바닥 양쪽을 오가며 점점 멀어진다. 예상과 무엇이 같고 달랐을까?';}
+  }
+  function go(i){ stopAll(); if(location.hash!=='#s'+i){location.hash='s'+i}else{render()} window.scrollTo(0,0); }
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',function(){stopAll();render()});
+  document.querySelectorAll('#belief .chip').forEach(function(b){b.addEventListener('click',function(){
+    belief=b.getAttribute('data-v');
+    document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  })});
+  function fillRecall(){
+    var v=$('pX').value.trim();
+    $('recall1').innerHTML='STEP 1 내 예상 (첫 걸음 뒤 x): <b>'+(v===''?'아직 적지 않음':v)+'</b> · 정답: 1 − 0.1 × 2 = <b>0.8</b>'+(belief?' · η = 1.1 예상: <b>'+belief+'</b>':'');
+  }
+
+  /* ---------- STEP 2: 1D ---------- */
+  var eta1=0.1, xs=[1], timer1=null;
+  function el(p,t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+  function txt(p,a,s){var e=el(p,'text',a);e.textContent=s;return e}
+  function draw1(){
+    var svg=$('g1'); svg.innerHTML='';
+    var W=Math.max(300,Math.round(svg.parentElement.clientWidth-8)||640), H=W<520?300:340;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var L=36,R=12,T=14,B=30, X0=-2,X1=2,Y1=4;
+    function sx(x){return L+(x-X0)/(X1-X0)*(W-L-R)} function sy(y){return T+(1-y/Y1)*(H-T-B)}
+    [1,2,3,4].forEach(function(g){el(svg,'line',{x1:L,x2:W-R,y1:sy(g),y2:sy(g),stroke:'var(--rule)'});txt(svg,{x:L-6,y:sy(g)+4,'text-anchor':'end','font-size':11,'font-family':'var(--f-num)',fill:'var(--muted)'},g)});
+    el(svg,'line',{x1:L,x2:W-R,y1:sy(0),y2:sy(0),stroke:'var(--muted)'});
+    el(svg,'line',{x1:sx(0),x2:sx(0),y1:T,y2:sy(0),stroke:'var(--muted)'});
+    [-2,-1,0,1,2].forEach(function(g){txt(svg,{x:sx(g),y:sy(0)+18,'text-anchor':'middle','font-size':11,'font-family':'var(--f-num)',fill:'var(--muted)'},g)});
+    var d='';for(var i=0;i<=200;i++){var x=X0+(X1-X0)*i/200;d+=(i?'L':'M')+sx(x).toFixed(1)+','+sy(x*x).toFixed(1)}
+    el(svg,'path',{d:d,fill:'none',stroke:'var(--ink)','stroke-width':2.2});
+    var vis=xs.filter(function(x){return Math.abs(x)<=2.05});
+    var cur=xs[xs.length-1];
+    if(Math.abs(cur)<=2.05){
+      var s=2*cur, dx=0.6;
+      el(svg,'line',{x1:sx(cur-dx),y1:sy(cur*cur-s*dx),x2:sx(cur+dx),y2:sy(cur*cur+s*dx),stroke:'var(--blue)','stroke-width':1.6,'stroke-dasharray':'5 4'});
+    }
+    for(var j=1;j<xs.length;j++){var a=xs[j-1],b=xs[j]; if(Math.abs(a)>2.05||Math.abs(b)>2.05)continue;
+      el(svg,'line',{x1:sx(a),y1:sy(a*a),x2:sx(b),y2:sy(b*b),stroke:'var(--red)','stroke-width':1.4,opacity:.55});}
+    xs.forEach(function(x,k){ if(Math.abs(x)>2.05)return;
+      el(svg,'circle',{cx:sx(x),cy:sy(x*x),r:k===0?7:(k===xs.length-1?7:5),fill:k===0?'var(--amber)':'var(--red)',stroke:'var(--sheet)','stroke-width':1.5});});
+    if(Math.abs(cur)>2.05){txt(svg,{x:cur>0?W-R-4:L+4,y:T+14,'text-anchor':cur>0?'end':'start','font-size':13,'font-weight':700,fill:'var(--red)'},'그래프 밖으로 튕겨 나감 ('+(cur>0?'→':'←')+')')}
+    // readouts
+    $('eta1V').textContent=eta1.toFixed(2);
+    $('n1').textContent=xs.length-1;
+    $('x1').textContent=Math.abs(cur)>1e6?'발산':f3(cur);
+    $('d1').textContent=Math.abs(cur)>1e6?'—':f3(2*cur);
+    var n=xs.length-1, st=$('stat1'), cls='', t;
+    if(n===0) t='출발 준비. ‘한 걸음’을 눌러 보자.';
+    else if(Math.abs(cur)<0.001){t='바닥 도착! '+n+'걸음 만에 x ≈ 0';cls='good'}
+    else if(Math.abs(cur)>2.05){t='바닥을 지나쳐 점점 멀어진다 (발산). η가 너무 크다';cls='bad'}
+    else if(Math.abs(1-2*eta1)>=1 && n>=2){t=Math.abs(1-2*eta1)===1?'양쪽을 똑같이 오가며 영원히 제자리 (η = 1)':'바닥 양쪽을 오가며 점점 멀어진다';cls='bad'}
+    else if(1-2*eta1<0) t='바닥을 지나쳐 반대편으로! 왔다 갔다 하며 내려간다';
+    else if(n>=20 && Math.abs(cur)>0.1) t=n+'걸음째인데 아직 멀다. η가 너무 작다';
+    else t='내려가는 중. 바닥에 가까울수록 기울기가 작아져 걸음도 작아진다';
+    st.textContent=t; st.className='status'+(cls?' '+cls:'');
+    $('g1Box').className='tile'+(cls==='good'?' ok':cls==='bad'?' warn':'');
+    var rows='', start=Math.max(1,xs.length-8);
+    for(var r=start;r<xs.length;r++){var o=xs[r-1]; if(Math.abs(o)>1e6)break;
+      rows+='<tr'+(r===xs.length-1?' class="cur"':'')+'><td class="num">'+r+'</td><td class="num">'+f3(o)+'</td><td class="num">'+f3(2*o)+'</td><td class="num">'+f3(eta1*2*o)+'</td><td class="num">'+f3(xs[r])+'</td></tr>';}
+    $('log1').innerHTML=rows||'<tr><td colspan="5" style="text-align:left;color:var(--muted)">아직 걸음이 없다</td></tr>';
+  }
+  function step1(){var x=xs[xs.length-1]; if(Math.abs(x)>2.05||Math.abs(x)<1e-9&&xs.length>1)return false; xs.push(x-eta1*2*x); draw1(); return Math.abs(xs[xs.length-1])>=0.001&&Math.abs(xs[xs.length-1])<=2.05&&xs.length<61;}
+  function reset1(){stop1(); xs=[+$('x0').value]; draw1();}
+  function stop1(){if(timer1){clearInterval(timer1);timer1=null;$('run1').textContent='끝까지 굴리기'}}
+  $('step1').addEventListener('click',function(){stop1();step1()});
+  $('run1').addEventListener('click',function(){ if(timer1){stop1();return}
+    $('run1').textContent='멈추기';
+    timer1=setInterval(function(){ if(!step1()) stop1(); },260); });
+  $('reset1').addEventListener('click',reset1);
+  $('eta1').addEventListener('input',function(){eta1=+this.value;reset1()});
+  $('x0').addEventListener('input',function(){$('x0V').textContent=(+this.value).toFixed(1);reset1()});
+  document.querySelectorAll('[data-eta]').forEach(function(b){b.addEventListener('click',function(){
+    eta1=+b.getAttribute('data-eta'); $('eta1').value=eta1;
+    document.querySelectorAll('[data-eta]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    reset1();
+  })});
+
+  /* ---------- STEP 3: partial derivatives ---------- */
+  var qx=3, qy=4;
+  function sec(id,a,c,vn,col){
+    var svg=$(id); svg.innerHTML='';
+    var W=Math.max(240,Math.round(svg.parentElement.clientWidth-8)||300), H=220;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var L=32,R=10,T=12,B=28;
+    function sx(x){return L+(x+5)/10*(W-L-R)} function sy(y){return T+(1-y/50)*(H-T-B)}
+    [10,20,30,40,50].forEach(function(g){el(svg,'line',{x1:L,x2:W-R,y1:sy(g),y2:sy(g),stroke:'var(--rule)'});txt(svg,{x:L-5,y:sy(g)+4,'text-anchor':'end','font-size':10.5,'font-family':'var(--f-num)',fill:'var(--muted)'},g)});
+    el(svg,'line',{x1:L,x2:W-R,y1:sy(0),y2:sy(0),stroke:'var(--muted)'});
+    [-4,-2,0,2,4].forEach(function(g){txt(svg,{x:sx(g),y:sy(0)+16,'text-anchor':'middle','font-size':10.5,'font-family':'var(--f-num)',fill:'var(--muted)'},g)});
+    txt(svg,{x:W-R,y:sy(0)-6,'text-anchor':'end','font-size':12,'font-weight':700,fill:'var(--ink)'},vn);
+    txt(svg,{x:L+4,y:T+10,'font-size':12,'font-weight':700,fill:'var(--ink)'},'z');
+    var d='';for(var i=0;i<=100;i++){var x=-5+10*i/100;d+=(i?'L':'M')+sx(x).toFixed(1)+','+sy(Math.min(52,x*x+c)).toFixed(1)}
+    el(svg,'path',{d:d,fill:'none',stroke:'var(--ink)','stroke-width':2});
+    var s=2*a, z=a*a+c, dx=1.3;
+    el(svg,'line',{x1:sx(a-dx),y1:sy(z-s*dx),x2:sx(a+dx),y2:sy(z+s*dx),stroke:col,'stroke-width':2,'stroke-dasharray':'5 4'});
+    el(svg,'circle',{cx:sx(a),cy:sy(z),r:6,fill:'var(--red)',stroke:'var(--sheet)','stroke-width':1.5});
+    txt(svg,{x:W/2,y:T+12,'text-anchor':'middle','font-size':13,'font-weight':700,fill:col},'접선의 기울기 '+fs(s));
+  }
+  function arrow(svg,x1,y1,x2,y2,col){
+    el(svg,'line',{x1:x1,y1:y1,x2:x2,y2:y2,stroke:col,'stroke-width':3});
+    var a=Math.atan2(y2-y1,x2-x1),h=11;
+    el(svg,'polygon',{points:[x2,y2,x2-h*Math.cos(a-0.42),y2-h*Math.sin(a-0.42),x2-h*Math.cos(a+0.42),y2-h*Math.sin(a+0.42)].map(function(v){return v.toFixed(1)}).join(' '),fill:col});
+  }
+  function gvec(){
+    var svg=$('gvec'); svg.innerHTML=''; var S=340, M=7;
+    function sx(x){return (x+M)/(2*M)*S} function sy(y){return (M-y)/(2*M)*S}
+    for(var r=1;r<=9;r++) el(svg,'circle',{cx:sx(0),cy:sy(0),r:r/(2*M)*S,fill:'none',stroke:'var(--rule)','stroke-width':r%2?1:1.6});
+    el(svg,'line',{x1:0,x2:S,y1:sy(0),y2:sy(0),stroke:'var(--muted)'}); el(svg,'line',{x1:sx(0),x2:sx(0),y1:0,y2:S,stroke:'var(--muted)'});
+    txt(svg,{x:S-6,y:sy(0)-6,'text-anchor':'end','font-size':12,'font-weight':700,fill:'var(--ink)'},'x'); txt(svg,{x:sx(0)+7,y:13,'font-size':12,'font-weight':700,fill:'var(--ink)'},'y');
+    el(svg,'circle',{cx:sx(0),cy:sy(0),r:4,fill:'var(--ink)'}); txt(svg,{x:sx(0)+7,y:sy(0)+16,'font-size':12,fill:'var(--muted)'},'바닥');
+    var gx=2*qx, gy=2*qy, k=0.3;
+    if(gx||gy){
+      arrow(svg,sx(qx),sy(qy),sx(qx+k*gx),sy(qy+k*gy),'var(--red)');
+      arrow(svg,sx(qx),sy(qy),sx(qx-k*gx),sy(qy-k*gy),'var(--blue)');
+    }
+    el(svg,'circle',{cx:sx(qx),cy:sy(qy),r:6.5,fill:'var(--amber)',stroke:'var(--sheet)','stroke-width':1.5});
+    txt(svg,{x:Math.min(S-70,Math.max(4,sx(qx)+10)),y:Math.max(14,Math.min(S-6,sy(qy)+(qy>=0?22:-12))),'font-size':12.5,'font-family':'var(--f-num)','font-weight':600,fill:'var(--ink)'},'('+fs(qx)+', '+fs(qy)+')');
+  }
+  function drawP(){
+    $('pdxV').textContent=fs(qx); $('pdyV').textContent=fs(qy);
+    $('capx').textContent='y = '+fs(qy)+' 고정 → z = x² + '+fs(qy*qy);
+    $('capy').textContent='x = '+fs(qx)+' 고정 → z = y² + '+fs(qx*qx);
+    sec('secx',qx,qy*qy,'x','var(--blue)'); sec('secy',qy,qx*qx,'y','var(--amber)'); gvec();
+    $('pvx').textContent=fs(2*qx); $('pvy').textContent=fs(2*qy); $('pvg').textContent='['+fs(2*qx)+', '+fs(2*qy)+']';
+    var st=$('pstat');
+    if(qx===0&&qy===0){st.textContent='기울기 [0, 0]. 어느 쪽으로도 기울지 않았다 → 여기가 바닥!';st.className='status good'}
+    else {st.textContent='기울기 ['+fs(2*qx)+', '+fs(2*qy)+']은 바닥 반대쪽을 가리킨다. 그래서 반대 방향 ['+fs(-2*qx)+', '+fs(-2*qy)+'] 쪽으로 한 걸음.';st.className='status'}
+  }
+  $('pdx').addEventListener('input',function(){qx=+this.value;drawP()});
+  $('pdy').addEventListener('input',function(){qy=+this.value;drawP()});
+  function f3v(){var x=+$('vx').value||0,y=+$('vy').value||0,z=+$('vz').value||0;
+    $('vout').textContent='['+fs(2*x)+', '+fs(9*y*y)+', '+fs(5*Math.pow(z,4))+']';
+    var eta=Math.max(0,+$('veta').value||0), P=[x,y,z], G=[2*x,9*y*y,5*Math.pow(z,4)], nm=['x','y','z'], rows='';
+    vnew=P.map(function(v,i){return v-eta*G[i]});
+    function F(q){return q[0]*q[0]+3*Math.pow(q[1],3)+Math.pow(q[2],5)}
+    function f4(v){var r=Math.round(v*10000)/10000;return (Object.is(r,-0)?0:r).toString()}
+    for(var i=0;i<3;i++) rows+='<tr><td>'+nm[i]+'</td><td class="num">'+f4(P[i])+'</td><td class="num">'+f4(G[i])+'</td><td class="num">'+f4(-eta*G[i])+'</td><td class="num"><b>'+f4(vnew[i])+'</b></td></tr>';
+    $('vtab').innerHTML=rows;
+    var a=F(P), b=F(vnew), big=!isFinite(b)||Math.abs(b)>1e9;
+    $('vf0').textContent=f4(a); $('vf1').textContent=big?'너무 큼':f4(b); $('vn').textContent=vcount;
+    var st=$('vstat'), down=b<a-1e-12;
+    $('vfBox').className='tile'+(down?' ok':(eta>0?' warn':''));
+    if(eta===0){st.textContent='η = 0이면 제자리다.';st.className='status'}
+    else if(G[0]===0&&G[1]===0&&G[2]===0){st.textContent='기울기가 [0, 0, 0]이라 움직이지 않는다.';st.className='status'}
+    else if(down){st.textContent='f가 '+f4(a)+' → '+(big?'아주 작은 값':f4(b))+'로 줄었다. 반대 방향으로 가니 내려갔다!';st.className='status good'}
+    else {st.textContent='f가 오히려 커졌다. 걸음이 너무 커서 지나쳤다. η를 줄여 보자.';st.className='status bad'}
+  }
+  var vnew=[0,0,0], vcount=0;
+  $('veta').addEventListener('input',f3v);
+  $('vstep').addEventListener('click',function(){ if(vnew.some(function(v){return !isFinite(v)||Math.abs(v)>1e4}))return;
+    ['vx','vy','vz'].forEach(function(id,i){$(id).value=Math.round(vnew[i]*10000)/10000}); vcount++; f3v(); });
+  $('vreset').addEventListener('click',function(){$('vx').value=1;$('vy').value=2;$('vz').value=1;vcount=0;f3v()});
+
+  ['vx','vy','vz'].forEach(function(i){$(i).addEventListener('input',function(){vcount=0;f3v()})});
+
+  /* ---------- STEP 4: 2D ---------- */
+  var surf='bowl', eta2=0.1, path=[[3,4]], timer2=null, D=5, view='3d', az=-0.6, elv=0.75, drag=null;
+  var PRESETS={
+    bowl:[['책의 예 (3, 4)',3,4],['구석에서 (−4.5, 4.5)',-4.5,4.5],['가까이 (1, −0.5)',1,-0.5]],
+    saddle:[['능선 위 (0, 4)',0,4],['살짝 벗어남 (0.1, 4)',0.1,4],['멀리 벗어남 (1, 4)',1,4]]
+  };
+  function grad(x,y){return surf==='bowl'?[2*x,2*y]:[-2*x,2*y]}
+  function zf(x,y){return surf==='bowl'?x*x+y*y:y*y-x*x}
+  function hex(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c}).join('');var n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255]}
+  function presets2(){
+    var box=$('presets2'); box.innerHTML='<span class="ctl-label">출발점</span>';
+    PRESETS[surf].forEach(function(p){var b=document.createElement('button');b.className='btn small';b.textContent=p[0];
+      b.addEventListener('click',function(){stop2();path=[[p[1],p[2]]];draw2()});box.appendChild(b)});
+  }
+  function renderTop(){
+    var cv=$('cv'), size=Math.round(cv.clientWidth)||480, dpr=window.devicePixelRatio||1;
+    var Np=Math.round(size*dpr); cv.width=Np; cv.height=Np;
+    var ctx=cv.getContext('2d'), img=ctx.createImageData(Np,Np), dat=img.data;
+    var lo=hex(css('--blue-deep')||'#9DB4DA'), hi=hex(css('--sheet')||'#ffffff'), ln=hex(css('--slate')||'#5E6E88');
+    var pix=2*D/Np; var zmin=surf==='bowl'?0:-25, zmax=surf==='bowl'?50:25, step=surf==='bowl'?2.5:2.5;
+    for(var j=0;j<Np;j++){var y=D-2*D*(j+0.5)/Np;
+      for(var i=0;i<Np;i++){var x=-D+2*D*(i+0.5)/Np, z=zf(x,y);
+        var t=Math.min(1,Math.max(0,(z-zmin)/(zmax-zmin))); t=Math.floor(t*12)/12;
+        var c=[lo[0]+(hi[0]-lo[0])*t,lo[1]+(hi[1]-lo[1])*t,lo[2]+(hi[2]-lo[2])*t];
+        var fr=((z/step)%1+1)%1, gz=2*Math.hypot(x,y), dpx=Math.min(fr,1-fr)*step/(gz*pix+1e-9); if(dpx<0.7*dpr){var w=0.55*(1-dpx/(0.7*dpr))+0.2;c=[c[0]*(1-w)+ln[0]*w,c[1]*(1-w)+ln[1]*w,c[2]*(1-w)+ln[2]*w]}
+        var k=(j*Np+i)*4; dat[k]=c[0];dat[k+1]=c[1];dat[k+2]=c[2];dat[k+3]=255;}}
+    ctx.putImageData(img,0,0);
+    function px(x){return (x+D)/(2*D)*Np} function py(y){return (D-y)/(2*D)*Np}
+    var ink=css('--ink'), red=css('--red'), amber=css('--amber'), muted=css('--muted'), sheet=css('--sheet');
+    ctx.strokeStyle=muted; ctx.lineWidth=1*dpr; ctx.globalAlpha=.7;
+    ctx.beginPath();ctx.moveTo(px(-D),py(0));ctx.lineTo(px(D),py(0));ctx.moveTo(px(0),py(-D));ctx.lineTo(px(0),py(D));ctx.stroke(); ctx.globalAlpha=1;
+    ctx.fillStyle=ink; ctx.font=(12*dpr)+'px "IBM Plex Mono", monospace';
+    ctx.fillText('x',px(D)-14*dpr,py(0)-6*dpr); ctx.fillText('y',px(0)+6*dpr,py(D)+14*dpr);
+    ctx.fillText('5',px(5)-12*dpr,py(0)+14*dpr); ctx.fillText('−5',px(-5)+3*dpr,py(0)+14*dpr);
+    if(surf==='saddle'){ctx.fillStyle=ink;ctx.beginPath();ctx.arc(px(0),py(0),4*dpr,0,7);ctx.fill();ctx.font=(12*dpr)+'px "IBM Plex Sans KR", sans-serif';ctx.fillText('안장점',px(0)-50*dpr,py(0)+20*dpr)}
+    ctx.strokeStyle=red; ctx.lineWidth=2*dpr; ctx.beginPath();
+    path.forEach(function(p,k){var X=Math.max(-D*1.2,Math.min(D*1.2,p[0])),Y=Math.max(-D*1.2,Math.min(D*1.2,p[1]));k?ctx.lineTo(px(X),py(Y)):ctx.moveTo(px(X),py(Y))}); ctx.stroke();
+    path.forEach(function(p,k){ if(Math.abs(p[0])>D||Math.abs(p[1])>D)return;
+      ctx.fillStyle=k===0?amber:red; ctx.strokeStyle=sheet; ctx.lineWidth=1.5*dpr;
+      ctx.beginPath(); ctx.arc(px(p[0]),py(p[1]),(k===0||k===path.length-1?6.5:4.5)*dpr,0,7); ctx.fill(); ctx.stroke(); });
+    var c=path[path.length-1], g=grad(c[0],c[1]), gl=Math.hypot(g[0],g[1]);
+    if(gl>1e-6 && Math.abs(c[0])<=D && Math.abs(c[1])<=D){
+      var L=Math.min(1.6,gl*0.25), ux=-g[0]/gl, uy=-g[1]/gl, x2=c[0]+ux*L, y2=c[1]+uy*L;
+      ctx.strokeStyle=ink; ctx.fillStyle=ink; ctx.lineWidth=2.4*dpr;
+      ctx.beginPath(); ctx.moveTo(px(c[0]),py(c[1])); ctx.lineTo(px(x2),py(y2)); ctx.stroke();
+      var ang=Math.atan2(py(y2)-py(c[1]),px(x2)-px(c[0])), h=10*dpr;
+      ctx.beginPath(); ctx.moveTo(px(x2),py(y2)); ctx.lineTo(px(x2)-h*Math.cos(ang-0.45),py(y2)-h*Math.sin(ang-0.45)); ctx.lineTo(px(x2)-h*Math.cos(ang+0.45),py(y2)-h*Math.sin(ang+0.45)); ctx.closePath(); ctx.fill();
+    }
+  }
+  function setCap(){
+    var f=surf==='bowl'?'z = x² + y²':'z = y² − x²';
+    $('cap2').innerHTML=(view==='3d'?'3차원으로 본 '+f+' <span class="lg">끌어서 돌리기 · 진할수록 낮은 곳</span>':'위에서 본 '+f+' <span class="lg">눌러서 출발점 고르기 · 같은 색 띠 = 같은 높이</span>');
+    $('cv').style.cursor=view==='3d'?'grab':'crosshair';
+  }
+  function render3d(){
+    var cv=$('cv'), size=Math.round(cv.clientWidth)||480, dpr=window.devicePixelRatio||1, Np=Math.round(size*dpr);
+    cv.width=Np; cv.height=Np; var ctx=cv.getContext('2d');
+    var lo=hex(css('--blue-deep')||'#9DB4DA'), hi=hex(css('--sheet')||'#ffffff'), lnc=hex(css('--slate')||'#5E6E88');
+    var ink=css('--ink'), red=css('--red'), amber=css('--amber'), muted=css('--muted'), sheet=css('--sheet');
+    var zs=0.12, zc=surf==='bowl'?3:0, zmin=surf==='bowl'?0:-25, zmax=surf==='bowl'?50:25;
+    var ca=Math.cos(az), sa=Math.sin(az), ce=Math.cos(elv), se=Math.sin(elv), sc=Np/15.5, cx=Np/2, cy=Np/2+0.3*sc;
+    function P(x,y,z){var zn=z*zs-zc, x1=x*ca+y*sa, y1=-x*sa+y*ca; return [cx+x1*sc, cy-(zn*ce+y1*se)*sc, y1*ce-zn*se]}
+    var fl=zmin;
+    ctx.strokeStyle=muted; ctx.lineWidth=1*dpr; ctx.globalAlpha=.8;
+    var cs=[P(-D,-D,fl),P(D,-D,fl),P(D,D,fl),P(-D,D,fl)];
+    ctx.beginPath(); cs.forEach(function(q,k){k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}); ctx.closePath(); ctx.stroke();
+    ctx.globalAlpha=1; ctx.fillStyle=ink; ctx.font=(13*dpr)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center';
+    var lx=P(D+0.8,0,fl), ly=P(0,D+0.8,fl); ctx.fillText('x',lx[0],lx[1]+4*dpr); ctx.fillText('y',ly[0],ly[1]+4*dpr);
+    var items=[], N=26, V=[];
+    for(var i=0;i<=N;i++){V[i]=[];for(var j=0;j<=N;j++){var x=-D+2*D*i/N,y=-D+2*D*j/N;V[i][j]=P(x,y,zf(x,y))}}
+    var Lx=-0.42,Ly=-0.5,Lz=0.76;
+    for(i=0;i<N;i++)for(j=0;j<N;j++){
+      var xm=-D+2*D*(i+0.5)/N, ym=-D+2*D*(j+0.5)/N, z=zf(xm,ym), g=grad(xm,ym);
+      var nx=-zs*g[0], ny=-zs*g[1], nl=Math.hypot(nx,ny,1), lam=Math.abs(nx*Lx+ny*Ly+Lz)/nl;
+      var t=Math.min(1,Math.max(0,(z-zmin)/(zmax-zmin)))*0.9, br=0.74+0.3*lam;
+      var a=V[i][j],b=V[i+1][j],c=V[i+1][j+1],d=V[i][j+1];
+      items.push({k:'q',d:(a[2]+b[2]+c[2]+d[2])/4,p:[a,b,c,d],
+        col:'rgb('+[0,1,2].map(function(m){return Math.round(Math.min(255,(lo[m]+(hi[m]-lo[m])*t)*br))}).join(',')+')'});
+    }
+    var bias=0.45, lift=0.6;
+    function S(pt){return P(pt[0],pt[1],zf(pt[0],pt[1])+lift)}
+    function inD(pt){return Math.abs(pt[0])<=D&&Math.abs(pt[1])<=D}
+    for(var k=1;k<path.length;k++){ if(!inD(path[k-1])||!inD(path[k]))continue; var A=S(path[k-1]),B=S(path[k]);
+      items.push({k:'s',d:(A[2]+B[2])/2-bias,a:A,b:B}); }
+    path.forEach(function(pt,k){ if(!inD(pt))return; var q=S(pt);
+      items.push({k:'p',d:q[2]-bias-0.05,q:q,r:(k===0||k===path.length-1?6.5:4.5),col:k===0?amber:red}); });
+    if(surf==='saddle'){var sp=P(0,0,lift); items.push({k:'sp',d:sp[2]-bias,q:sp});}
+    var cu=path[path.length-1], gg=grad(cu[0],cu[1]), gl=Math.hypot(gg[0],gg[1]);
+    if(gl>1e-6&&inD(cu)){var L=Math.min(1.6,gl*0.25), e2=[cu[0]-gg[0]/gl*L,cu[1]-gg[1]/gl*L]; var A2=S(cu),B2=S(e2);
+      items.push({k:'a',d:A2[2]-bias-0.1,a:A2,b:B2});}
+    items.sort(function(u,v){return v.d-u.d});
+    var edge='rgba('+lnc.join(',')+',0.38)';
+    items.forEach(function(it){
+      if(it.k==='q'){ctx.beginPath();ctx.moveTo(it.p[0][0],it.p[0][1]);for(var m=1;m<4;m++)ctx.lineTo(it.p[m][0],it.p[m][1]);ctx.closePath();
+        ctx.fillStyle=it.col;ctx.fill();ctx.strokeStyle=edge;ctx.lineWidth=0.6*dpr;ctx.stroke();}
+      else if(it.k==='s'){ctx.strokeStyle=red;ctx.lineWidth=2*dpr;ctx.beginPath();ctx.moveTo(it.a[0],it.a[1]);ctx.lineTo(it.b[0],it.b[1]);ctx.stroke();}
+      else if(it.k==='p'){ctx.fillStyle=it.col;ctx.strokeStyle=sheet;ctx.lineWidth=1.5*dpr;ctx.beginPath();ctx.arc(it.q[0],it.q[1],it.r*dpr,0,7);ctx.fill();ctx.stroke();}
+      else if(it.k==='sp'){ctx.fillStyle=ink;ctx.beginPath();ctx.arc(it.q[0],it.q[1],4*dpr,0,7);ctx.fill();
+        ctx.font=(12*dpr)+'px "IBM Plex Sans KR", sans-serif';ctx.textAlign='left';ctx.fillText('안장점',it.q[0]+8*dpr,it.q[1]+16*dpr);}
+      else {ctx.strokeStyle=ink;ctx.fillStyle=ink;ctx.lineWidth=2.4*dpr;ctx.beginPath();ctx.moveTo(it.a[0],it.a[1]);ctx.lineTo(it.b[0],it.b[1]);ctx.stroke();
+        var ang=Math.atan2(it.b[1]-it.a[1],it.b[0]-it.a[0]),h=10*dpr;ctx.beginPath();ctx.moveTo(it.b[0],it.b[1]);
+        ctx.lineTo(it.b[0]-h*Math.cos(ang-0.45),it.b[1]-h*Math.sin(ang-0.45));ctx.lineTo(it.b[0]-h*Math.cos(ang+0.45),it.b[1]-h*Math.sin(ang+0.45));ctx.closePath();ctx.fill();}
+    });
+    ctx.textAlign='left';
+  }
+  function draw2(){
+    if(view==='3d')render3d(); else renderTop();
+    var c=path[path.length-1], g=grad(c[0],c[1]), gl=Math.hypot(g[0],g[1]);
+    $('eta2V').textContent=eta2.toFixed(2);
+    var out=Math.abs(c[0])>D||Math.abs(c[1])>D;
+    $('p2').textContent=out?'범위 밖':'('+fs(c[0])+', '+fs(c[1])+')';
+    $('d2').textContent=out?'—':'('+fs(g[0])+', '+fs(g[1])+')';
+    $('z2').textContent=(out?'—':fs(zf(c[0],c[1])))+' · '+(path.length-1);
+    var n=path.length-1, st=$('stat2'), cls='', t;
+    if(n===0) t=view==='3d'?'출발 준비. 출발점은 아래 버튼이나 ‘위에서 보기’에서 고른다.':'출발 준비. 그림을 눌러 출발점을 바꿀 수 있다.';
+    else if(out){t=surf==='saddle'?'옆으로 굴러떨어졌다. 안장에는 바닥(최솟값)이 없다':'바닥을 지나쳐 그릇 밖으로 튕겨 나갔다. η가 너무 크다';cls='bad'}
+    else if(gl<0.01){ if(surf==='bowl'){t='바닥(최솟값) (0, 0) 도착! '+n+'걸음';cls='good'} else {t='안장점에 멈췄다. 기울기는 0이지만 최솟값이 아니다!';cls='bad'} }
+    else t='내려가는 중 · '+n+'걸음째';
+    st.textContent=t; st.className='status'+(cls?' '+cls:'');
+    $('pen2').textContent=surf==='bowl'?'그릇에선 어디서 출발해도 바닥으로! (η가 적당하다면)':'능선 위에선 멈추고, 조금만 비켜나도 굴러떨어진다!';
+  }
+  function step2(){var c=path[path.length-1]; if(Math.abs(c[0])>D||Math.abs(c[1])>D)return false; var g=grad(c[0],c[1]); if(Math.hypot(g[0],g[1])<0.01&&path.length>1)return false;
+    path.push([c[0]-eta2*g[0],c[1]-eta2*g[1]]); draw2(); var d=path[path.length-1], gg=grad(d[0],d[1]);
+    return Math.hypot(gg[0],gg[1])>=0.01 && Math.abs(d[0])<=D && Math.abs(d[1])<=D && path.length<81;}
+  function stop2(){if(timer2){clearInterval(timer2);timer2=null;$('run2').textContent='끝까지 굴리기'}}
+  $('step2').addEventListener('click',function(){stop2();step2()});
+  $('run2').addEventListener('click',function(){ if(timer2){stop2();return} $('run2').textContent='멈추기'; timer2=setInterval(function(){if(!step2())stop2()},200); });
+  $('reset2').addEventListener('click',function(){stop2();path=[path[0]];draw2()});
+  $('eta2').addEventListener('input',function(){eta2=+this.value;stop2();path=[path[0]];draw2()});
+  $('cv').addEventListener('pointerdown',function(e){
+    if(view==='3d'){drag={x:e.clientX,y:e.clientY,az:az,el:elv};try{this.setPointerCapture(e.pointerId)}catch(_){}return}
+    var r=this.getBoundingClientRect(), x=-D+2*D*(e.clientX-r.left)/r.width, y=D-2*D*(e.clientY-r.top)/r.height;
+    stop2(); path=[[Math.round(x*10)/10,Math.round(y*10)/10]]; draw2();
+  });
+  $('cv').addEventListener('pointermove',function(e){ if(!drag)return;
+    az=drag.az-(e.clientX-drag.x)*0.01; elv=Math.max(0.12,Math.min(1.5,drag.el+(e.clientY-drag.y)*0.008)); draw2(); });
+  ['pointerup','pointercancel'].forEach(function(n){$('cv').addEventListener(n,function(){drag=null})});
+  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
+    view=b.getAttribute('data-view');
+    document.querySelectorAll('[data-view]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    setCap(); draw2();
+  })});
+  document.querySelectorAll('[data-s]').forEach(function(b){b.addEventListener('click',function(){
+    surf=b.getAttribute('data-s'); stop2();
+    document.querySelectorAll('[data-s]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    setCap();
+    path=[[PRESETS[surf][0][1],PRESETS[surf][0][2]]]; presets2(); draw2();
+  })});
+  function stopAll(){stop1();stop2()}
+  window.addEventListener('resize',function(){if(current===2)draw1();if(current===3)drawP();if(current===4)draw2()});
+
+  /* ---------- STEP 4 grading ---------- */
+  $('grade').addEventListener('click',function(){
+    var ok=0,total=0, xa={1:1,2:0.8,3:0.64};
+    document.querySelectorAll('tr[data-a]').forEach(function(tr){
+      var n=+tr.getAttribute('data-a'), old=xa[n], want={g:2*old,x:old-0.2*old};
+      var good=true;
+      ['g','x'].forEach(function(k){var s=tr.querySelector('[data-k="'+k+'"]').value.trim(); if(s===''||Math.abs(+s-want[k])>0.0011)good=false});
+      var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no'); total++; if(good)ok++;
+    });
+    var bw={g:[6,8],p:[2.4,3.2]};
+    document.querySelectorAll('tr[data-b]').forEach(function(tr){
+      var w=bw[tr.getAttribute('data-b')], a=tr.querySelector('[data-k="bx"]').value.trim(), b=tr.querySelector('[data-k="by"]').value.trim();
+      var good=a!==''&&b!==''&&Math.abs(+a-w[0])<0.011&&Math.abs(+b-w[1])<0.011;
+      var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no'); total++; if(good)ok++;
+    });
+    $('a3old').textContent='0.64';
+    $('gradeMsg').textContent=ok===total?'모두 맞았다! 새 위치 (2.4, 3.2)의 높이는 2.4² + 3.2² = 16. 한 걸음에 25 → 16으로 내려갔다.':ok+' / '+total+' 맞음 · 3걸음째 x_old는 0.64다. 기울기 = 2 × x_old부터 다시 확인해 보자.';
+  });
+
+  presets2(); setCap(); render();
+})();
+</script>
+</body>
+</html>

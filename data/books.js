@@ -175,7 +175,18 @@ window.BOOKS = [
           }
         ]
       },
-      { no: 3,  title: "그릇의 바닥", page: 72,  programs: [] },
+      {
+        no: 3, title: "그릇의 바닥", page: 72,
+        programs: [
+          {
+            id: "gradient-descent-lab", title: "경사 하강법 실험실",
+            file: "programs/경사 하강법 실험실.html",
+            type: "실험", session: "", pages: "",
+            summary: "눈을 가리고 그릇 바닥을 찾듯, y = x²에서 기울기를 거슬러 한 걸음씩 내려가 보고, 변수가 둘인 그릇과 안장점을 3차원으로 살펴본 뒤 공식에 직접 넣어 보는 과정을 6단계로 따라가기",
+            concepts: ["경사 하강법", "기울기", "미분", "접선", "걸음 크기(η)", "편미분", "최솟값", "볼록 함수", "안장점"]
+          }
+        ]
+      },
       { no: 4,  title: "십중팔구", page: 103, programs: [] },
       { no: 5,  title: "유유상종", page: 152, programs: [] },
       { no: 6,  title: "행렬에는 마법이 있다", page: 184, programs: [] },
