@@ -181,7 +181,7 @@ window.BOOKS = [
           {
             id: "gradient-descent-lab", title: "경사 하강법 실험실",
             file: "programs/경사 하강법 실험실.html",
-            type: "실험", session: "", pages: "",
+            type: "실험", session: "", pages: "72~85쪽",
             summary: "눈을 가리고 그릇 바닥을 찾듯, y = x²에서 기울기를 거슬러 한 걸음씩 내려가 보고, 변수가 둘인 그릇과 안장점을 3차원으로 살펴본 뒤 공식에 직접 넣어 보는 과정을 6단계로 따라가기",
             concepts: ["경사 하강법", "기울기", "미분", "접선", "걸음 크기(η)", "편미분", "최솟값", "볼록 함수", "안장점"]
           }
