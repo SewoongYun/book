@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그릇의 바닥 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: 조작줄 → 그릇(등고선·3D) 2열 → 필터 회로·신호 → 학습 곡선·수치 → 개념 노트 */
+  --paper:#eceff3;
+  --surface:#ffffff;
+  --ink:#141c26;
+  --muted:#5a6675;
+  --line:#d5dbe3;
+  --gd:#2257c9;
+  --lms:#d4521c;
+  --wien:#7a3fb4;
+  --display:"Do Hyeon","IBM Plex Sans KR",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1217; --surface:#161c24; --ink:#e3e8ef; --muted:#919cab; --line:#29323e;
+    --gd:#6f9cf5; --lms:#f58a52; --wien:#bb8ee8; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1217; --surface:#161c24; --ink:#e3e8ef; --muted:#919cab; --line:#29323e;
+  --gd:#6f9cf5; --lms:#f58a52; --wien:#bb8ee8; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:1160px;margin:0 auto;padding:24px 16px 48px;display:grid;gap:16px}
+header h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,5vw,42px);line-height:1.1;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:66ch}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+h2{font-family:var(--display);font-weight:400;font-size:21px;margin:0 0 6px;line-height:1.2}
+.sub{font-size:13px;color:var(--muted);margin:0}
+
+.controls{display:grid;grid-template-columns:auto 1fr;gap:14px 20px;align-items:center}
+@media (max-width:760px){.controls{grid-template-columns:1fr}}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);min-width:88px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.small{font-size:13px;padding:4px 10px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gd);outline-offset:2px}
+.sliders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px}
+@media (max-width:760px){.sliders{grid-template-columns:1fr}}
+.sl{display:grid;gap:2px}
+.sl .top{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.sl .top span:first-child{color:var(--muted)}
+.sl input{width:100%;accent-color:var(--gd)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;border:0;background:var(--surface);color:var(--ink);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.cv{width:100%;display:block;border-radius:6px}
+.sq{aspect-ratio:1/1}
+.wide{aspect-ratio:2.3/1}
+#bowl2d{cursor:crosshair;touch-action:none}
+#bowl3d{cursor:grab;touch-action:none}
+.cardhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.legend .g i{background:var(--gd)} .legend .l i{background:var(--lms)} .legend .w i{background:var(--wien)} .legend .d i{background:var(--ink)}
+.legend label{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.legend input{accent-color:var(--gd);margin:0}
+
+.diagram svg{width:100%;height:auto;display:block}
+.diagram text{font-family:var(--body)}
+.dl{stroke:var(--ink);stroke-width:1.6;fill:none}
+.dbox{fill:var(--surface);stroke:var(--ink);stroke-width:1.6}
+.dfilter{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4}
+.dfb{stroke:var(--lms);stroke-width:1.6;fill:none;stroke-dasharray:6 4}
+.dt{fill:var(--ink);font-size:15px}
+.dv{fill:var(--muted);font-size:12.5px;font-family:var(--mono)}
+.dw{fill:var(--lms);font-size:13px;font-family:var(--mono);font-weight:500}
+.dsm{fill:var(--muted);font-size:12px}
+.dlms{fill:var(--lms);font-size:12.5px}
+
+table.rd{width:100%;border-collapse:collapse;font-size:14px}
+table.rd th,table.rd td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
+table.rd th:first-child,table.rd td:first-child{text-align:left;color:var(--muted);font-weight:400}
+table.rd th{font-size:13px;font-weight:500}
+table.rd td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cg{color:var(--gd)} .cl{color:var(--lms)} .cw{color:var(--wien)}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;font-family:var(--body);font-weight:500}
+.chip.ok{background:color-mix(in srgb,var(--gd) 14%,transparent);color:var(--gd)}
+.chip.run{background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted)}
+.chip.bad{background:#c4241b;color:#fff}
+.eq{font-family:var(--mono);font-size:13px;background:var(--paper);border-radius:6px;padding:8px 10px;display:grid;gap:3px;overflow-x:auto;white-space:nowrap;margin-top:10px}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.notes{grid-template-columns:1fr}}
+.notes p{margin:0 0 6px;font-size:14.5px}
+.qs ol{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14.5px}
+footer{font-size:12.5px;color:var(--muted)}
+
+.tabs{position:sticky;top:0;z-index:5;display:flex;gap:4px;background:var(--paper);border-bottom:2px solid var(--line);padding-top:6px;overflow-x:auto}
+.tab{font-size:15px;color:var(--muted);text-decoration:none;padding:10px 14px 9px;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;border-radius:8px 8px 0 0}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700;background:var(--surface)}
+.tab:focus-visible{outline:2px solid var(--gd);outline-offset:-2px}
+.tn{font-family:var(--mono);font-size:12.5px;margin-right:4px;color:var(--muted)}
+.panel-tab{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.panel-tab > *,.card,.grid2 > *{min-width:0}
+.panel-tab[hidden]{display:none}
+.txt{margin:0;font-size:14.5px}
+.lead{margin:0;color:var(--muted);max-width:70ch}
+.part{display:grid;gap:4px}
+.part .ptitle{font-family:var(--display);font-weight:400;font-size:clamp(26px,4.2vw,36px);line-height:1.15;margin:0;text-wrap:balance}
+.part p{margin:0;color:var(--muted);max-width:70ch}
+.pg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;aspect-ratio:1/1}
+.pg .c{border-radius:50%;border:1.5px solid var(--ink);background:var(--surface);padding:0}
+.pg .c.on{background:var(--ink)}
+.samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.smp{border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:6px;font-size:12.5px;transition:box-shadow .15s}
+.smp .pg{gap:2px}
+.smp .c{border-width:1px}
+.smp.cur{border-color:var(--lms);box-shadow:0 0 0 2px color-mix(in srgb,var(--lms) 30%,transparent)}
+.smp .nm{display:flex;justify-content:space-between;gap:4px;align-items:center}
+.smp .yv{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ok2{color:var(--gd);font-weight:700} .no2{color:#c4241b;font-weight:700}
+.wg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:300px}
+.wg div{aspect-ratio:1/1;border-radius:6px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;border:1px solid var(--line);color:var(--ink)}
+.bias{font-size:13.5px;margin-top:8px}
+.pad{max-width:220px;width:100%}
+.pad .c{cursor:pointer}
+.gauge{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--lms),var(--line) 50%,var(--gd))}
+.gauge .mk{position:absolute;top:-5px;width:4px;height:22px;margin-left:-2px;background:var(--ink);border-radius:2px;transition:left .15s}
+.gticks{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:4px}
+.bignum{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15}
+.verdict{font-family:var(--display);font-size:26px;line-height:1.2}
+.sliders.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:760px){.sliders.two{grid-template-columns:1fr}}
+.testgrid{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:18px;align-items:start}
+@media (max-width:560px){.sliders.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:760px){.sliders.two{grid-template-columns:1fr}}
+.testgrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce){.gauge .mk,.smp{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>그릇의 바닥 찾기</h1>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="단원">
+    <a class="tab" role="tab" href="#bowl" data-tab="bowl"><span class="tn">1부</span> 적응 필터와 그릇</a>
+    <a class="tab" role="tab" href="#adaline" data-tab="adaline"><span class="tn">2부</span> 신경세포가 T와 J 구별하기</a>
+    <a class="tab" role="tab" href="#why" data-tab="why"><span class="tn">3부</span> 불편 추정과 작은 보폭</a>
+  </nav>
+  <div class="panel-tab" id="p-bowl" role="tabpanel">
+  <p class="lead">2탭 적응 필터 y<sub>n</sub> = w<sub>0</sub>x<sub>n</sub> + w<sub>1</sub>x<sub>n−1</sub>가 원하는 신호 d<sub>n</sub>을 흉내 내도록 가중치를 배웁니다. 평균 제곱 오차 J(w)는 그릇 모양이고, 두 공이 그 바닥을 향해 내려갑니다. 파란 공은 정확한 기울기를 아는 <b class="cg">최급강하법</b>, 주황 공은 샘플 하나만 보고 걷는 <b class="cl">LMS(위드로·호프)</b>입니다.</p>
+
+  <section class="card controls" aria-label="조작">
+    <div style="display:grid;gap:10px">
+      <div class="btns">
+        <button class="btn primary" id="bPlay">일시정지</button>
+        <button class="btn" id="bStep">한 걸음</button>
+        <button class="btn" id="bReset">처음으로</button>
+        <button class="btn" id="bNew">새 목표 시스템</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="sub">속도</span>
+        <div class="seg" id="speed">
+          <button data-s="0.34" aria-pressed="true">느리게</button>
+          <button data-s="1" aria-pressed="false">보통</button>
+          <button data-s="8" aria-pressed="false">빠르게</button>
+        </div>
+      </div>
+    </div>
+    <div class="sliders">
+      <div class="sl"><div class="top"><span>학습률 μ (보폭)</span><span class="mono" id="vMu"></span></div><input type="range" id="mu" min="0.005" max="0.7" step="0.005" value="0.05"></div>
+      <div class="sl"><div class="top"><span>입력의 이웃 상관 ρ (그릇 모양)</span><span class="mono" id="vRho"></span></div><input type="range" id="rho" min="0" max="0.95" step="0.05" value="0.7"></div>
+      <div class="sl"><div class="top"><span>잡음 σ (바닥 높이 σ²)</span><span class="mono" id="vSig"></span></div><input type="range" id="sigR" min="0" max="0.8" step="0.05" value="0.3"></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="cardhead"><h2>위에서 본 그릇 (등고선)</h2><span class="sub">누른 곳에서 다시 출발</span></div>
+      <canvas id="bowl2d" class="cv sq" aria-label="가중치 평면 위 J의 등고선과 두 방법의 경로"></canvas>
+      <div class="legend" style="margin-top:8px">
+        <label class="g"><input type="checkbox" id="showG" checked><i></i>최급강하 경로</label>
+        <label class="l"><input type="checkbox" id="showL" checked><i></i>LMS 경로</label>
+        <span class="w"><i></i>위너 해 추정 (◇)</span>
+        <span>★ 그릇의 바닥 w*</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>옆에서 본 그릇 J(w₀, w₁)</h2><span class="sub">좌우로 끌어서 돌리기</span></div>
+      <canvas id="bowl3d" class="cv sq" aria-label="평균 제곱 오차 곡면"></canvas>
+      <div class="eq">
+        <span>J(w) = E(e<sub>n</sub>²) = E((d<sub>n</sub> − w·x<sub>n</sub>)²)</span>
+        <span class="cg">최급강하: w ← w − μ∇J,  ∇J = 2(Rw − p)</span>
+        <span class="cl">LMS:     w ← w + 2μ·e<sub>n</sub>·x<sub>n</sub></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card diagram">
+      <div class="cardhead"><h2>필터 회로 (LMS가 지금 쓰는 값)</h2></div>
+      <svg viewBox="0 0 660 250" role="img" aria-label="2탭 적응 필터 블록도">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+          <marker id="arL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lms)"/></marker>
+        </defs>
+        <rect class="dfilter" x="62" y="22" width="300" height="200" rx="10"/>
+        <text class="dsm" x="72" y="40">필터</text>
+        <path class="dl" d="M10,62 H110"/>
+        <circle cx="110" cy="62" r="3.5" fill="var(--ink)"/>
+        <text class="dt" x="12" y="50">xₙ</text>
+        <text class="dv" id="dX" x="12" y="84">0.00</text>
+        <path class="dl" d="M110,62 H196" marker-end="url(#ar)"/>
+        <circle class="dbox" cx="220" cy="62" r="22"/><text class="dt" x="220" y="67" text-anchor="middle">w₀</text>
+        <text class="dw" id="dW0" x="220" y="104" text-anchor="middle">0.00</text>
+        <path class="dl" d="M110,62 V108" marker-end="url(#ar)"/>
+        <rect class="dbox" x="76" y="110" width="68" height="38" rx="4"/><text class="dt" x="110" y="135" text-anchor="middle">지연</text>
+        <path class="dl" d="M110,148 V190 H196" marker-end="url(#ar)"/>
+        <text class="dt" x="122" y="182">xₙ₋₁</text>
+        <text class="dv" id="dX1" x="122" y="210">0.00</text>
+        <circle class="dbox" cx="220" cy="190" r="22"/><text class="dt" x="220" y="195" text-anchor="middle">w₁</text>
+        <text class="dw" id="dW1" x="220" y="158" text-anchor="middle">0.00</text>
+        <path class="dl" d="M242,62 H316 V108" marker-end="url(#ar)"/>
+        <path class="dl" d="M242,190 H316 V142" marker-end="url(#ar)"/>
+        <circle class="dbox" cx="316" cy="125" r="16"/><text class="dt" x="316" y="131" text-anchor="middle">+</text>
+        <path class="dl" d="M332,125 H482" marker-end="url(#ar)"/>
+        <text class="dt" x="392" y="116">yₙ</text>
+        <text class="dv" id="dY" x="392" y="146">0.00</text>
+        <path class="dl" d="M500,20 V107" marker-end="url(#ar)"/>
+        <text class="dt" x="510" y="40">dₙ</text>
+        <text class="dv" id="dD" x="510" y="62">0.00</text>
+        <text class="dsm" x="508" y="102">+</text>
+        <text class="dsm" x="470" y="118">−</text>
+        <circle class="dbox" cx="500" cy="125" r="16"/><text class="dt" x="500" y="131" text-anchor="middle">+</text>
+        <path class="dl" d="M516,125 H650" marker-end="url(#ar)"/>
+        <text class="dt" x="566" y="116">eₙ</text>
+        <text class="dv" id="dE" x="566" y="146">0.00</text>
+        <path class="dfb" d="M600,125 V238 H290 V226" marker-end="url(#arL)"/>
+        <text class="dlms" x="420" y="232">eₙ으로 w₀, w₁ 갱신</text>
+      </svg>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>신호 따라잡기</h2>
+        <div class="legend"><span class="d"><i></i>원하는 신호 dₙ</span><span class="l"><i></i>필터 출력 yₙ (LMS)</span><span>막대: 오차 eₙ</span></div>
+      </div>
+      <canvas id="sig" class="cv wide" aria-label="원하는 신호와 필터 출력, 오차"></canvas>
+      <div class="cardhead" style="margin-top:14px"><h2>학습 곡선 J(w)</h2>
+        <div class="legend"><span class="g"><i></i>최급강하</span><span class="l"><i></i>LMS</span><span>점선: 바닥 σ²</span></div>
+      </div>
+      <canvas id="curve" class="cv wide" aria-label="반복 횟수에 따른 평균 제곱 오차, 로그 눈금"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><h2>지금 상태</h2><span class="sub">반복 횟수 n = <b class="mono" id="rN">0</b></span></div>
+    <table class="rd">
+      <thead><tr><th></th><th class="cg">최급강하법</th><th class="cl">LMS (SGD)</th><th class="cw">위너 해 추정</th><th>바닥 w*</th></tr></thead>
+      <tbody>
+        <tr><td>w₀</td><td id="g0"></td><td id="l0"></td><td id="h0"></td><td id="s0"></td></tr>
+        <tr><td>w₁</td><td id="g1"></td><td id="l1"></td><td id="h1"></td><td id="s1"></td></tr>
+        <tr><td>J(w)</td><td id="gJ"></td><td id="lJ"></td><td id="hJ"></td><td id="sJ"></td></tr>
+        <tr><td>상태</td><td id="gS"></td><td id="lS"></td><td style="font-family:var(--body);font-size:12.5px;color:var(--muted)">지금까지 샘플로 R, p 추정</td><td></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="notes">
+    <div class="card">
+      <h2>필터가 푸는 문제</h2>
+      <p>입력 xₙ과 한 칸 지연된 xₙ₋₁에 가중치를 곱해 더한 것이 출력 yₙ = w·xₙ입니다. 원하는 신호와의 차이 eₙ = dₙ − yₙ을 제곱해 평균 낸 J를 가장 작게 만드는 w를 찾습니다.</p>
+      <p>제곱을 쓰는 까닭은 양·음 오차가 상쇄되지 않고, 어디서나 미분할 수 있는 매끈한 2차함수가 되기 때문입니다.</p>
+    </div>
+    <div class="card">
+      <h2>왜 그릇인가</h2>
+      <p>J는 w₀, w₁에 대한 2차함수라서 그릇 모양이고 바닥은 하나뿐입니다. 바닥에서는 기울기가 0이므로 ∂J/∂w = 0을 풀면 한 번에 답(위너 해)이 나오지만, 그러려면 입력의 상관 R과 p를 미리 알아야 합니다.</p>
+      <p>ρ = 0이면 z = x² + y²처럼 둥근 그릇, ρ가 커질수록 길쭉한 골짜기가 됩니다.</p>
+    </div>
+    <div class="card">
+      <h2>술 취한 걸음, LMS</h2>
+      <p>1959년 위드로와 호프는 기댓값 대신 <b>지금 이 샘플 하나</b>의 eₙ²만으로 기울기를 어림했습니다. 걸음마다 방향이 조금씩 빗나가지만 평균적으로는 바닥으로 내려갑니다.</p>
+      <p>이것이 오늘날 신경망 학습에 쓰이는 확률적 경사 하강법(SGD)의 원형입니다.</p>
+    </div>
+  </section>
+
+  <section class="card qs">
+    <h2>수업에서 던질 질문</h2>
+    <ol>
+      <li>μ를 조금씩 키워 보자. 어느 값에서 공이 튕겨 나가는가? ρ를 0.9로 바꾸면 그 경계는 앞당겨지는가?</li>
+      <li>ρ = 0과 ρ = 0.9에서 파란 경로의 모양을 비교하자. 길쭉한 골짜기에서 곧장 바닥으로 가지 못하는 이유는?</li>
+      <li>σ를 키우면 주황 공은 바닥에 도착한 뒤에도 계속 흔들린다. μ를 줄이면 흔들림은 어떻게 되고, 대신 무엇을 잃는가?</li>
+      <li>보라색 위너 추정점은 처음엔 엉뚱하다가 점점 바닥에 붙는다. 샘플이 적을 때 왜 믿기 어려운가?</li>
+    </ol>
+  </section>
+
+  </div>
+  <div class="panel-tab" id="p-adaline" role="tabpanel" hidden>
+  <section class="part">
+    <h2 class="ptitle">적응 신경세포가 T와 J 구별하기</h2>
+    <p>4×4 픽셀 16개를 입력으로 받는 신경세포 y = wᵀx입니다. x₀ = 1은 편향 항이라 가중치는 w₀부터 w₁₆까지 17개입니다. 글자 T가 들어오면 +1, J가 들어오면 −1을 내도록 가중치를 조정합니다.</p>
+  </section>
+
+  <section class="card controls" aria-label="2부 조작">
+    <div style="display:grid;gap:10px">
+      <div class="btns">
+        <button class="btn primary" id="aPlay">자동 학습</button>
+        <button class="btn" id="aStep">한 걸음</button>
+        <button class="btn" id="aZero">가중치 0으로</button>
+        <button class="btn" id="aRand">가중치 무작위로</button>
+      </div>
+      <div style="display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap">
+        <span class="sub">방법</span>
+        <div class="seg" id="aMode">
+          <button data-m="lms" aria-pressed="true">LMS (표본 하나씩)</button>
+          <button data-m="gd" aria-pressed="false">최급강하 (전체 평균)</button>
+        </div>
+      </div>
+    </div>
+    <div class="sliders two">
+      <div class="sl"><div class="top"><span>단계 크기 μ</span><span class="mono" id="aMuV"></span></div><input type="range" id="aMu" min="0.005" max="0.2" step="0.005" value="0.02"></div>
+      <div class="sl"><div class="top"><span>훈련 표본</span><span></span></div>
+        <div class="seg" id="aSet"><button data-k="base" aria-pressed="true">T, J 두 개</button><button data-k="ext" aria-pressed="false">변형 포함 6개</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="cardhead"><h2>훈련 표본과 지금 출력</h2><span class="sub">걸음 수 <b class="mono" id="aN">0</b></span></div>
+      <div class="samples" id="aSamples"></div>
+      <div class="eq" id="aEq"></div>
+      <div class="diagram" style="margin-top:12px">
+        <svg viewBox="0 0 660 210" role="img" aria-label="적응 신경세포 블록도">
+          <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+          <marker id="arL2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--lms)"/></marker></defs>
+          <circle class="dbox" cx="40" cy="36" r="22"/><text class="dt" x="40" y="41" text-anchor="middle">x₀</text><text class="dsm" x="40" y="74" text-anchor="middle">= 1</text>
+          <circle class="dbox" cx="40" cy="110" r="22"/><text class="dt" x="40" y="115" text-anchor="middle">x₁</text>
+          <text class="dt" x="40" y="152" text-anchor="middle">⋮</text>
+          <circle class="dbox" cx="40" cy="180" r="22"/><text class="dt" x="40" y="185" text-anchor="middle">x₁₆</text>
+          <rect class="dfilter" x="110" y="20" width="110" height="178" rx="10"/>
+          <text class="dsm" x="165" y="150" text-anchor="middle">w₀ … w₁₆</text>
+          <path class="dl" d="M62,36 L250,102"/><path class="dl" d="M62,110 L250,110"/><path class="dl" d="M62,180 L250,118"/>
+          <circle class="dbox" cx="272" cy="110" r="22"/><text class="dt" x="272" y="116" text-anchor="middle">Σ</text>
+          <text class="dsm" x="272" y="76" text-anchor="middle">신경세포</text>
+          <path class="dl" d="M294,110 H482" marker-end="url(#ar2)"/>
+          <text class="dt" x="360" y="100">y</text><text class="dv" id="aDY" x="360" y="132">–</text>
+          <circle class="dbox" cx="500" cy="110" r="16"/><text class="dt" x="500" y="116" text-anchor="middle">Σ</text>
+          <path class="dl" d="M500,196 V128" marker-end="url(#ar2)"/>
+          <text class="dt" x="512" y="184">d</text><text class="dv" id="aDD" x="530" y="184">–</text>
+          <path class="dl" d="M516,110 H650" marker-end="url(#ar2)"/>
+          <text class="dt" x="560" y="100">ε</text><text class="dv" id="aDE" x="560" y="132">–</text>
+          <path class="dfb" d="M600,110 V14 H165 V18" marker-end="url(#arL2)"/>
+          <text class="dlms" x="300" y="32">오차로 가중치 조정</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>가중치 지도</h2><span class="sub"><b class="cg">파랑 +</b> 은 T 쪽, <b class="cl">주황 −</b> 은 J 쪽으로 미는 픽셀</span></div>
+      <div class="wg" id="aW"></div>
+      <div class="bias">편향 w₀ = <b class="mono" id="aW0">0</b></div>
+      <div class="cardhead" style="margin-top:14px"><h2>평균 제곱 오차</h2><span class="sub">훈련 표본 전체 기준, 로그 눈금</span></div>
+      <canvas id="aCurve" class="cv wide" aria-label="걸음 수에 따른 평균 제곱 오차"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><h2>새 글자 넣어 보기</h2><span class="sub">원을 눌러 픽셀을 켜고 끄기</span></div>
+    <div class="testgrid">
+      <div style="display:grid;gap:10px">
+        <div class="pg pad" id="aPad" role="group" aria-label="4×4 입력 픽셀"></div>
+        <div class="btns">
+          <button class="btn small" id="pT">T</button>
+          <button class="btn small" id="pJ">J</button>
+          <button class="btn small" id="pFlip">픽셀 하나 뒤집기</button>
+          <button class="btn small" id="pClr">비우기</button>
+        </div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <div><span class="sub">출력 y = wᵀx</span><div class="bignum mono" id="pY" style="font-size:30px">–</div></div>
+        <div><div class="gauge"><div class="mk" id="pMk" style="left:50%"></div></div><div class="gticks"><span>−2 (J)</span><span>0</span><span>+2 (T)</span></div></div>
+        <div class="verdict" id="pV">–</div>
+        <p class="sub" style="max-width:52ch">신경세포는 연속값 y를 내고, 부호로 판정합니다. y가 0보다 크면 T, 작으면 J입니다. 훈련에 없던 모양을 넣어서 신경세포가 어느 쪽으로 기우는지 보세요.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="notes" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div class="card">
+      <h2>최급강하: 전체를 보고 한 걸음</h2>
+      <p>w<sub>new</sub> = w<sub>old</sub> + μ(−Δ), Δ = [∂J/∂w₀, ∂J/∂w₁, …, ∂J/∂w₁₆].</p>
+      <p>Δ를 정확히 구하려면 모든 훈련 표본의 오차를 다 계산해 평균 내야 합니다. 여기서는 Δ = −(2/N)Σ εᵢxᵢ로 계산합니다.</p>
+    </div>
+    <div class="card">
+      <h2>위드로·호프: 표본 하나로 어림</h2>
+      <p>w<sub>new</sub> = w<sub>old</sub> + 2μεx, ε = d − wᵀx.</p>
+      <p>미적분도 기댓값도 필요 없이, 지금 들어온 표본 하나의 오차와 입력만 곱하면 됩니다. 켜진 픽셀(값 1)의 가중치만 움직이고 꺼진 픽셀은 그대로라는 점을 가중치 지도에서 확인해 보세요.</p>
+    </div>
+  </section>
+
+  <section class="card qs">
+    <h2>2부에서 던질 질문</h2>
+    <ol>
+      <li>T와 J가 같이 켜는 픽셀의 가중치는 어떻게 변하는가? 두 글자를 구별하는 데 쓸모 있는 픽셀은 어디인가?</li>
+      <li>LMS로 한 걸음 갈 때 꺼진 픽셀의 가중치가 바뀌지 않는 이유를 갱신식 w + 2μεx에서 찾아보자.</li>
+      <li>μ를 0.2까지 올리면 어떻게 되는가? 켜진 픽셀이 많은 표본일수록 더 위험한 이유는?</li>
+      <li>두 개로만 훈련한 신경세포와 변형 6개로 훈련한 신경세포에 같은 새 글자를 넣어 보자. 판정이 달라지는가?</li>
+    </ol>
+  </section>
+
+  </div>
+  <div class="panel-tab" id="p-why" role="tabpanel" hidden>
+  <section class="part">
+    <h2 class="ptitle">흔들리며 걷는데 왜 바닥에 닿을까</h2>
+    <p>LMS는 표본 하나로 어림한 기울기만 씁니다. 그 어림값이 <b>불편 추정값</b>이고, 보폭 μ를 작게 해서 여러 번 걸으면 빗나감이 서로 상쇄되어 평균적으로 진짜 기울기를 따라 내려갑니다. 아래 세 실험으로 확인합니다.</p>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>불편 추정값이란</h2>
+      <p class="txt">모르는 참값 θ를 표본으로 어림한 값을 θ̂라 합시다. 표본이 바뀌면 θ̂도 바뀌므로 θ̂는 확률변수입니다. 이 θ̂를 셀 수 없이 많이 뽑아 평균 냈을 때 참값과 같으면, 곧 <b>E[θ̂] = θ</b>이면 θ̂를 <b>불편 추정값</b>이라 합니다. 이때 E[θ̂] − θ를 <b>편향</b>이라 부릅니다.</p>
+      <div class="eq">
+        <span>표본평균  E[X̄] = μ                      → 불편</span>
+        <span>(1/n)Σ(Xᵢ − X̄)²의 기댓값 = (n−1)/n · σ²  → 조금 작게 나오는 편향</span>
+        <span>(1/(n−1))Σ(Xᵢ − X̄)²의 기댓값 = σ²       → 불편 (그래서 표본분산은 n−1로 나눔)</span>
+      </div>
+      <p class="txt" style="margin-top:10px">불편하다고 해서 한 번의 값이 정확하다는 뜻은 아닙니다. 한 번 뽑은 값이 참값에서 얼마나 빗나가는지는 <b>편향과 분산</b> 둘 다에 달려 있습니다.</p>
+      <div class="eq"><span>E[(θ̂ − θ)²] = (편향)² + 분산</span></div>
+      <p class="txt" style="margin-top:10px">불편 추정값 K개를 서로 독립으로 뽑아 평균 내면 평균도 여전히 불편이고, 분산은 1/K로, 표준편차는 1/√K로 줄어듭니다. 이 성질이 LMS가 바닥에 닿는 이유의 핵심입니다.</p>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>과녁으로 보는 편향과 분산</h2><span class="sub">★ = 참값, ● = 추정값 한 번, ◇ = 추정값들의 평균</span></div>
+      <svg id="darts" viewBox="0 0 440 440" style="width:100%;height:auto;display:block" role="img" aria-label="편향과 분산의 네 가지 조합을 과녁에 나타낸 그림"></svg>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="cardhead"><h2>실험 1 · 한 표본 기울기는 불편인가</h2><span class="sub">그릇 위를 누르면 그 지점에서 다시 재기</span></div>
+      <canvas id="gArrow" class="cv sq" aria-label="한 지점에서 잰 한 표본 기울기들과 그 평균, 진짜 기울기"></canvas>
+      <div class="btns" style="margin-top:10px">
+        <button class="btn small" id="ub1">표본 1개 더</button>
+        <button class="btn small" id="ub10">10개 더</button>
+        <button class="btn small" id="ub100">100개 더</button>
+        <button class="btn small" id="ub0">지우기</button>
+      </div>
+      <div class="legend" style="margin-top:8px"><span class="l"><i></i>한 표본 어림 −Δ̂ = 2εx</span><span class="w"><i></i>지금까지의 평균</span><span class="g"><i></i>진짜 −∇J</span></div>
+    </div>
+    <div class="card">
+      <h2>왜 평균이 진짜 기울기가 되나</h2>
+      <p class="txt">w를 한 지점에 고정하고, 확률변수는 지금 들어온 입력 x와 원하는 출력 d뿐이라고 봅니다(지금 표본은 지금의 w와 독립).</p>
+      <div class="eq">
+        <span>참값:    ∇J = 2(Rw − p),   R = E[xxᵀ],  p = E[dx]</span>
+        <span>추정값:  Δ̂ = −2εx = −2(d − wᵀx)x</span>
+        <span>E[Δ̂] = −2E[dx] + 2E[x xᵀ]w</span>
+        <span>      = −2p + 2Rw = ∇J      ← 불편</span>
+      </div>
+      <p class="txt" style="margin-top:10px">대신 분산은 큽니다. 잡음 σ가 ε에 섞이고 x도 매번 달라서, 주황 화살표 하나하나는 방향도 길이도 제멋대로입니다. 그래도 평균(보라)은 표본이 쌓일수록 파란 화살표에 달라붙습니다.</p>
+      <table class="rd" style="margin-top:10px">
+        <tr><td>모은 표본 수</td><td id="uN">0</td></tr>
+        <tr><td>평균 화살표와 진짜 화살표의 차이</td><td id="uD">–</td></tr>
+        <tr><td>한 표본 화살표의 흩어짐 (표준편차)</td><td id="uS">–</td></tr>
+        <tr><td>예상되는 평균의 흩어짐 = 위 값 ÷ √n</td><td id="uSE">–</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="cardhead"><h2>실험 2 · 같은 거리를 K걸음으로</h2><span class="sub">μ × K = 0.5로 고정</span></div>
+      <canvas id="kCloud" class="cv sq" aria-label="K걸음 LMS를 여러 번 반복한 도착점 분포와 최급강하 도착점"></canvas>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+        <span class="sub">걸음 수 K</span>
+        <div class="seg" id="kSeg">
+          <button data-k="1" aria-pressed="false">1</button><button data-k="4" aria-pressed="true">4</button><button data-k="16" aria-pressed="false">16</button><button data-k="64" aria-pressed="false">64</button><button data-k="256" aria-pressed="false">256</button>
+        </div>
+        <button class="btn small" id="kAgain">다시 뽑기</button>
+      </div>
+      <div class="legend" style="margin-top:8px"><span class="l"><i></i>LMS 도착점 80번</span><span class="w"><i></i>도착점들의 평균 ◇</span><span class="g"><i></i>최급강하 경로</span><span>■ 출발점</span></div>
+    </div>
+    <div class="card">
+      <h2>작은 걸음 여러 번 = 평균 효과</h2>
+      <p class="txt">총 이동 예산 μK를 0.5로 정해 두고, 한 번에 크게(K = 1) 갈지 잘게 나눠(K = 256) 갈지만 바꿉니다. 같은 실험을 80번 반복해 도착점을 찍었습니다.</p>
+      <div class="eq">
+        <span>K걸음 합 ≈ −μ Σ Δ̂ₖ = −μK·∇J  −  μ Σ (잡음ₖ)</span>
+        <span>진짜 기울기 몫: K배로 쌓임  (μK = 0.5로 일정)</span>
+        <span>잡음 몫:       √K배로만 쌓임 → μ√K = 0.5/√K</span>
+      </div>
+      <p class="txt" style="margin-top:10px">K를 4배로 늘리면 도착점 구름의 폭은 약 절반이 됩니다. 아래 막대가 그 1/√K 법칙입니다. 걸음이 작으면 w가 거의 제자리에서 여러 표본을 모으는 셈이라, 실험 1의 ‘평균 내기’가 걸으면서 저절로 일어납니다.</p>
+      <div class="cardhead" style="margin-top:12px"><h2 style="font-size:18px">K별 도착점 흩어짐</h2><span class="sub">막대: 실험값, 점선: K=1 값 ÷ √K</span></div>
+      <canvas id="kBars" class="cv wide" aria-label="걸음 수 K에 따른 도착점 흩어짐 막대그래프"></canvas>
+    </div>
+  </section>
+
+  <section class="notes" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div class="card">
+      <h2>μ와 η는 같은 것</h2>
+      <p>보폭(단계 크기, 학습률)을 책은 μ(뮤), 요즘 머신러닝 교재는 주로 η(에타)로 씁니다.</p>
+      <table class="rd" style="margin-top:4px">
+        <tr><th>표기</th><th>갱신식</th></tr>
+        <tr><td>책 (위드로·호프)</td><td>w ← w + 2μεx</td></tr>
+        <tr><td>머신러닝 교재</td><td>w ← w − η∇(ε²)</td></tr>
+      </table>
+      <p style="margin-top:8px">∇(ε²) = −2εx이므로 두 식은 η = μ일 때 똑같습니다. 2μ 전체를 η라 부르는 교재도 있어서, 2는 ε²을 미분할 때 생긴 숫자라는 것만 기억하면 됩니다. ‘단계를 작게 한다’ = μ(η)를 작게 한다.</p>
+    </div>
+    <div class="card">
+      <h2>바닥 근처: 정확도와 속도의 거래</h2>
+      <p>바닥에서는 진짜 기울기가 0이지만, 한 표본 어림값은 잡음 때문에 0이 아닙니다. 그래서 LMS 공은 바닥 주변에서 계속 흔들리고, 그 폭은 대략 μ에 비례합니다.</p>
+      <p>μ를 줄이면 흔들림은 작아지지만 바닥까지 오래 걸립니다. 처음엔 크게, 갈수록 작게 μ를 줄여 가는 학습률 감소(learning rate decay)가 이 거래를 푸는 흔한 방법입니다. 1부에서 σ를 키우고 μ를 바꿔 직접 보세요.</p>
+    </div>
+  </section>
+
+  <section class="card qs">
+    <h2>3부에서 던질 질문</h2>
+    <ol>
+      <li>실험 1에서 표본 100개를 모았을 때 평균 화살표의 오차는 대략 얼마인가? 400개면 얼마일까?</li>
+      <li>그릇 바닥(★)을 눌러 그 자리에서 재 보자. 진짜 기울기는 0인데 주황 화살표는 왜 계속 나오는가?</li>
+      <li>실험 2에서 K = 1과 K = 256의 흩어짐 비는 이론상 얼마인가? 실험값과 비교하자.</li>
+      <li>표본분산을 n이 아니라 n−1로 나누는 이유와, LMS 기울기가 불편이라는 말은 어떤 점에서 같은 이야기인가?</li>
+    </ol>
+  </section>
+  </div>
+
+  <footer>책의 ‘그릇의 바닥’ 장에 나오는 위드로·호프의 적응 필터와 적응 신경세포(ADALINE, LMS)를 바탕으로 했습니다. 1부는 3탭 필터를 2탭으로 줄여 입력은 이웃 상관이 ρ인 무작위 신호, 원하는 신호는 숨겨진 가중치 w*의 출력에 잡음 σ를 더해 만들었습니다. 2부의 T, J 픽셀 모양은 이 페이지에서 정한 것입니다. 3부의 실험은 1부와 같은 설정(w* = (0.8, −0.6), ρ = 0.7, σ = 0.3)을 씁니다.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const C={};
+function readColors(){const cs=getComputedStyle(document.documentElement);['paper','surface','ink','muted','line','gd','lms','wien'].forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim());}
+function gauss(){let u=0;while(u===0)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());}
+
+const DOM=2.2, CAP=6;
+const S={ws:[0.8,-0.6],start:[-1.7,1.6],rho:0.7,mu:0.05,sigma:0.3,
+  wG:null,wL:null,xprev:0,n:0,pathG:[],pathL:[],hd:[],hy:[],he:[],cG:[],cL:[],
+  sums:null,last:null,divG:false,divL:false,playing:true,spf:0.34,acc:0,showG:true,showL:true,th:0.75};
+
+function J(w){const a=w[0]-S.ws[0],b=w[1]-S.ws[1];return a*a+b*b+2*S.rho*a*b+S.sigma*S.sigma;}
+function reset(){
+  S.wG=S.start.slice();S.wL=S.start.slice();S.xprev=gauss();S.n=0;
+  S.pathG=[S.wG.slice()];S.pathL=[S.wL.slice()];S.hd=[];S.hy=[];S.he=[];
+  S.cG=[J(S.wG)];S.cL=[J(S.wL)];S.sums={a:0,b:0,c:0,p0:0,p1:0,k:0};S.last=null;S.divG=false;S.divL=false;S.acc=0;
+}
+function step(){
+  const r=S.rho,xn=r*S.xprev+Math.sqrt(1-r*r)*gauss(),X=[xn,S.xprev];S.xprev=xn;
+  const d=S.ws[0]*X[0]+S.ws[1]*X[1]+S.sigma*gauss();
+  const sm=S.sums;sm.a+=X[0]*X[0];sm.b+=X[0]*X[1];sm.c+=X[1]*X[1];sm.p0+=d*X[0];sm.p1+=d*X[1];sm.k++;
+  if(!S.divL){
+    const y=S.wL[0]*X[0]+S.wL[1]*X[1],e=d-y;
+    S.wL[0]+=2*S.mu*e*X[0];S.wL[1]+=2*S.mu*e*X[1];
+    S.last={x:X[0],x1:X[1],d,y,e};
+    S.hd.push(d);S.hy.push(y);S.he.push(e);if(S.hd.length>160){S.hd.shift();S.hy.shift();S.he.shift();}
+    if(!isFinite(S.wL[0])||Math.abs(S.wL[0])+Math.abs(S.wL[1])>60)S.divL=true;
+    S.pathL.push(S.wL.slice());
+  }
+  if(!S.divG){
+    const a=S.wG[0]-S.ws[0],b=S.wG[1]-S.ws[1];
+    S.wG[0]-=S.mu*2*(a+S.rho*b);S.wG[1]-=S.mu*2*(S.rho*a+b);
+    if(!isFinite(S.wG[0])||Math.abs(S.wG[0])+Math.abs(S.wG[1])>60)S.divG=true;
+    S.pathG.push(S.wG.slice());
+  }
+  if(S.pathG.length>4000)S.pathG.shift();if(S.pathL.length>4000)S.pathL.shift();
+  S.cG.push(J(S.wG));S.cL.push(J(S.wL));if(S.cG.length>800){S.cG.shift();S.cL.shift();}
+  S.n++;
+}
+function wiener(){
+  const s=S.sums;if(!s||s.k<3)return null;
+  const a=s.a/s.k,b=s.b/s.k,c=s.c/s.k,p0=s.p0/s.k,p1=s.p1/s.k,det=a*c-b*b;
+  if(Math.abs(det)<1e-6)return null;return [(c*p0-b*p1)/det,(a*p1-b*p0)/det];
+}
+
+/* canvas helpers */
+function fit(cv){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;const w=Math.max(10,Math.round(r.width*dpr)),h=Math.max(10,Math.round(r.height*dpr));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,W:r.width,H:r.height};}
+function dot(ctx,x,y,r,fill,stroke){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.stroke();}}
+function star(ctx,x,y,r,col){ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*0.45:r;ctx.lineTo(x+rr*Math.cos(a),y+rr*Math.sin(a));}ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=C.surface;ctx.stroke();}
+
+const cv2=$('bowl2d'),cv3=$('bowl3d'),cvS=$('sig'),cvC=$('curve');
+let map2=null;
+function draw2d(){
+  const {ctx,W,H}=fit(cv2);const m=30,P=Math.min(W,H)-m-8;if(P<=10)return;
+  const X=v=>m+(v+DOM)/(2*DOM)*P,Y=v=>8+P-(v+DOM)/(2*DOM)*P;map2={m,P};
+  ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.beginPath();ctx.rect(m,8,P,P);ctx.clip();
+  const sc=P/(2*DOM),l1=1+S.rho,l2=Math.max(1-S.rho,1e-3);
+  const lv=[16,11,8,5.5,3.5,2,1,0.5,0.2,0.05];
+  lv.forEach(c=>{ctx.beginPath();ctx.ellipse(X(S.ws[0]),Y(S.ws[1]),Math.sqrt(c/l1)*sc,Math.sqrt(c/l2)*sc,-Math.PI/4,0,Math.PI*2);
+    ctx.globalAlpha=0.07;ctx.fillStyle=C.gd;ctx.fill();ctx.globalAlpha=0.4;ctx.lineWidth=1;ctx.strokeStyle=C.gd;ctx.stroke();});
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(0),8);ctx.lineTo(X(0),8+P);ctx.moveTo(m,Y(0));ctx.lineTo(m+P,Y(0));ctx.stroke();
+  function path(arr,col){if(arr.length<2)return;ctx.beginPath();arr.forEach((p,i)=>{const x=X(p[0]),y=Y(p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.globalAlpha=0.85;ctx.stroke();ctx.globalAlpha=1;}
+  if(S.showL)path(S.pathL,C.lms);
+  if(S.showG)path(S.pathG,C.gd);
+  ctx.fillStyle=C.ink;ctx.fillRect(X(S.start[0])-4,Y(S.start[1])-4,8,8);
+  star(ctx,X(S.ws[0]),Y(S.ws[1]),10,C.ink);
+  const h=wiener();if(h){const x=X(h[0]),y=Y(h[1]);ctx.beginPath();ctx.moveTo(x,y-8);ctx.lineTo(x+8,y);ctx.lineTo(x,y+8);ctx.lineTo(x-8,y);ctx.closePath();ctx.lineWidth=2.2;ctx.strokeStyle=C.wien;ctx.stroke();}
+  if(S.showL&&!S.divL)dot(ctx,X(S.wL[0]),Y(S.wL[1]),7,C.lms,C.surface);
+  if(S.showG&&!S.divG)dot(ctx,X(S.wG[0]),Y(S.wG[1]),7,C.gd,C.surface);
+  ctx.restore();
+  ctx.strokeStyle=C.muted;ctx.lineWidth=1;ctx.strokeRect(m,8,P,P);
+  ctx.fillStyle=C.muted;ctx.font='12px "IBM Plex Mono", monospace';ctx.textAlign='center';
+  [-2,-1,0,1,2].forEach(v=>{ctx.fillText(v,X(v),8+P+15);});
+  ctx.textAlign='right';[-2,-1,0,1,2].forEach(v=>{ctx.fillText(v,m-6,Y(v)+4);});
+  ctx.fillStyle=C.ink;ctx.font='13px "IBM Plex Sans KR", sans-serif';ctx.textAlign='center';ctx.fillText('w₀',X(1.5),8+P+15);
+  ctx.textAlign='left';ctx.fillText('w₁',m+6,22);
+}
+
+function draw3d(){
+  const {ctx,W,H}=fit(cv3);ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  const ph=0.5,cp=Math.cos(ph),sp=Math.sin(ph),c=Math.cos(S.th),s=Math.sin(S.th);
+  const sc=Math.min(W,H)/6.7,cx=W/2,cy=H*0.15+3.1*sc,zs=1.8/CAP;
+  const pr=(x,y,z)=>{const x1=x*c-y*s,y1=x*s+y*c;return [cx+x1*sc,cy-(z*zs*cp+y1*sp)*sc];};
+  const N=22,st=2*DOM/N;
+  ctx.lineWidth=1;ctx.strokeStyle=C.gd;
+  for(let dir=0;dir<2;dir++){
+    for(let i=0;i<=N;i++){
+      ctx.beginPath();let pen=false;
+      for(let j=0;j<=N*2;j++){
+        const a=-DOM+i*st,b=-DOM+j*st/2,w=dir?[b,a]:[a,b],z=J(w);
+        if(z>CAP){pen=false;continue;}
+        const p=pr(w[0],w[1],z);pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true;
+      }
+      ctx.globalAlpha=0.32;ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;
+  function p3(arr,col){if(arr.length<2)return;ctx.beginPath();let pen=false;arr.forEach(w=>{const z=J(w);if(z>CAP||!isFinite(z)){pen=false;return;}const p=pr(w[0],w[1],z);pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true;});ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();}
+  if(S.showL)p3(S.pathL,C.lms);if(S.showG)p3(S.pathG,C.gd);
+  const b=pr(S.ws[0],S.ws[1],J(S.ws));star(ctx,b[0],b[1],9,C.ink);
+  function ball(w,col,div){if(div)return;const z=J(w);if(!isFinite(z))return;const p=pr(w[0],w[1],Math.min(z,CAP));ctx.globalAlpha=z>CAP?0.4:1;dot(ctx,p[0],p[1],7,col,C.surface);ctx.globalAlpha=1;}
+  if(S.showL)ball(S.wL,C.lms,S.divL);if(S.showG)ball(S.wG,C.gd,S.divG);
+  ctx.fillStyle=C.muted;ctx.font='12px "IBM Plex Sans KR", sans-serif';ctx.textAlign='left';
+  ctx.fillText('높이 = J(w), J > '+CAP+'인 부분은 잘라냄',10,H-10);
+}
+
+function drawSig(){
+  const {ctx,W,H}=fit(cvS);ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  const n=160,top=H*0.66,bot=H-6,mid=top/2+2;
+  let m=1.5;S.hd.forEach((v,i)=>{m=Math.max(m,Math.abs(v),Math.abs(S.hy[i])||0);});m=Math.min(m*1.1,12);
+  const X=i=>6+i/(n-1)*(W-12),Y=v=>mid-v/m*(top/2-6);
+  ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(6,mid);ctx.lineTo(W-6,mid);ctx.moveTo(6,top+(bot-top)/2);ctx.lineTo(W-6,top+(bot-top)/2);ctx.stroke();
+  const off=n-S.hd.length;
+  function line(arr,col,lw){if(arr.length<2)return;ctx.beginPath();arr.forEach((v,i)=>{const y=Math.max(4,Math.min(top-2,Y(v)));i?ctx.lineTo(X(i+off),y):ctx.moveTo(X(i+off),y);});ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.stroke();}
+  line(S.hd,C.ink,1.6);line(S.hy,C.lms,1.6);
+  const em=(bot-top)/2,ec=top+em,bw=Math.max(1,(W-12)/n-0.6);
+  ctx.fillStyle=C.lms;ctx.globalAlpha=0.55;
+  S.he.forEach((e,i)=>{const h=Math.max(-em,Math.min(em,e/m*em*2));ctx.fillRect(X(i+off)-bw/2,ec-Math.max(h,0),bw,Math.abs(h));});
+  ctx.globalAlpha=1;ctx.fillStyle=C.muted;ctx.font='11.5px "IBM Plex Sans KR", sans-serif';ctx.textAlign='left';ctx.fillText('eₙ',8,top+12);
+  if(!S.hd.length){ctx.textAlign='center';ctx.fillText('재생하면 신호가 흐릅니다',W/2,mid-8);}
+}
+
+function drawCurve(){
+  const {ctx,W,H}=fit(cvC);ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  const l=40,r=8,t=8,b=22,pw=W-l-r,ph=H-t-b,lo=-3,hi=1.5;
+  const Y=v=>t+ph-(Math.log10(Math.max(v,1e-3))-lo)/(hi-lo)*ph;
+  const n=S.cG.length,start=S.n-n+1,span=Math.max(n-1,50),X=i=>l+i/span*pw;
+  ctx.font='11.5px "IBM Plex Mono", monospace';ctx.fillStyle=C.muted;ctx.textAlign='right';
+  [-3,-2,-1,0,1].forEach(e=>{const y=Y(Math.pow(10,e));ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(W-r,y);ctx.stroke();ctx.fillText(e===0?'1':'10'+(e<0?['⁻³','⁻²','⁻¹'][e+3]:'¹'),l-6,y+4);});
+  ctx.textAlign='left';ctx.fillText('n = '+Math.max(start,0),l,H-6);ctx.textAlign='right';ctx.fillText('n = '+S.n,W-r,H-6);
+  if(S.sigma>0){const y=Y(S.sigma*S.sigma);ctx.setLineDash([5,4]);ctx.strokeStyle=C.ink;ctx.globalAlpha=0.6;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(W-r,y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
+  function ln(arr,col){ctx.beginPath();let pen=false;arr.forEach((v,i)=>{if(!isFinite(v)||v>40){pen=false;return;}const y=Math.max(t,Y(v));pen?ctx.lineTo(X(i),y):ctx.moveTo(X(i),y);pen=true;});ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();}
+  ln(S.cL,C.lms);ln(S.cG,C.gd);
+}
+
+function f3(v){return isFinite(v)?(Math.abs(v)>=100?v.toExponential(1):v.toFixed(3)):'–';}
+function readout(){
+  $('rN').textContent=S.n;
+  $('g0').textContent=f3(S.wG[0]);$('g1').textContent=f3(S.wG[1]);$('gJ').textContent=f3(J(S.wG));
+  $('l0').textContent=f3(S.wL[0]);$('l1').textContent=f3(S.wL[1]);$('lJ').textContent=f3(J(S.wL));
+  const h=wiener();$('h0').textContent=h?f3(h[0]):'–';$('h1').textContent=h?f3(h[1]):'–';$('hJ').textContent=h?f3(J(h)):'–';
+  $('s0').textContent=f3(S.ws[0]);$('s1').textContent=f3(S.ws[1]);$('sJ').textContent=f3(S.sigma*S.sigma);
+  const tag=(div,w)=>{if(div)return '<span class="chip bad">발산</span>';return J(w)-S.sigma*S.sigma<0.01?'<span class="chip ok">바닥 근처</span>':'<span class="chip run">내려가는 중</span>';};
+  $('gS').innerHTML=tag(S.divG,S.wG);$('lS').innerHTML=tag(S.divL,S.wL);
+  const L=S.last;
+  $('dX').textContent=L?L.x.toFixed(2):'–';$('dX1').textContent=L?L.x1.toFixed(2):'–';
+  $('dY').textContent=L?L.y.toFixed(2):'–';$('dD').textContent=L?L.d.toFixed(2):'–';$('dE').textContent=L?L.e.toFixed(2):'–';
+  $('dW0').textContent=f3(S.wL[0]);$('dW1').textContent=f3(S.wL[1]);
+}
+function drawAll(){const pb=document.getElementById('p-bowl');if(pb&&pb.hidden)return;draw2d();draw3d();drawSig();drawCurve();readout();}
+
+function loop(){
+  if(S.playing){S.acc+=S.spf;while(S.acc>=1){step();S.acc-=1;}if(S.divG&&S.divL)setPlay(false);drawAll();}
+  requestAnimationFrame(loop);
+}
+function setPlay(p){S.playing=p;$('bPlay').textContent=p?'일시정지':'재생';}
+
+/* controls */
+function syncLabels(){$('vMu').textContent=S.mu.toFixed(3);$('vRho').textContent=S.rho.toFixed(2);$('vSig').textContent=S.sigma.toFixed(2);}
+$('mu').oninput=e=>{S.mu=+e.target.value;syncLabels();if(!S.playing)drawAll();};
+$('rho').oninput=e=>{S.rho=+e.target.value;S.cG=[J(S.wG)];S.cL=[J(S.wL)];syncLabels();drawAll();};
+$("sigR").oninput=e=>{S.sigma=+e.target.value;syncLabels();drawAll();};
+$('bPlay').onclick=()=>setPlay(!S.playing);
+$('bStep').onclick=()=>{setPlay(false);step();drawAll();};
+$('bReset').onclick=()=>{reset();drawAll();};
+$('bNew').onclick=()=>{S.ws=[(Math.random()*2.4-1.2),(Math.random()*2.4-1.2)];reset();drawAll();};
+document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{S.spf=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+$('showG').onchange=e=>{S.showG=e.target.checked;drawAll();};
+$('showL').onchange=e=>{S.showL=e.target.checked;drawAll();};
+
+cv2.addEventListener('pointerdown',e=>{
+  if(!map2)return;const r=cv2.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,{m,P}=map2;
+  if(x<m||x>m+P||y<8||y>8+P)return;
+  S.start=[-DOM+(x-m)/P*2*DOM,-DOM+(8+P-y)/P*2*DOM];reset();if(!S.playing)setPlay(true);drawAll();
+});
+let drag=null;
+cv3.addEventListener('pointerdown',e=>{drag=e.clientX;cv3.setPointerCapture(e.pointerId);cv3.style.cursor='grabbing';});
+cv3.addEventListener('pointermove',e=>{if(drag===null)return;S.th+=(e.clientX-drag)*0.01;drag=e.clientX;draw3d();});
+const up=()=>{drag=null;cv3.style.cursor='grab';};cv3.addEventListener('pointerup',up);cv3.addEventListener('pointercancel',up);
+
+readColors();
+const mq=window.matchMedia('(prefers-color-scheme: dark)');
+const recolor=()=>{readColors();drawAll();};
+if(mq.addEventListener)mq.addEventListener('change',recolor);
+new MutationObserver(recolor).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if('ResizeObserver' in window)new ResizeObserver(()=>drawAll()).observe(document.querySelector('.wrap'));
+else window.addEventListener('resize',drawAll);
+
+syncLabels();reset();
+for(let i=0;i<40;i++)step();
+let reduce=false;try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+setPlay(!reduce);drawAll();requestAnimationFrame(loop);
+})();
+
+/* ===== 2부: ADALINE T/J ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const C={};
+function readColors(){const cs=getComputedStyle(document.documentElement);['surface','ink','muted','line','gd','lms'].forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim());}
+const T=[1,1,1,0, 0,1,0,0, 0,1,0,0, 0,1,0,0];
+const J=[0,1,1,1, 0,0,1,0, 1,0,1,0, 1,1,1,0];
+function shiftR(p){const o=new Array(16).fill(0);for(let r=0;r<4;r++)for(let c=0;c<3;c++)if(p[r*4+c])o[r*4+c+1]=1;return o;}
+function flip(p,i){const o=p.slice();o[i]=1-o[i];return o;}
+const SETS={
+  base:[{n:'T',p:T,d:1},{n:'J',p:J,d:-1}],
+  ext:[{n:'T',p:T,d:1},{n:'J',p:J,d:-1},{n:'T →',p:shiftR(T),d:1},{n:'T +점',p:flip(T,8),d:1},{n:'J −점',p:flip(J,8),d:-1},{n:'J +점',p:flip(J,0),d:-1}]
+};
+const A={w:new Array(17).fill(0),mode:'lms',mu:0.02,set:'base',idx:0,n:0,curve:[],last:null,cur:-1,playing:false,div:false,pad:T.slice(),fc:0};
+const X=p=>[1].concat(p);
+const out=(p)=>{const x=X(p);let s=0;for(let i=0;i<17;i++)s+=A.w[i]*x[i];return s;};
+function mse(){const S=SETS[A.set];let s=0;S.forEach(q=>{const e=q.d-out(q.p);s+=e*e;});return s/S.length;}
+function step(){
+  if(A.div)return;
+  const S=SETS[A.set];
+  if(A.mode==='lms'){
+    const k=A.idx%S.length,q=S[k],x=X(q.p),y=out(q.p),e=q.d-y;
+    for(let i=0;i<17;i++)A.w[i]+=2*A.mu*e*x[i];
+    A.last={n:q.n,d:q.d,y,e};A.cur=k;A.idx++;
+  }else{
+    const g=new Array(17).fill(0);let es=0;
+    S.forEach(q=>{const x=X(q.p),e=q.d-out(q.p);es+=e*e;for(let i=0;i<17;i++)g[i]+=-2*e*x[i]/S.length;});
+    for(let i=0;i<17;i++)A.w[i]-=A.mu*g[i];
+    A.last={gd:true,gn:Math.sqrt(g.reduce((a,v)=>a+v*v,0))};A.cur=-1;
+  }
+  A.n++;const m=mse();A.curve.push(m);if(A.curve.length>600)A.curve.shift();
+  if(!isFinite(m)||m>1e8){A.div=true;setPlay(false);}
+}
+function resetW(rand){A.w=A.w.map(()=>rand?(Math.random()*0.6-0.3):0);A.idx=0;A.n=0;A.curve=[mse()];A.last=null;A.cur=-1;A.div=false;}
+
+/* build DOM */
+function cells(el,p,btn){el.innerHTML='';p.forEach((v,i)=>{const c=document.createElement(btn?'button':'span');c.className='c'+(v?' on':'');if(btn){c.type='button';c.setAttribute('aria-label',`${Math.floor(i/4)+1}행 ${i%4+1}열 ${v?'켜짐':'꺼짐'}`);c.onclick=()=>{A.pad[i]=1-A.pad[i];renderPad();};}el.appendChild(c);});}
+function renderSamples(){
+  const box=$('aSamples');box.innerHTML='';
+  SETS[A.set].forEach((q,k)=>{const y=out(q.p),ok=Math.sign(y)===q.d;
+    const d=document.createElement('div');d.className='smp'+(k===A.cur?' cur':'');
+    const g=document.createElement('div');g.className='pg';cells(g,q.p,false);
+    d.appendChild(g);
+    const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`<b>${q.n}</b><span class="mono">d=${q.d>0?'+1':'−1'}</span>`;d.appendChild(nm);
+    const yv=document.createElement('div');yv.className='nm';yv.innerHTML=`<span class="yv">y=${fmt(y)}</span><span class="${ok?'ok2':'no2'}">${ok?'✓':'✗'}</span>`;d.appendChild(yv);
+    box.appendChild(d);});
+}
+function fmt(v){if(!isFinite(v))return '–';if(Math.abs(v)>=1000)return v.toExponential(1);return v.toFixed(2);}
+function renderW(){
+  const box=$('aW');box.innerHTML='';
+  const m=Math.max(0.3,...A.w.slice(1).map(Math.abs));
+  for(let i=1;i<=16;i++){const v=A.w[i],a=Math.min(1,Math.abs(v)/m);const d=document.createElement('div');
+    d.style.background=`color-mix(in srgb, ${v>=0?'var(--gd)':'var(--lms)'} ${Math.round(a*70)}%, var(--surface))`;
+    d.textContent=fmt(v);if(a>0.6)d.style.color='#fff';box.appendChild(d);}
+  $('aW0').textContent=fmt(A.w[0]);
+}
+function renderEq(){
+  const L=A.last,mu=A.mu.toFixed(3);let h;
+  if(A.div)h='<span style="color:#c4241b">가중치가 발산했습니다. μ를 줄이고 가중치를 0으로 되돌려 보세요.</span>';
+  else if(!L)h=A.mode==='lms'?'<span>LMS: w<sub>new</sub> = w<sub>old</sub> + 2μεx,  ε = d − wᵀx</span><span>한 걸음을 누르면 표본 하나로 계산합니다.</span>':'<span>최급강하: w<sub>new</sub> = w<sub>old</sub> + μ(−Δ)</span><span>한 걸음을 누르면 전체 표본의 평균 기울기로 계산합니다.</span>';
+  else if(L.gd)h=`<span class="cg">최급강하: w<sub>new</sub> = w<sub>old</sub> + μ(−Δ),  Δ = −(2/N)Σ εᵢxᵢ</span><span>N = ${SETS[A.set].length},  |Δ| = ${fmt(L.gn)},  μ = ${mu}</span>`;
+  else h=`<span class="cl">표본 ${L.n} (갱신 전 y):  ε = d − wᵀx = (${L.d>0?'+1':'−1'}) − (${fmt(L.y)}) = ${fmt(L.e)}</span><span class="cl">w<sub>new</sub> = w<sub>old</sub> + 2 × ${mu} × (${fmt(L.e)}) × x</span>`;
+  $('aEq').innerHTML=h;
+  $('aDY').textContent=L&&!L.gd?fmt(L.y):'–';$('aDD').textContent=L&&!L.gd?(L.d>0?'+1':'−1'):'–';$('aDE').textContent=L&&!L.gd?fmt(L.e):'–';
+}
+function fit(cv){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;const w=Math.max(10,Math.round(r.width*dpr)),h=Math.max(10,Math.round(r.height*dpr));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,W:r.width,H:r.height};}
+function drawCurve(){
+  const {ctx,W,H}=fit($('aCurve'));ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  const l=40,r=8,t=8,b=22,pw=W-l-r,ph=H-t-b,lo=-4,hi=1.5;
+  const Y=v=>t+ph-(Math.log10(Math.max(v,1e-4))-lo)/(hi-lo)*ph;
+  const n=A.curve.length,span=Math.max(n-1,40),Xp=i=>l+i/span*pw;
+  ctx.font='11.5px "IBM Plex Mono", monospace';ctx.fillStyle=C.muted;ctx.textAlign='right';
+  [-4,-3,-2,-1,0,1].forEach(e=>{const y=Y(Math.pow(10,e));ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(W-r,y);ctx.stroke();ctx.fillText(e===0?'1':'10'+({'-4':'⁻⁴','-3':'⁻³','-2':'⁻²','-1':'⁻¹','1':'¹'})[e],l-6,y+4);});
+  ctx.textAlign='left';ctx.fillText('걸음 '+Math.max(A.n-n+1,0),l,H-6);ctx.textAlign='right';ctx.fillText('걸음 '+A.n,W-r,H-6);
+  ctx.beginPath();let pen=false;A.curve.forEach((v,i)=>{if(!isFinite(v)||v>40){pen=false;return;}const y=Y(v);pen?ctx.lineTo(Xp(i),y):ctx.moveTo(Xp(i),y);pen=true;});
+  ctx.strokeStyle=A.mode==='lms'?C.lms:C.gd;ctx.lineWidth=1.8;ctx.stroke();
+}
+function renderPad(){
+  cells($('aPad'),A.pad,true);
+  const y=out(A.pad);$('pY').textContent=fmt(y);
+  $('pMk').style.left=Math.max(0,Math.min(100,(y+2)/4*100))+'%';
+  const v=$('pV');if(!isFinite(y)){v.textContent='–';return;}
+  if(Math.abs(y)<1e-9){v.textContent='판정 불가 (y = 0)';v.style.color='var(--muted)';}
+  else if(y>0){v.textContent='T 쪽으로 판정 (+1)';v.style.color='var(--gd)';}
+  else{v.textContent='J 쪽으로 판정 (−1)';v.style.color='var(--lms)';}
+}
+function render(){$('aN').textContent=A.n;renderSamples();renderW();renderEq();drawCurve();renderPad();}
+function setPlay(p){A.playing=p;$('aPlay').textContent=p?'멈춤':'자동 학습';}
+
+$('aPlay').onclick=()=>setPlay(!A.playing);
+$('aStep').onclick=()=>{setPlay(false);step();render();};
+$('aZero').onclick=()=>{resetW(false);render();};
+$('aRand').onclick=()=>{resetW(true);render();};
+$('aMu').oninput=e=>{A.mu=+e.target.value;$('aMuV').textContent=A.mu.toFixed(3);renderEq();};
+document.querySelectorAll('#aMode button').forEach(b=>b.onclick=()=>{A.mode=b.dataset.m;document.querySelectorAll('#aMode button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));A.last=null;A.cur=-1;render();});
+document.querySelectorAll('#aSet button').forEach(b=>b.onclick=()=>{A.set=b.dataset.k;document.querySelectorAll('#aSet button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));resetW(false);render();});
+$('pT').onclick=()=>{A.pad=T.slice();renderPad();};
+$('pJ').onclick=()=>{A.pad=J.slice();renderPad();};
+$('pFlip').onclick=()=>{A.pad=flip(A.pad,Math.floor(Math.random()*16));renderPad();};
+$('pClr').onclick=()=>{A.pad=new Array(16).fill(0);renderPad();};
+
+function loop(){if(A.playing){A.fc++;if(A.fc%12===0){step();render();}}requestAnimationFrame(loop);}
+readColors();
+const mq=window.matchMedia('(prefers-color-scheme: dark)');
+const recolor=()=>{readColors();drawCurve();};
+if(mq.addEventListener)mq.addEventListener('change',recolor);
+new MutationObserver(recolor).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if('ResizeObserver' in window)new ResizeObserver(()=>drawCurve()).observe($('aCurve'));
+$('aMuV').textContent=A.mu.toFixed(3);
+resetW(false);for(let i=0;i<3;i++)step();render();requestAnimationFrame(loop);
+})();
+
+/* ===== 3부: 불편 추정과 평균 효과 ===== */
+(function(){
+const $=id=>document.getElementById(id);
+const C={};
+function readColors(){const cs=getComputedStyle(document.documentElement);['surface','ink','muted','line','gd','lms','wien'].forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim());}
+function gauss(){let u=0;while(u===0)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());}
+const WS=[0.8,-0.6],RHO=0.7,SIG=0.3,DOM=2.2;
+function sample(){const x1=gauss(),x0=RHO*x1+Math.sqrt(1-RHO*RHO)*gauss();const d=WS[0]*x0+WS[1]*x1+SIG*gauss();return {x:[x0,x1],d};}
+function trueDesc(w){const a=WS[0]-w[0],b=WS[1]-w[1];return [2*(a+RHO*b),2*(RHO*a+b)];}
+function fit(cv){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;const w=Math.max(10,Math.round(r.width*dpr)),h=Math.max(10,Math.round(r.height*dpr));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,W:r.width,H:r.height};}
+function bowl(cv){
+  const {ctx,W,H}=fit(cv);const m=30,P=Math.min(W,H)-m-8;if(P<=10)return null;
+  const X=v=>m+(v+DOM)/(2*DOM)*P,Y=v=>8+P-(v+DOM)/(2*DOM)*P,sc=P/(2*DOM);
+  ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.beginPath();ctx.rect(m,8,P,P);ctx.clip();
+  [16,11,8,5.5,3.5,2,1,0.5,0.2,0.05].forEach(c=>{ctx.beginPath();ctx.ellipse(X(WS[0]),Y(WS[1]),Math.sqrt(c/(1+RHO))*sc,Math.sqrt(c/(1-RHO))*sc,-Math.PI/4,0,Math.PI*2);ctx.globalAlpha=0.06;ctx.fillStyle=C.gd;ctx.fill();ctx.globalAlpha=0.3;ctx.strokeStyle=C.gd;ctx.lineWidth=1;ctx.stroke();});
+  ctx.globalAlpha=1;
+  ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?4.5:10;ctx.lineTo(X(WS[0])+rr*Math.cos(a),Y(WS[1])+rr*Math.sin(a));}ctx.closePath();ctx.fillStyle=C.ink;ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle=C.muted;ctx.strokeRect(m,8,P,P);
+  ctx.fillStyle=C.muted;ctx.font='12px "IBM Plex Mono", monospace';ctx.textAlign='center';[-2,-1,0,1,2].forEach(v=>ctx.fillText(v,X(v),8+P+15));
+  ctx.textAlign='right';[-2,-1,0,1,2].forEach(v=>ctx.fillText(v,m-6,Y(v)+4));
+  return {ctx,X,Y,m,P};
+}
+function arrow(ctx,x1,y1,x2,y2,col,lw,alpha){ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1),h=Math.min(5+lw*2.5,Math.hypot(x2-x1,y2-y1));if(lw>1.5){ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-h*Math.cos(a-0.4),y2-h*Math.sin(a-0.4));ctx.lineTo(x2-h*Math.cos(a+0.4),y2-h*Math.sin(a+0.4));ctx.closePath();ctx.fill();}ctx.globalAlpha=1;}
+
+/* 과녁 */
+function darts(){
+  const svg=$('darts');let h='';let seed=11;const R=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const g=()=>{let u=R()||1e-9;return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*R());};
+  const P=[{t:'불편 · 분산 큼',s:'LMS 한 표본',bx:0,by:0,sd:22},{t:'불편 · 분산 작음',s:'많은 표본의 평균',bx:0,by:0,sd:6},{t:'편향 · 분산 작음',s:'',bx:26,by:-20,sd:6},{t:'편향 · 분산 큼',s:'',bx:26,by:-20,sd:22}];
+  P.forEach((p,i)=>{const ox=(i%2)*220,oy=Math.floor(i/2)*220,cx=ox+110,cy=oy+118;
+    h+=`<circle cx="${cx}" cy="${cy}" r="72" fill="none" stroke="var(--line)" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="48" fill="none" stroke="var(--line)" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="24" fill="none" stroke="var(--line)" stroke-width="1.5"/>`;
+    let mx=0,my=0;const n=14;for(let k=0;k<n;k++){const x=cx+p.bx+g()*p.sd,y=cy+p.by+g()*p.sd;mx+=x;my+=y;h+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6" fill="var(--lms)" fill-opacity=".75"/>`;}
+    mx/=n;my/=n;h+=`<path d="M${mx},${my-7} L${mx+7},${my} L${mx},${my+7} L${mx-7},${my} Z" fill="none" stroke="var(--wien)" stroke-width="2.4"/>`;
+    h+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="15" fill="var(--ink)">★</text>`;
+    h+=`<text x="${cx}" y="${oy+28}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${p.t}</text>`;
+    if(p.s)h+=`<text x="${cx}" y="${oy+210}" text-anchor="middle" font-size="12.5" fill="var(--muted)">${p.s}</text>`;});
+  svg.innerHTML=h;
+}
+
+/* 실험 1 */
+const G={w:[-1.2,1.2],v:[],sum:[0,0],sq:0};
+function gAdd(n){for(let i=0;i<n;i++){const s=sample(),e=s.d-(G.w[0]*s.x[0]+G.w[1]*s.x[1]),v=[2*e*s.x[0],2*e*s.x[1]];G.v.push(v);G.sum[0]+=v[0];G.sum[1]+=v[1];}if(G.v.length>4000)G.v.splice(0,G.v.length-4000);drawG();}
+function gClear(){G.v=[];G.sum=[0,0];drawG();}
+let gMap=null;
+function drawG(){
+  if($('p-why').hidden)return;
+  const b=bowl($('gArrow'));if(!b)return;gMap=b;const {ctx,X,Y}=b,k=0.3;
+  const ox=X(G.w[0]),oy=Y(G.w[1]);
+  ctx.save();ctx.beginPath();ctx.rect(b.m,8,b.P,b.P);ctx.clip();
+  const show=G.v.slice(-300);show.forEach(v=>arrow(ctx,ox,oy,X(G.w[0]+k*v[0]),Y(G.w[1]+k*v[1]),C.lms,1,0.22));
+  if(G.v.length){const v=G.v[G.v.length-1];arrow(ctx,ox,oy,X(G.w[0]+k*v[0]),Y(G.w[1]+k*v[1]),C.lms,2,0.95);}
+  const t=trueDesc(G.w);arrow(ctx,ox,oy,X(G.w[0]+k*t[0]),Y(G.w[1]+k*t[1]),C.gd,3.2,1);
+  const n=G.v.length;
+  if(n){const m=[G.sum[0]/n,G.sum[1]/n];arrow(ctx,ox,oy,X(G.w[0]+k*m[0]),Y(G.w[1]+k*m[1]),C.wien,3.2,1);}
+  ctx.beginPath();ctx.arc(ox,oy,5,0,Math.PI*2);ctx.fillStyle=C.ink;ctx.fill();
+  ctx.restore();
+  $('uN').textContent=n;
+  if(n){const m=[G.sum[0]/n,G.sum[1]/n];$('uD').textContent=Math.hypot(m[0]-t[0],m[1]-t[1]).toFixed(3);
+    let ss=0;G.v.forEach(v=>{ss+=(v[0]-m[0])**2+(v[1]-m[1])**2;});const sd=n>1?Math.sqrt(ss/(n-1)):NaN;
+    $('uS').textContent=isFinite(sd)?sd.toFixed(3):'–';$('uSE').textContent=isFinite(sd)?(sd/Math.sqrt(n)).toFixed(3):'–';}
+  else{$('uD').textContent='–';$('uS').textContent='–';$('uSE').textContent='–';}
+}
+$('gArrow').addEventListener('pointerdown',e=>{if(!gMap)return;const r=$('gArrow').getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,{m,P}=gMap;if(x<m||x>m+P||y<8||y>8+P)return;
+  G.w=[-DOM+(x-m)/P*2*DOM,-DOM+(8+P-y)/P*2*DOM];gClear();gAdd(20);});
+$('ub1').onclick=()=>gAdd(1);$('ub10').onclick=()=>gAdd(10);$('ub100').onclick=()=>gAdd(100);$('ub0').onclick=gClear;
+
+/* 실험 2 */
+const KS=[1,4,16,64,256],L=0.5,M=80,START=[-1.2,1.2];
+const Kst={k:4,ends:{},gd:{},spread:{}};
+function runK(K){const mu=L/K,ends=[];for(let t=0;t<M;t++){let w=START.slice();for(let s=0;s<K;s++){const q=sample(),e=q.d-(w[0]*q.x[0]+w[1]*q.x[1]);w[0]+=2*mu*e*q.x[0];w[1]+=2*mu*e*q.x[1];}ends.push(w);}
+  let g=START.slice(),path=[g.slice()];for(let s=0;s<K;s++){const t=trueDesc(g);g[0]+=mu*t[0];g[1]+=mu*t[1];path.push(g.slice());}
+  const mx=ends.reduce((a,w)=>a+w[0],0)/M,my=ends.reduce((a,w)=>a+w[1],0)/M;
+  const sp=Math.sqrt(ends.reduce((a,w)=>a+(w[0]-mx)**2+(w[1]-my)**2,0)/(M-1));
+  Kst.ends[K]={pts:ends,mean:[mx,my]};Kst.gd[K]=path;Kst.spread[K]=sp;}
+function runAll(){KS.forEach(runK);drawK();}
+function drawK(){
+  if($('p-why').hidden)return;
+  const b=bowl($('kCloud'));if(b){const {ctx,X,Y}=b,K=Kst.k,E=Kst.ends[K],P=Kst.gd[K];
+    ctx.save();ctx.beginPath();ctx.rect(b.m,8,b.P,b.P);ctx.clip();
+    ctx.beginPath();P.forEach((w,i)=>{i?ctx.lineTo(X(w[0]),Y(w[1])):ctx.moveTo(X(w[0]),Y(w[1]));});ctx.strokeStyle=C.gd;ctx.lineWidth=2.2;ctx.stroke();
+    const g=P[P.length-1];ctx.beginPath();ctx.arc(X(g[0]),Y(g[1]),6,0,Math.PI*2);ctx.fillStyle=C.gd;ctx.fill();
+    ctx.fillStyle=C.lms;ctx.globalAlpha=0.6;E.pts.forEach(w=>{ctx.beginPath();ctx.arc(X(w[0]),Y(w[1]),3.4,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+    const mx=X(E.mean[0]),my=Y(E.mean[1]);ctx.beginPath();ctx.moveTo(mx,my-8);ctx.lineTo(mx+8,my);ctx.lineTo(mx,my+8);ctx.lineTo(mx-8,my);ctx.closePath();ctx.lineWidth=2.4;ctx.strokeStyle=C.wien;ctx.stroke();
+    ctx.fillStyle=C.ink;ctx.fillRect(X(START[0])-4,Y(START[1])-4,8,8);
+    ctx.fillStyle=C.ink;ctx.font='13px "IBM Plex Sans KR", sans-serif';ctx.textAlign='left';
+    ctx.fillText(`K = ${K},  μ = ${(L/K).toFixed(4)},  흩어짐 ${Kst.spread[K].toFixed(3)}`,b.m+8,26);
+    ctx.restore();}
+  const {ctx,W,H}=fit($('kBars'));ctx.fillStyle=C.surface;ctx.fillRect(0,0,W,H);
+  const l=44,r=10,t=10,bt=26,pw=W-l-r,ph=H-t-bt,mx=Math.max(...KS.map(k=>Kst.spread[k]))*1.1;
+  const Yv=v=>t+ph-v/mx*ph,bw=pw/KS.length;
+  ctx.font='11.5px "IBM Plex Mono", monospace';ctx.fillStyle=C.muted;ctx.textAlign='right';
+  [0,0.5,1].forEach(f=>{const v=mx*f,y=Yv(v);ctx.strokeStyle=C.line;ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(W-r,y);ctx.stroke();ctx.fillText(v.toFixed(2),l-6,y+4);});
+  KS.forEach((k,i)=>{const x=l+i*bw+bw*0.2,w=bw*0.6,v=Kst.spread[k];ctx.fillStyle=k===Kst.k?C.lms:C.muted;ctx.globalAlpha=k===Kst.k?0.9:0.4;ctx.fillRect(x,Yv(v),w,t+ph-Yv(v));ctx.globalAlpha=1;
+    ctx.fillStyle=C.ink;ctx.textAlign='center';ctx.fillText('K='+k,x+w/2,H-8);});
+  ctx.setLineDash([5,4]);ctx.strokeStyle=C.ink;ctx.lineWidth=1.5;ctx.beginPath();
+  KS.forEach((k,i)=>{const x=l+i*bw+bw/2,y=Yv(Kst.spread[1]/Math.sqrt(k));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();ctx.setLineDash([]);
+  KS.forEach((k,i)=>{const x=l+i*bw+bw/2,y=Yv(Kst.spread[1]/Math.sqrt(k));ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle=C.ink;ctx.fill();});
+}
+document.querySelectorAll('#kSeg button').forEach(b=>b.onclick=()=>{Kst.k=+b.dataset.k;document.querySelectorAll('#kSeg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawK();});
+$('kAgain').onclick=runAll;
+
+function all(){readColors();drawG();drawK();}
+const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',all);
+new MutationObserver(all).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if('ResizeObserver' in window){const ro=new ResizeObserver(()=>{drawG();drawK();});ro.observe($('gArrow'));ro.observe($('kCloud'));}
+readColors();darts();gAdd(30);KS.forEach(runK);drawK();
+})();
+
+/* ===== 탭 ===== */
+(function(){
+const tabs=[...document.querySelectorAll('.tab')];
+function show(){
+  const k=['adaline','why'].includes(location.hash.slice(1))?location.hash.slice(1):'bowl';
+  tabs.forEach(t=>{const on=t.dataset.tab===k;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;});
+  document.getElementById('p-bowl').hidden=k!=='bowl';
+  document.getElementById('p-adaline').hidden=k!=='adaline';
+  document.getElementById('p-why').hidden=k!=='why';
+  window.dispatchEvent(new Event('resize'));
+}
+tabs.forEach(t=>t.addEventListener('click',e=>{e.preventDefault();if(location.hash!=='#'+t.dataset.tab){try{location.hash=t.dataset.tab;}catch(_){}}show();window.scrollTo({top:0});}));
+window.addEventListener('hashchange',show);
+show();
+})();
+</script>
+</body>
+</html>
