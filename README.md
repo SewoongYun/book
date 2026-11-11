@@ -7,7 +7,7 @@
 
 | 책 폴더 | 책 | 연결된 프로그램 |
 |---|---|---|
-| `books/how-to-lie-with-statistics/` | 『새빨간 거짓말, 통계』 (대럴 허프) | 9개 (1~7장) |
+| `books/how-to-lie-with-statistics/` | 『새빨간 거짓말, 통계』 (대럴 허프) | 10개 (1~8장) |
 | `books/why-machines-learn/` | 『기계는 왜 학습하는가』 (아닐 아난타스와미) | 8개 (1~4장) |
 
 ## 폴더 구조
