@@ -197,7 +197,7 @@ window.BOOKS = [
           {
             id: "bowl-bottom-lab", title: "그릇의 바닥 찾기",
             file: "programs/그릇의 바닥 찾기.html",
-            type: "실험", session: "", pages: "",
+            type: "실험", session: "", pages: "72~102쪽",
             summary: "적응 필터의 평균 제곱 오차 그릇에서 최급강하법과 LMS(위드로·호프)가 바닥을 찾아가는 모습을 비교하고, ADALINE으로 T와 J를 구별한 뒤, 흔들리며 걷는 LMS가 왜 바닥에 닿는지(불편 추정, 작은 보폭)까지 3부로 따라가기",
             concepts: ["적응 필터", "평균 제곱 오차", "최급강하법", "LMS", "위드로·호프", "ADALINE", "불편 추정", "편향과 분산", "학습률(μ·η)"]
           }
@@ -209,7 +209,7 @@ window.BOOKS = [
           {
             id: "monty-hall-lab", title: "몬티홀 문제 실험실",
             file: "programs/몬티홀 문제 실험실.html",
-            type: "실험", session: "", pages: "",
+            type: "실험", session: "", pages: "103~151쪽",
             summary: "문을 지킬까, 바꿀까? 직접 해 보고, 컴퓨터로 수만 번 돌려 보고, 문을 n개로 늘려 본 뒤, 경우 나누기·조건부확률 트리·베이즈 정리로 바꾸면 2/3인 이유를 4단계로 따라가기",
             concepts: ["몬티홀 문제", "확률", "조건부확률", "베이즈 정리", "시뮬레이션", "큰 수의 법칙", "경우의 수"]
           }
