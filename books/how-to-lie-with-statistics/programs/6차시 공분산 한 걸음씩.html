@@ -83,6 +83,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .sqbars{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:6px}
 .sqbars i{flex:1;background:var(--line);border-radius:2px 2px 0 0}
 .sqbars i.on{background:var(--accent)}
+.kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.kind{border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;gap:4px;align-content:start}
+.kind svg{width:100%;height:auto;display:block}
+.kind .nm{font-weight:700;font-size:14.5px;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.kind .nm span{font-family:var(--mono);font-size:12.5px;font-weight:500}
+.kind p{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.kind p b{color:var(--ink);font-weight:500}
+.kind.warn{border-style:dashed}
+.rslide input{width:100%;accent-color:var(--accent)}
+.rguide{display:grid;grid-template-columns:repeat(5,1fr);font-size:11.5px;text-align:center;margin-top:2px;color:var(--muted)}
+.rguide span.on{color:var(--ink);font-weight:700}
+.sub2{font-family:var(--display);font-weight:400;font-size:20px;margin:16px 0 6px}
 .key{border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface));padding:10px 12px;border-radius:0 8px 8px 0;margin:12px 0;font-weight:500}
 .key .lb{display:block;font-size:12px;color:var(--accent);font-weight:700;letter-spacing:.04em}
 .calc{font-family:var(--mono);font-size:14px;background:var(--paper);border-radius:8px;padding:10px 12px;display:grid;gap:3px;overflow-x:auto;white-space:nowrap;margin:10px 0}
@@ -185,10 +197,10 @@ const CZ=(function(){let a=8;const R=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(
 function corr(a,b){const n=a.length,ma=a.reduce((s,v)=>s+v,0)/n,mb=b.reduce((s,v)=>s+v,0)/n;let c=0,va=0,vb=0;for(let i=0;i<n;i++){c+=(a[i]-ma)*(b[i]-mb);va+=(a[i]-ma)**2;vb+=(b[i]-mb)**2;}return c/Math.sqrt(va*vb);}
 function resid(y,t){const n=y.length,mt=t.reduce((s,v)=>s+v,0)/n,my=y.reduce((s,v)=>s+v,0)/n;let c=0,v=0;for(let i=0;i<n;i++){c+=(t[i]-mt)*(y[i]-my);v+=(t[i]-mt)**2;}const b=c/v;return y.map((yy,i)=>yy-my-b*(t[i]-mt));}
 const CZS=(()=>{const T=CZ.map(p=>p.t),I=CZ.map(p=>p.x),A=CZ.map(p=>p.y);return {r:corr(I,A),pr:corr(resid(I,T),resid(A,T)),rt1:corr(T,I),rt2:corr(T,A)};})();
-const S={sqA:2,zOn:false,erase:false,nid:6,step:0,sel:3,play:clone(BASE),unit:'h',seen:new Set([0]),drag:-1};
+const S={rk:0.6,sqA:2,zOn:false,erase:false,nid:6,step:0,sel:3,play:clone(BASE),unit:'h',seen:new Set([0]),drag:-1};
 
 const STEPS=[
-  {t:'질문'},{t:'평균'},{t:'편차'},{t:'네 구역'},{t:'곱 = 넓이'},{t:'평균 내기'},{t:'직접 해보기'},{t:'단위와 r'},{t:'상관 ≠ 인과'},{t:'정리'}
+  {t:'질문'},{t:'평균'},{t:'편차'},{t:'네 구역'},{t:'곱 = 넓이'},{t:'평균 내기'},{t:'직접 해보기'},{t:'단위와 r'},{t:'상관관계'},{t:'정리'}
 ];
 /* 단계별 무엇을 보여줄지 */
 const SHOW=[
@@ -397,7 +409,22 @@ function body(){
       <p style="margin:0;font-size:14.5px">직사각형 넓이는 두 변 위의 정사각형 넓이 평균을 넘지 못하죠. 그래서 r은 1을 넘지 못하고, <b>모든 직사각형이 정사각형일 때</b>, 곧 모든 점이 오른쪽 위로 올라가는 한 직선 위에 있을 때만 r = 1이 됩니다. 반대 방향이면 같은 이유로 r ≥ −1이에요.</p>
     </div>
     <div class="key"><span class="lb">핵심</span>공분산은 방향(부호)을 알려 주고, 상관계수 r은 단위 없이 강도까지 −1 ~ 1로 알려 준다</div>`;}
-  case 8:return `<p>그래프는 어느 바닷가 마을의 40일 기록입니다. 아이스크림이 많이 팔린 날일수록 물놀이 사고도 많았어요. <b>r = ${fmt(CZS.r,3)}</b>, 꽤 강한 양의 상관입니다.</p>
+  case 8:return `<p>두 변량이 함께 움직이는 관계를 <b>상관관계</b>라고 합니다. 점들이 어떻게 흩어져 있는지에 따라 크게 세 가지로 나눕니다. 초록 점선은 평균선이에요.</p>
+    <div class="kinds">
+      <div class="kind"><div class="nm cp">양의 상관관계<span>r = 0.85</span></div>${mini(KIND.pos,160,110,'--pos')}<p>한쪽이 커지면 다른 쪽도 <b>커지는</b> 경향. 점들이 오른쪽 위로 올라가요. 공분산 &gt; 0, r &gt; 0</p><p>예: 키와 몸무게, 공부 시간과 점수</p></div>
+      <div class="kind"><div class="nm cn">음의 상관관계<span>r = −0.85</span></div>${mini(KIND.neg,160,110,'--neg')}<p>한쪽이 커지면 다른 쪽은 <b>작아지는</b> 경향. 점들이 오른쪽 아래로 내려가요. 공분산 &lt; 0, r &lt; 0</p><p>예: 스마트폰 사용 시간과 수면 시간, 산의 높이와 기온</p></div>
+      <div class="kind"><div class="nm">상관관계 없음<span>r = 0.00</span></div>${mini(KIND.non,160,110,'--ink')}<p>뚜렷한 방향 없이 <b>골고루 흩어져</b> 있어요. 파란 넓이와 빨간 넓이가 맞비겨 공분산 ≈ 0, r ≈ 0</p><p>예: 신발 크기와 수학 점수</p></div>
+      <div class="kind warn"><div class="nm">주의: 곡선 관계<span>r ≈ 0</span></div>${mini(KIND.cur,160,110,'--accent')}<p>r ≈ 0인데도 관계가 분명한 경우예요. r은 <b>직선 경향</b>만 잽니다. 비가 적당하면 수확이 늘고 너무 많으면 줄 듯, 곡선 관계는 r로 잡히지 않아요.</p></div>
+    </div>
+    <div class="more rslide"><span class="hd">r을 직접 바꿔 보기</span>
+      <svg id="rSvg" viewBox="0 0 300 170" style="width:100%;height:auto;display:block" aria-label="상관계수에 따른 산점도"></svg>
+      <input type="range" id="rk" min="-1" max="1" step="0.05" value="${S.rk}" aria-label="상관계수 r" style="margin-top:8px">
+      <div class="rguide" id="rGuide"><span>−1 ~ −0.7</span><span>−0.7 ~ −0.3</span><span>−0.3 ~ 0.3</span><span>0.3 ~ 0.7</span><span>0.7 ~ 1</span></div>
+      <div id="rTxt" style="margin-top:6px;font-size:15px"></div>
+      <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">r이 ±1에 가까울수록 점들이 한 직선에 모이고, 0에 가까울수록 퍼집니다. 강약 구분(0.3, 0.7)은 교과서에서 흔히 쓰는 대략적인 기준이에요.</p>
+    </div>
+    <h3 class="sub2">그런데 상관관계가 있으면 원인일까?</h3>
+    <p>그래프는 어느 바닷가 마을의 40일 기록입니다. 아이스크림이 많이 팔린 날일수록 물놀이 사고도 많았어요. <b>r = ${fmt(CZS.r,3)}</b>, 꽤 강한 양의 상관입니다.</p>
     <p>그렇다면 “아이스크림을 먹으면 물에 빠진다”고 말할 수 있을까요? 아니죠. 아래 버튼으로 숨어 있던 변수를 꺼내 보세요.</p>
     <div class="seg" id="zSeg"><button data-z="0" aria-pressed="${!S.zOn}">판매량과 사고만</button><button data-z="1" aria-pressed="${S.zOn}">기온도 같이 보기</button></div>
     ${S.zOn?`<div class="say" style="margin-top:10px">더운 날에는 아이스크림도 많이 팔리고, 물놀이하는 사람도 많아 사고도 늘어납니다. <b>기온</b>이 두 변량을 동시에 움직인 제3의 요인이에요.<div class="calc" style="margin:8px 0 0"><span>기온–판매량 r = ${fmt(CZS.rt1,3)}</span><span>기온–사고  r = ${fmt(CZS.rt2,3)}</span><span>기온의 영향을 빼고 잰 판매량–사고 r = <b>${fmt(CZS.pr,3)}</b></span></div></div><p>기온의 영향을 걷어 내면 상관이 거의 0이 됩니다. 판매량과 사고 사이에 직접적인 연결은 없었던 거예요.</p>`:''}
@@ -427,14 +454,42 @@ function body(){
 }
 function drawExplain(){
   $('kicker').textContent=`${S.step+1} / ${STEPS.length} 단계`;
-  const T=['공부를 오래 하면 점수도 높을까?','먼저 기준을 정하자: 평균','평균에서 얼마나 떨어졌나: 편차','같은 방향? 반대 방향?','편차를 곱하면 직사각형 넓이','넓이의 평균이 공분산','직접 공분산을 바꿔 보자','공분산의 약점과 상관계수 r','상관관계는 인과관계가 아니다','정리: 숫자를 읽을 때 조심할 점'];
+  const T=['공부를 오래 하면 점수도 높을까?','먼저 기준을 정하자: 평균','평균에서 얼마나 떨어졌나: 편차','같은 방향? 반대 방향?','편차를 곱하면 직사각형 넓이','넓이의 평균이 공분산','직접 공분산을 바꿔 보자','공분산의 약점과 상관계수 r','상관관계: 세 가지 모양과 인과관계','정리: 숫자를 읽을 때 조심할 점'];
   $('title').textContent=T[S.step];$('body').innerHTML=body();
   $('prev').disabled=S.step===0;$('next').textContent=S.step===STEPS.length-1?'처음으로 ↺':'다음 →';
   $('body').querySelectorAll('[data-pre]').forEach(b=>b.onclick=()=>{preset(b.dataset.pre);});
   $('body').querySelectorAll('#unitSeg button').forEach(b=>b.onclick=()=>{S.unit=b.dataset.u;render(false);});
+  const rk=$('rk');if(rk){rk.oninput=e=>{S.rk=+e.target.value;drawR();};drawR();}
   const sq=$('sqA');if(sq){sq.oninput=e=>{S.sqA=+e.target.value;drawSq();};drawSq();}
   const eb=$('eraseBtn');if(eb)eb.onclick=()=>{S.erase=!S.erase;render(false);};
   $('body').querySelectorAll('#zSeg button').forEach(b=>b.onclick=()=>{S.zOn=b.dataset.z==='1';render(false);});
+}
+function genR(r,seed,n){let a=seed;const R=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+  const g=()=>{let u=0;while(u===0)u=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*R());};
+  let z1=[],z2=[];for(let i=0;i<n;i++){z1.push(g());z2.push(g());}
+  const c=v=>{const m=v.reduce((s,x)=>s+x,0)/v.length;return v.map(x=>x-m);},sd=v=>Math.sqrt(v.reduce((s,x)=>s+x*x,0)/v.length);
+  z1=c(z1);z2=c(z2);const s1=sd(z1);z1=z1.map(x=>x/s1);const pj=z2.reduce((s,x,i)=>s+x*z1[i],0)/n;z2=z2.map((x,i)=>x-pj*z1[i]);const s2=sd(z2);z2=z2.map(x=>x/s2);
+  const k=Math.sqrt(Math.max(0,1-r*r));return z1.map((x,i)=>({x,y:r*x+k*z2[i]}));}
+function mini(pts,w,h,col){
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),mn=a=>Math.min(...a),mx=a=>Math.max(...a);
+  const x0=mn(xs),x1=mx(xs),y0=mn(ys),y1=mx(ys),pad=10,X=v=>pad+(v-x0)/(x1-x0||1)*(w-2*pad),Y=v=>h-pad-(v-y0)/(y1-y0||1)*(h-2*pad);
+  const mxv=xs.reduce((s,v)=>s+v,0)/xs.length,myv=ys.reduce((s,v)=>s+v,0)/ys.length;
+  let t=`<rect x="1" y="1" width="${w-2}" height="${h-2}" rx="6" fill="var(--paper)"/>`;
+  t+=`<line x1="${X(mxv)}" x2="${X(mxv)}" y1="4" y2="${h-4}" stroke="var(--accent)" stroke-dasharray="4 3" stroke-opacity=".7"/><line x1="4" x2="${w-4}" y1="${Y(myv)}" y2="${Y(myv)}" stroke="var(--accent)" stroke-dasharray="4 3" stroke-opacity=".7"/>`;
+  pts.forEach(p=>{t+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="3.2" fill="var(${col})" fill-opacity=".8"/>`;});
+  return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${t}</svg>`;
+}
+const KIND=(()=>{const pos=genR(0.85,3,28),neg=genR(-0.85,5,28),non=genR(0,9,28);
+  let a=11;const R=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+  const cur=[];for(let i=0;i<28;i++){const x=i/27*4-2;cur.push({x,y:-(x*x)+(R()-.5)*0.6});}
+  const r=p=>corr(p.map(q=>q.x),p.map(q=>q.y));return {pos,neg,non,cur,rc:r(cur)};})();
+function drawR(){
+  const r=S.rk,pts=genR(r,21,60),el=$('rSvg');if(!el)return;
+  el.innerHTML=mini(pts,300,170,r>0.05?'--pos':r<-0.05?'--neg':'--ink').replace(/^<svg[^>]*>|<\/svg>$/g,'');
+  const a=Math.abs(r),lv=r<=-0.7?0:r<=-0.3?1:a<0.3?2:r<0.7?3:4;
+  const words=['강한 음의 상관','약한~보통 음의 상관','상관 거의 없음','약한~보통 양의 상관','강한 양의 상관'];
+  $('rTxt').innerHTML=`r = <b>${r.toFixed(2)}</b> · ${words[lv]}`;
+  document.querySelectorAll('#rGuide span').forEach((sp,i)=>sp.classList.toggle('on',i===lv));
 }
 function drawSq(){
   const a=S.sqA,b=10-a,k=11,w=a*k,h=b*k,x0=(130-w)/2,y0=(130-h)/2,sq=Math.abs(a-b)<1e-9;
