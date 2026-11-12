@@ -132,6 +132,18 @@ table.rd th{font-size:13px;font-weight:500;color:var(--muted)}
 .svgbox text{font-family:var(--body)}
 .qs ol{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14.5px}
 footer{font-size:12.5px;color:var(--muted)}
+/* 베이즈 */
+.formula{font-family:var(--mono);font-size:clamp(16px,2.8vw,21px);text-align:center;padding:14px 8px;margin:10px 0;background:var(--paper);border-radius:8px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.frac{display:inline-grid;text-align:center}
+.frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 6px 3px}
+.frac span:last-child{padding-top:3px}
+.terms{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin:0}
+.terms dt{font-family:var(--mono);font-weight:500;white-space:nowrap}
+.terms dd{margin:0;color:var(--muted)}
+.terms dd b{color:var(--ink);font-weight:500}
+.stk{display:flex;height:30px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.stk span{display:grid;place-items:center;font-size:12px;font-family:var(--mono);color:#fff;white-space:nowrap;overflow:hidden;min-width:0;transition:flex-basis .3s}
+@media (prefers-reduced-motion: reduce){.stk span{transition:none}}
 @media (prefers-reduced-motion: reduce){.door .leaf,.bar .fill,.md{transition:none}}
 </style>
 </head>
@@ -147,6 +159,7 @@ footer{font-size:12.5px;color:var(--muted)}
     <a class="tab" role="tab" href="#sim" data-tab="sim"><span class="tn">2</span> 컴퓨터로 수만 번</a>
     <a class="tab" role="tab" href="#many" data-tab="many"><span class="tn">3</span> 문이 n개라면</a>
     <a class="tab" role="tab" href="#why" data-tab="why"><span class="tn">4</span> 왜 2/3인가</a>
+    <a class="tab" role="tab" href="#bayes" data-tab="bayes"><span class="tn">5</span> 베이즈와 질병 검사</a>
   </nav>
 
   <!-- 1. 직접 해보기 -->
@@ -313,7 +326,98 @@ footer{font-size:12.5px;color:var(--muted)}
     </section>
   </div>
 
-  <footer>책에 나온 1990년 보스 사반트의 칼럼 논쟁, 에르되시와 컴퓨터 시뮬레이션 일화, 데블린의 상자 설명을 바탕으로 만들었습니다. 모든 결과는 이 페이지에서 무작위로 만든 가상 게임입니다.</footer>
+  <!-- 5. 베이즈와 질병 검사 -->
+  <div class="panel-tab" id="p-bayes" role="tabpanel" hidden>
+    <section class="grid2">
+      <div class="card">
+        <h2>베이즈 정리</h2>
+        <p class="txt">증거 E를 얻은 뒤 가설 H가 참일 확률을 다시 계산하는 공식입니다. 진행자가 문을 여는 것도, 병원에서 검사 결과를 받는 것도 모두 ‘증거’입니다.</p>
+        <div class="formula"><span>P(H|E) =</span><span class="frac"><span>P(H) × P(E|H)</span><span>P(E)</span></span></div>
+        <dl class="terms">
+          <dt>P(H)</dt><dd><b>사전확률</b>. 증거를 보기 전 H가 참일 확률. 질병 검사라면 무작위로 뽑은 사람이 그 병에 걸렸을 확률(유병률)</dd>
+          <dt>P(E|H)</dt><dd><b>가능도</b>. H가 참일 때 증거 E가 나올 확률. 환자가 양성으로 나올 확률(민감도)</dd>
+          <dt>P(E)</dt><dd><b>증거의 확률</b>. H가 참일 때와 거짓일 때 E가 나올 확률을 모두 더한 값</dd>
+          <dt>P(H|E)</dt><dd><b>사후확률</b>. 증거로 갱신한 확률. 다음 증거 앞에서는 이것이 새 사전확률이 된다</dd>
+        </dl>
+        <div class="eq"><span>P(E) = P(H)·P(E|H) + P(Hᶜ)·P(E|Hᶜ)</span></div>
+      </div>
+      <div class="card">
+        <h2>몬티홀과 질병 검사는 같은 계산</h2>
+        <div style="overflow-x:auto"><table class="rd">
+          <thead><tr><th></th><th>몬티홀</th><th>질병 검사 (책의 예)</th></tr></thead>
+          <tbody>
+            <tr><th>H</th><td>자동차가 2번에 있다</td><td>그 병에 걸렸다</td></tr>
+            <tr><th>E</th><td>진행자가 3번을 연다</td><td>검사 결과가 양성</td></tr>
+            <tr><th>P(H)</th><td class="mono">1/3</td><td class="mono">0.001</td></tr>
+            <tr><th>P(E|H)</th><td class="mono">1</td><td class="mono">0.9</td></tr>
+            <tr><th>P(E)</th><td class="mono">1/2</td><td class="mono">0.1008</td></tr>
+            <tr><th>P(H|E)</th><td class="mono cw"><b>2/3</b></td><td class="mono cw"><b>0.0089</b></td></tr>
+          </tbody></table></div>
+        <p class="txt" style="margin-top:8px">몬티홀은 1/3이 2/3로 두 배가 되고, 질병 검사는 0.1%가 약 0.9%로 오릅니다. 양성인데도 병에 걸렸을 확률이 1%도 안 되는 건 사전확률이 워낙 작기 때문입니다.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="cardhead"><h2>양성이 나왔다. 정말 병에 걸렸을까?</h2>
+        <div class="seg" id="bzSeg"><button data-i="0" aria-pressed="true">책의 예</button><button data-i="1" aria-pressed="false">정확도 99%</button><button data-i="2" aria-pressed="false">흔한 병 (1/100)</button></div></div>
+      <p class="txt">1,000명 중 1명이 걸리는 병, 환자의 90%를 양성으로 잡아내고 건강한 사람의 10%를 잘못 양성으로 판정하는 검사. 양성이면 90% 확률로 병에 걸렸다고 느끼기 쉽지만, 이 직관은 병이 얼마나 드문지(사전확률)를 빠뜨린 것입니다. 이를 <b>기저율 오류</b>라고 합니다.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;margin-top:6px">
+        <div class="sl"><div class="top"><span class="sub">유병률 P(H)</span><span class="mono" id="bzPv"></span></div><input type="range" id="bzP" min="-4" max="-0.3" step="0.05" value="-3" aria-label="유병률"></div>
+        <div class="sl"><div class="top"><span class="sub">민감도 P(E|H)</span><span class="mono" id="bzSev"></span></div><input type="range" id="bzSe" min="0.5" max="1" step="0.01" value="0.9" aria-label="민감도"></div>
+        <div class="sl"><div class="top"><span class="sub">거짓 양성률 P(E|Hᶜ)</span><span class="mono" id="bzFpv"></span></div><input type="range" id="bzFp" min="0" max="0.3" step="0.005" value="0.1" aria-label="거짓 양성률"></div>
+      </div>
+      <p class="sub" style="margin-top:6px">유병률 슬라이더는 로그 눈금입니다. ‘정확도 99%’는 민감도 99%, 거짓 양성률 1%라는 뜻입니다.</p>
+    </section>
+
+    <section class="grid2">
+      <div class="card svgbox">
+        <div class="cardhead"><h2>10만 명으로 세어 보기</h2><span class="sub">확률을 사람 수로 바꾸면 덜 헷갈립니다</span></div>
+        <svg id="bzTree" viewBox="0 0 660 260" role="img" aria-label="10만 명을 환자와 건강한 사람, 다시 양성과 음성으로 나눈 나무"></svg>
+      </div>
+      <div class="card">
+        <h2>베이즈로 계산하기</h2>
+        <div class="eq" id="bzEq"></div>
+        <div class="tiles" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <div class="tile"><span class="lb">검사 전 P(H)</span><span class="big" id="bzPrior"></span></div>
+          <div class="tile"><span class="lb cw">양성일 때 P(H|E)</span><span class="big cw" id="bzPost"></span><span class="sub" id="bzRatio"></span></div>
+        </div>
+        <div style="margin-top:12px"><span class="sub">양성 판정을 받은 사람들</span><div class="stk" id="bzBar" style="margin-top:4px"></div><p class="sub" id="bzBarL" style="margin-top:4px"></p></div>
+        <p class="txt" id="bzTxt"></p>
+      </div>
+    </section>
+
+    <section class="grid2 even">
+      <div class="card">
+        <h2>한 번 더 검사하면</h2>
+        <p class="txt">사후확률은 다음 검사의 사전확률이 됩니다. 같은 검사를 다시 받는다고 해 봅시다(두 검사 결과가 서로 독립이라고 가정).</p>
+        <div class="btns"><button class="btn sw" id="bzPos">양성 추가</button><button class="btn stay" id="bzNeg">음성 추가</button><button class="btn" id="bzRe">처음부터</button></div>
+        <div style="overflow-x:auto"><table class="rd" style="margin-top:8px"><thead><tr><th>회차</th><th>결과</th><th>사전확률</th><th>사후확률</th></tr></thead><tbody id="bzChain"></tbody></table></div>
+      </div>
+      <div class="card">
+        <h2>가상의 10만 명 검사</h2>
+        <p class="txt">지금 설정으로 10만 명을 무작위로 만들어 검사해 봅니다. 양성 중 실제 환자의 비율이 P(H|E)에 가까운지 확인해 보세요.</p>
+        <button class="btn primary" id="bzSim">시뮬레이션</button>
+        <div class="tiles" style="margin-top:10px">
+          <div class="tile"><span class="lb">양성 판정</span><span class="big" id="bzSPos">–</span></div>
+          <div class="tile"><span class="lb cw">그중 실제 환자</span><span class="big cw" id="bzSTp">–</span></div>
+          <div class="tile"><span class="lb">비율</span><span class="big" id="bzSR">–</span><span class="sub" id="bzSRt">&nbsp;</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card qs">
+      <h2>수업에서 던질 질문</h2>
+      <ol>
+        <li>민감도 90% 검사에서 양성이 나왔는데 실제로 병에 걸렸을 확률은 1%도 안 된다. 10만 명 나무로 설명해 보자.</li>
+        <li>‘정확도 99%’로 바꾸면 사후확률은 약 0.09가 된다. 민감도와 거짓 양성률 중 어느 쪽을 개선해야 사후확률이 더 크게 오르는가? 슬라이더로 확인해 보자.</li>
+        <li>같은 99% 검사인데 유병률이 1/100이면 사후확률이 1/2이 된다. 같은 양성 결과의 의미가 왜 이렇게 달라지는가?</li>
+        <li>책의 예에서 양성이 두 번, 세 번 연속 나오면 확률은 어떻게 갱신되는가? 두 검사가 독립이라는 가정은 현실적인가?</li>
+        <li>몬티홀에서 P(E|H) = 1은 무슨 뜻인가? 진행자가 자동차 위치를 모른다면 P(E|H)와 사후확률은 어떻게 바뀌는가?</li>
+      </ol>
+    </section>
+  </div>
+
+  <footer>책에 나온 1990년 보스 사반트의 칼럼 논쟁, 에르되시와 컴퓨터 시뮬레이션 일화, 데블린의 상자 설명, 베이즈 정리의 질병 검사 예를 바탕으로 만들었습니다. 모든 결과는 이 페이지에서 무작위로 만든 가상 게임입니다.</footer>
 </div>
 
 <script>
@@ -566,8 +670,59 @@ document.querySelectorAll('#qSeg button').forEach(b=>b.onclick=()=>{H.q=+b.datas
 $('hRun').onclick=hSim;
 hRender();
 
+/* ---------- 5. 베이즈와 질병 검사 ---------- */
+const B={p:0.001,se:0.9,fp:0.1,chain:[]};
+const g4=v=>String(Number(v.toPrecision(4)));
+const sp=v=>+(v*100).toFixed(2)+'%';
+const pp=v=>v>=0.1?(v*100).toFixed(1)+'%':v>=0.01?(v*100).toFixed(2)+'%':(v*100).toFixed(3)+'%';
+const BZP=[{p:0.001,se:0.9,fp:0.1},{p:0.001,se:0.99,fp:0.01},{p:0.01,se:0.99,fp:0.01}];
+function bzSet(s){B.p=s.p;B.se=s.se;B.fp=s.fp;$('bzP').value=Math.log10(s.p);$('bzSe').value=s.se;$('bzFp').value=s.fp;B.chain=[];bzRender();}
+function bzTree(N,sick,hl,TP,FN,FP,TN){
+  const bx=(x,y,w,t,f,st,c)=>`<rect x="${x}" y="${y-15}" width="${w}" height="30" rx="6" fill="${f}" stroke="${st}"/><text x="${x+w/2}" y="${y+5}" text-anchor="middle" font-size="13.5" fill="${c||'var(--ink)'}">${t}</text>`;
+  const ln=(x1,y1,x2,y2,t)=>{const mx=(x1+x2)/2,my=(y1+y2)/2;return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line)" stroke-width="2"/><text x="${mx-4}" y="${y2<y1?my-6:my+16}" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--muted)">${t}</text>`;};
+  const S='var(--surface)',L='var(--line)',tw=c=>`color-mix(in srgb, ${c} 22%, var(--surface))`;
+  let s=ln(112,130,190,70,sp(B.p))+ln(112,130,190,190,sp(1-B.p))+ln(340,70,410,30,sp(B.se))+ln(340,70,410,105,sp(1-B.se))+ln(340,190,410,155,sp(B.fp))+ln(340,190,410,230,sp(1-B.fp));
+  s+=bx(8,130,104,`${fmtN(N)}명`,S,L)+bx(190,70,150,`환자 ${fmtN(sick)}명`,S,L)+bx(190,190,150,`건강 ${fmtN(hl)}명`,S,L);
+  s+=bx(410,30,180,`양성 ${fmtN(TP)}명`,tw('var(--sw)'),'var(--sw)')+bx(410,105,180,`음성 ${fmtN(FN)}명`,S,L,'var(--muted)');
+  s+=bx(410,155,180,`양성 ${fmtN(FP)}명`,tw('var(--stay)'),'var(--stay)')+bx(410,230,180,`음성 ${fmtN(TN)}명`,S,L,'var(--muted)');
+  s+=`<text x="598" y="35" font-size="12.5" fill="var(--sw)" font-weight="700">참양성</text><text x="598" y="160" font-size="12.5" fill="var(--stay)" font-weight="700">거짓양성</text>`;
+  $('bzTree').innerHTML=s;
+}
+function bzChainRender(){
+  let pr=B.p;const rows=[`<tr><td>검사 전</td><td>–</td><td class="mono">–</td><td class="mono">${pp(B.p)}</td></tr>`];
+  B.chain.forEach((pos,i)=>{const Lk=pos?B.se:1-B.se,Lc=pos?B.fp:1-B.fp,d=pr*Lk+(1-pr)*Lc,post=d?pr*Lk/d:pr;
+    rows.push(`<tr><td>${i+1}차</td><td class="${pos?'cw':'cs'}">${pos?'양성':'음성'}</td><td class="mono">${pp(pr)}</td><td class="mono"><b>${pp(post)}</b></td></tr>`);pr=post;});
+  $('bzChain').innerHTML=rows.join('');
+  $('bzPos').disabled=$('bzNeg').disabled=B.chain.length>=6;
+}
+function bzRender(){
+  const {p,se,fp}=B,tp=p*se,fq=(1-p)*fp,e=tp+fq,post=e?tp/e:0;
+  $('bzPv').textContent=`1/${fmtN(Math.round(1/p))} (${pp(p)})`;$('bzSev').textContent=sp(se);$('bzFpv').textContent=sp(fp);
+  document.querySelectorAll('#bzSeg button').forEach(b=>{const s=BZP[+b.dataset.i];b.setAttribute('aria-pressed',String(Math.abs(s.p-p)<1e-9&&Math.abs(s.se-se)<1e-9&&Math.abs(s.fp-fp)<1e-9));});
+  $('bzEq').innerHTML=`<span>P(H) = ${g4(p)},  P(E|H) = ${g4(se)},  P(E|Hᶜ) = ${g4(fp)}</span><span>P(E) = ${g4(p)}×${g4(se)} + ${g4(1-p)}×${g4(fp)}</span><span>     = ${g4(tp)} + ${g4(fq)} = ${g4(e)}</span><span class="cw">P(H|E) = ${g4(tp)} ÷ ${g4(e)} = ${g4(post)}</span>`;
+  $('bzPrior').textContent=pp(p);$('bzPost').textContent=pp(post);$('bzRatio').textContent=`검사 전보다 ${(post/p).toFixed(1)}배`;
+  const N=100000,sick=Math.round(N*p),hl=N-sick,TP=Math.round(sick*se),FN=sick-TP,FP=Math.round(hl*fp),TN=hl-FP,pos=TP+FP,sh=pos?TP/pos*100:0;
+  bzTree(N,sick,hl,TP,FN,FP,TN);
+  $('bzBar').innerHTML=`<span style="flex:0 0 ${sh}%;background:var(--sw)">${sh>=14?'환자 '+fmtN(TP):''}</span><span style="flex:0 0 ${100-sh}%;background:var(--stay)">${100-sh>=14?'거짓 양성 '+fmtN(FP):''}</span>`;
+  $('bzBarL').innerHTML=`양성 ${fmtN(pos)}명 = <span class="cw">실제 환자 ${fmtN(TP)}명</span> + <span class="cs">건강한데 양성 ${fmtN(FP)}명</span>`;
+  $('bzTxt').textContent=post<0.5?`10만 명을 검사하면 양성이 ${fmtN(pos)}명 나오지만 그중 실제 환자는 ${fmtN(TP)}명뿐입니다. 건강한 사람이 워낙 많아서, 그중 일부만 잘못 양성으로 나와도(${fmtN(FP)}명) 진짜 환자 수를 압도합니다.`:`이번에는 양성 판정을 받은 사람 중 실제 환자(${fmtN(TP)}명)가 거짓 양성(${fmtN(FP)}명)보다 많거나 같습니다. 같은 검사라도 사전확률이 커지면 양성 결과를 훨씬 더 믿을 수 있습니다.`;
+  ['bzSPos','bzSTp','bzSR'].forEach(id=>$(id).textContent='–');$('bzSRt').textContent=`이론값 ${pp(post)}`;
+  bzChainRender();
+}
+$('bzP').oninput=e=>{B.p=Math.pow(10,+e.target.value);B.chain=[];bzRender();};
+$('bzSe').oninput=e=>{B.se=+e.target.value;B.chain=[];bzRender();};
+$('bzFp').oninput=e=>{B.fp=+e.target.value;B.chain=[];bzRender();};
+document.querySelectorAll('#bzSeg button').forEach(b=>b.onclick=()=>bzSet(BZP[+b.dataset.i]));
+$('bzPos').onclick=()=>{B.chain.push(true);bzChainRender();};
+$('bzNeg').onclick=()=>{B.chain.push(false);bzChainRender();};
+$('bzRe').onclick=()=>{B.chain=[];bzChainRender();};
+$('bzSim').onclick=()=>{const T=100000;let pos=0,tp=0;
+  for(let t=0;t<T;t++){const s=Math.random()<B.p;if(s?Math.random()<B.se:Math.random()<B.fp){pos++;if(s)tp++;}}
+  $('bzSPos').textContent=fmtN(pos);$('bzSTp').textContent=fmtN(tp);$('bzSR').textContent=pos?pp(tp/pos):'–';};
+bzRender();
+
 /* ---------- 탭 ---------- */
-const tabs=[...document.querySelectorAll('.tab')],names=['play','sim','many','why'];
+const tabs=[...document.querySelectorAll('.tab')],names=['play','sim','many','why','bayes'];
 function show(){
   const h=location.hash.slice(1),k=names.includes(h)?h:'play';
   tabs.forEach(t=>{const on=t.dataset.tab===k;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;});
