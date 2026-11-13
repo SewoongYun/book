@@ -10,15 +10,15 @@
 <style>
 /* layout: worked-solution notebook; one scrolling column of numbered cases in the book's order, every number derived on the page; same tokens as the penguin simulator */
 :root{
---paper:#F6F8FB;--grid:#E2E8F0;--surface:#FFFFFF;--ink:#17233A;--ink-2:#55627A;--line:#D5DDE8;--soft:#EEF1F7;
+--sheet:#5B6478;--ch:#D2761E;--paper:#F6F8FB;--grid:#E2E8F0;--surface:#FFFFFF;--ink:#17233A;--ink-2:#55627A;--line:#D5DDE8;--soft:#EEF1F7;
 --ad:#4A4FD4;--ge:#0E8F68;--note:#C2410C;--mark:#FFE36E;
 --font-body:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;--font-math:'STIX Two Text','Times New Roman',serif;--font-hand:'Nanum Pen Script',cursive;
 color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --paper:#10161F;--grid:#1B2430;--surface:#161E29;--ink:#E7EDF5;--ink-2:#9AA7BA;--line:#2A3646;--soft:#1D2733;
---ad:#9A9DF5;--ge:#3CC79A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}}
+--ad:#9A9DF5;--ge:#3CC79A;--ch:#F0A35A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}}
 :root[data-theme="dark"]{--paper:#10161F;--grid:#1B2430;--surface:#161E29;--ink:#E7EDF5;--ink-2:#9AA7BA;--line:#2A3646;--soft:#1D2733;
---ad:#9A9DF5;--ge:#3CC79A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}
+--ad:#9A9DF5;--ge:#3CC79A;--ch:#F0A35A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:22px 22px;color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
@@ -30,7 +30,7 @@ header p{margin:8px 0 0;color:var(--ink-2);font-size:15px}
 .map a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
 section.case{margin-top:18px;display:none}
 section.case.on{display:block}
-.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;margin:16px -6px 0;padding:8px 6px;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:1px;margin:16px -6px 0;padding:8px 6px;background:var(--paper);border-bottom:1px solid var(--line)}
 .tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;border-radius:10px;font-size:11px;color:var(--ink-2);text-align:center;line-height:1.3}
 .tabs .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:var(--surface)}
 .tabs button.on{color:var(--ink);font-weight:600}
@@ -38,6 +38,17 @@ section.case.on{display:block}
 .tabs button:focus-visible,.btn:focus-visible{outline:2px solid var(--ad);outline-offset:2px}
 .ten{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin:10px 0 4px}
 .ten span{aspect-ratio:1;border-radius:50%}
+.ch{color:var(--ch)}
+canvas.c3d{height:330px;touch-action:none;cursor:grab;margin-bottom:10px}
+canvas.c2d{height:320px;cursor:crosshair}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 12px}
+.seg button{flex:1;font:inherit;font-size:14px;padding:9px 4px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ink-2);margin:6px 0 12px}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.lg i.pt{border:2px solid var(--ink);background:var(--surface);width:12px;height:12px}
 .pn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:22px}
 .btn{font:inherit;font-size:15px;font-weight:500;color:var(--ink);background:var(--surface);border:1.5px solid var(--ink);border-radius:10px;padding:11px 12px;cursor:pointer}
 .btn.solid{background:var(--ink);color:var(--paper)}
@@ -224,14 +235,47 @@ a.ext{color:var(--ad)}
 <div class="sl"><label for="x">부리 높이 x</label><input type="range" id="x" min="13" max="21" step="0.1" value="16"><output id="xO">16.0mm</output></div>
 <div id="out"></div>
 </div>
-<p class="small" style="margin-top:14px">특징을 2개(부리 길이 + 부리 높이)로 늘린 책 142쪽 사례도 계산 방법은 똑같아. P(x|y)가 곡선 대신 언덕 모양의 2차원 정규분포가 될 뿐이야. 그 부분은 <a class="ext" href="https://claude.ai/artifact/VuqYTUMytQnLNtydaKTgpn">펭귄 시뮬레이션 7단계</a>에서 눌러 보면서 확인할 수 있어.</p>
+<p class="small" style="margin-top:14px">특징을 2개(부리 길이 + 부리 높이)로 늘린 책 142~143쪽 사례는 8·9번 탭에서 이어져.</p>
 <p class="small">막대 구간은 책 그래프에서 읽은 값이라, 저자가 쓴 원본 데이터로 계산하면 소수점 아래 숫자가 조금 다를 수 있어. 결론(16mm에서 젠투 0.8)은 같아.</p>
+</section>
+<section class="case" id="c8">
+<h2><span class="n">8</span>특징이 2개면 곡선 대신 언덕</h2>
+<div class="pg">책 142~143쪽 "3차원 작도"</div>
+<p>부리 높이 하나만 쓸 때 P(x|y)는 <mark>곡선</mark>이었어. 부리 길이까지 2개를 쓰면 x는 (길이, 높이) 두 숫자가 되고, P(x|y)는 바닥 위에 솟은 <mark>언덕</mark>이 돼. 언덕이 높은 곳일수록 그런 부리를 가진 펭귄이 많다는 뜻이야. 바닥의 색은 같은 언덕을 위에서 내려다본 <mark>히트맵</mark>이야. 책 143쪽 그림과 같은 구조지.</p>
+<div class="seg" id="s3d"><button data-v="0">아델리만</button><button data-v="1" class="on">아델리 + 턱끈</button><button data-v="2">세 종 모두</button></div>
+<canvas id="cv8" class="c3d" aria-label="부리 길이와 부리 높이에 대한 확률 밀도 언덕과 바닥 히트맵"></canvas>
+<div class="small" style="text-align:center;margin:-4px 0 14px">바닥의 두 축은 부리 길이(32~60mm)와 부리 높이(13~22mm)야. 손가락으로 끌면 돌아가.</div>
+<div class="eq"><i>P</i>(<i>x</i>|<i>y</i>) = <span class="frac"><span>1</span><span>2π σ<sub>1</sub>σ<sub>2</sub>√(1 − ρ²)</span></span> × <i>e</i><sup>−<i>Q</i>/2</sup><br><i>Q</i> = <span class="frac"><span><i>z</i><sub>1</sub>² − 2ρ<i>z</i><sub>1</sub><i>z</i><sub>2</sub> + <i>z</i><sub>2</sub>²</span><span>1 − ρ²</span></span>
+<span class="k">z₁ = (길이 − 평균 길이) ÷ σ₁, z₂ = (높이 − 평균 높이) ÷ σ₂, ρ = 길이와 높이가 같이 커지는 정도(상관계수). 1차원 공식에서 z가 두 개로 늘어난 거야.</span></div>
+<div class="tw"><table>
+<caption>언덕 모양을 정하는 숫자 (데이터의 평균·표준편차·상관계수)</caption>
+<thead><tr><th style="text-align:left">종</th><th>평균 길이</th><th>평균 높이</th><th>σ₁ (길이)</th><th>σ₂ (높이)</th><th>ρ</th></tr></thead>
+<tbody id="t2d"></tbody>
+</table></div>
+<p>책 말대로 <span class="ad">아델리 언덕</span>은 둥근 편이고, <span class="ch">턱끈 언덕</span>은 ρ가 커서 비스듬히 기운 좁은 타원이야. 두 언덕은 <mark>높이 방향으로는 같은 자리</mark>(18.4mm 근처)에 있지만, <mark>길이 방향으로는 10mm쯤 떨어져</mark> 있어. 그래서 높이만 보면 겹치고, 길이까지 보면 갈라져.</p>
+<p class="note">특징 1개 = 곡선, 특징 2개 = 언덕</p>
+</section>
+
+<section class="case" id="c9">
+<h2><span class="n">9</span>세 종 분류하기</h2>
+<div class="pg">책 142~143쪽</div>
+<p>계산 순서는 5·6번과 똑같아. <mark>언덕 높이(가능도) × 사전확률</mark>을 구하고, 다 더해서 P(x)를 만든 뒤 나누면 끝이야. 이번엔 턱끈까지 세 종이라 사전확률은 <mark>마릿수 ÷ 333</mark>(아델리 146, 젠투 119, 턱끈 68)이야. 그래프를 눌러서 새 펭귄을 놓아 봐.</p>
+<div class="seg" id="sm"><button data-m="0">부리 높이만</button><button data-m="1" class="on">길이 + 높이</button></div>
+<canvas id="cv9" class="c2d" aria-label="세 종의 산점도와 분류 영역"></canvas>
+<div class="lg"><span><i style="background:var(--ad)"></i>아델리</span><span><i style="background:var(--ge)"></i>젠투</span><span><i style="background:var(--ch)"></i>턱끈</span><span><i class="pt"></i>새 펭귄</span></div>
+<div class="tool">
+<div class="sl"><label for="pl">부리 길이</label><input type="range" id="pl" min="32" max="60" step="0.5" value="47"><output id="plO">47.0mm</output></div>
+<div class="sl"><label for="pd">부리 높이</label><input type="range" id="pd" min="13" max="22" step="0.1" value="18.5"><output id="pdO">18.5mm</output></div>
+<div id="out9"></div>
+</div>
+<p class="small" style="margin-top:12px">배경색은 그 자리에 펭귄을 놓았을 때 분류기가 고르는 종이야. 점은 표의 평균·표준편차·상관계수로 만든 모의 데이터야. 부리 길이 통계는 책에 숫자가 없어서 공개된 펭귄 데이터(파머 펭귄) 값을 썼어.</p>
+<p class="note">특징을 늘리면 겹쳐 있던 펭귄도 갈라진다</p>
 </section>
 <div class="pn"><button class="btn ghost" id="prev">이전</button><button class="btn solid" id="next">다음</button></div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
-const TAB=['밀도','평균','P(x|y)','P(y)','P(x)','P(y|x)','계산기'];
+const TAB=['밀도','평균','P(x|y)','P(y)','P(x)','P(y|x)','계산기','3D 언덕','세 종'];
 
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const HA={n:146,lo:15.5,w:.6,c:[3,7,23,17,25,36,16,7,6,6]},HG={n:119,lo:13.1,w:.42,c:[6,14,14,19,17,14,16,11,2,6]};
@@ -268,15 +312,85 @@ $('ten').innerHTML=Array.from({length:10},(_,i)=>'<span style="background:var(--
 $('tabs').innerHTML=TAB.map((t,i)=>'<button data-i="'+i+'"><span class="n">'+(i+1)+'</span>'+t+'</button>').join('');
 let cur=0;
 function show(i,scroll){cur=i;secs.forEach((x,j)=>x.classList.toggle('on',j===i));[...$('tabs').children].forEach((b,j)=>{b.classList.toggle('on',j===i);b.setAttribute('aria-current',j===i?'step':'false')});
-$('prev').style.visibility=i?'visible':'hidden';$('next').textContent=i===6?'처음으로':'다음: '+TAB[i+1];
-if(i===2)chart();try{history.replaceState(null,'','#c'+(i+1))}catch(e){}
+$('prev').style.visibility=i?'visible':'hidden';$('next').textContent=i===8?'처음으로':'다음: '+TAB[i+1];
+if(i===2)chart();if(i===7)draw3d();if(i===8)drawCls();try{history.replaceState(null,'','#c'+(i+1))}catch(e){}
 if(scroll)$('tabs').scrollIntoView({block:'start'})}
 [...$('tabs').children].forEach(b=>b.onclick=()=>show(+b.dataset.i,true));
-$('prev').onclick=()=>show(cur-1,true);$('next').onclick=()=>show(cur===6?0:cur+1,true);
-$('x').oninput=calc;calc();
-const h0=/^#c([1-7])$/.exec(location.hash);show(h0?+h0[1]-1:0,false);
+$('prev').onclick=()=>show(cur-1,true);$('next').onclick=()=>show(cur===8?0:cur+1,true);
+const SP=[{k:'ad',name:'아델리',n:146,mx:38.8,sx:2.66,my:FA.m,sy:FA.s,r:.39},{k:'ge',name:'젠투',n:119,mx:47.5,sx:3.08,my:FG.m,sy:FG.s,r:.64},{k:'ch',name:'턱끈',n:68,mx:48.8,sx:3.34,my:18.42,sy:1.14,r:.65}];
+const d2=(a,b,p)=>{const z1=(a-p.mx)/p.sx,z2=(b-p.my)/p.sy,Q=(z1*z1-2*p.r*z1*z2+z2*z2)/(1-p.r*p.r),k=1/(2*Math.PI*p.sx*p.sy*Math.sqrt(1-p.r*p.r));return{z1,z2,Q,k,v:k*Math.exp(-Q/2)}};
+$('t2d').innerHTML=SP.map(p=>'<tr><td style="text-align:left;font-family:var(--font-body)" class="'+p.k+'">'+p.name+'</td><td>'+p.mx.toFixed(1)+'</td><td>'+p.my.toFixed(2)+'</td><td>'+p.sx.toFixed(2)+'</td><td>'+p.sy.toFixed(2)+'</td><td>'+p.r.toFixed(2)+'</td></tr>').join('');
+let v3=1,yaw=-0.75,pitch=0.62,mode=1,P9=[47,18.5];
+function canvasCtx(cv){const r=cv.getBoundingClientRect();if(!r.width)return null;const dp=window.devicePixelRatio||1;cv.width=r.width*dp;cv.height=r.height*dp;const c=cv.getContext('2d');c.scale(dp,dp);return{c,W:r.width,H:r.height}}
+function hex2rgb(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function draw3d(){
+const g=canvasCtx($('cv8'));if(!g)return;const {c,W,H}=g;
+const sel=[[0],[0,2],[0,1,2]][v3].map(i=>SP[i]);
+const N=44,x0=32,x1=60,y0=13,y1=22;let zmax=0;const G=[];
+for(let i=0;i<=N;i++){G[i]=[];for(let j=0;j<=N;j++){const a=x0+(x1-x0)*i/N,b=y0+(y1-y0)*j/N;let best=0,bi=0;sel.forEach((p,q)=>{const v=d2(a,b,p).v*p.n;if(v>best){best=v;bi=q}});G[i][j]=[best,bi];zmax=Math.max(zmax,best)}}
+const cs=sel.map(p=>hex2rgb(css('--'+p.k)));
+const s=Math.min(W,H*1.25)*0.34,cx=W/2,cy=H*0.5,cy0=Math.cos(yaw),sy0=Math.sin(yaw),sp=Math.sin(pitch),cp=Math.cos(pitch);
+const pr=(u,v,h)=>{const xr=u*cy0-v*sy0,yr=u*sy0+v*cy0;return[cx+s*xr,cy+s*(yr*sp-h*cp*1.25),yr]};
+const U=i=>-1+2*i/N,V=j=>-1+2*j/N,FL=-0.75;
+c.clearRect(0,0,W,H);
+const ink2=css('--ink-2'),line=css('--line');
+for(let i=0;i<N;i++)for(let j=0;j<N;j++){const [v,bi]=G[i][j],t=Math.pow(v/zmax,0.6),col=cs[bi];
+const p=[pr(U(i),V(j),FL),pr(U(i+1),V(j),FL),pr(U(i+1),V(j+1),FL),pr(U(i),V(j+1),FL)];
+c.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+(0.06+0.9*t).toFixed(3)+')';c.beginPath();p.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill()}
+const fc=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v])=>pr(u,v,FL));c.strokeStyle=line;c.lineWidth=1;c.beginPath();fc.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.stroke();
+const quads=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const h=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]].map(([a,b])=>-0.12+G[a][b][0]/zmax*1.05);const pts=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]].map(([a,b],k)=>pr(U(a),V(b),h[k]));quads.push({pts,d:pts.reduce((a,p)=>a+p[2],0)/4,h:(h[0]+h[1]+h[2]+h[3])/4,bi:G[i][j][1]})}
+quads.sort((a,b)=>a.d-b.d);
+const nb=hex2rgb(css('--sheet'));quads.forEach(q=>{const col=cs[q.bi],t=Math.min(1,Math.pow((q.h+0.12)/1.05,0.7)*1.15);c.fillStyle='rgb('+[0,1,2].map(k=>Math.round(nb[k]*(1-t)+col[k]*t)).join(',')+')';c.strokeStyle='rgba(255,255,255,0.28)';c.lineWidth=0.5;c.beginPath();q.pts.forEach(([x,y],k)=>k?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();c.stroke()});
+c.fillStyle=ink2;c.font='12px "IBM Plex Sans KR",sans-serif';c.textAlign='center';
+const lab=(u,v,t)=>{const [x,y]=pr(u,v,FL);c.fillText(t,x,y+16)};
+const lab2=(u,v,t)=>{const [x,y]=pr(u,v,FL);c.fillText(t,x,y+4)};
 
-window.addEventListener('resize',()=>{if(cur===2)chart()});
+c.textAlign='left';const [hx,hy]=pr(0,0,1.02);c.fillText('언덕 = 확률 밀도',Math.min(W-100,hx+40),Math.max(14,hy));const [fx,fy]=pr(-1,1,FL);c.fillText('바닥 = 히트맵',Math.max(4,fx-40),Math.min(H-6,fy+18));c.textAlign='center';
+const lg=sel.map((p,q)=>'<span class="'+p.k+'">■ '+p.name+'</span>').join(' ');
+}
+(function(){const cv=$('cv8');let dn=null;cv.addEventListener('pointerdown',e=>{dn=[e.clientX,e.clientY,yaw,pitch];cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(!dn)return;yaw=dn[2]-(e.clientX-dn[0])*0.01;pitch=Math.min(1.35,Math.max(0.2,dn[3]+(e.clientY-dn[1])*0.006));draw3d()});
+const up=()=>dn=null;cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up)})();
+[...$('s3d').children].forEach(b=>b.onclick=()=>{v3=+b.dataset.v;[...$('s3d').children].forEach(z=>z.classList.toggle('on',z===b));draw3d()});
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const RG=rng(7),gs=()=>{const u=1-RG(),v=RG();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const PTS=SP.map(p=>Array.from({length:p.n},()=>{const a=gs(),b=gs();return[p.mx+p.sx*a,p.my+p.sy*(p.r*a+Math.sqrt(1-p.r*p.r)*b)]}));
+const like=(a,b,p)=>mode?d2(a,b,p):(()=>{const z=(b-p.my)/p.sy,k=1/(p.sy*SQ);return{z2:z,k,v:k*Math.exp(-z*z/2)}})();
+const post=(a,b)=>{const w=SP.map(p=>like(a,b,p).v*p.n/333),s=w.reduce((x,y)=>x+y,0);return{w,s,q:w.map(x=>x/s)}};
+function drawCls(){
+const g=canvasCtx($('cv9'));if(!g)return;const {c,W,H}=g;const L=40,R=W-10,T=12,B=H-32;
+const X=a=>L+(a-32)/28*(R-L),Y=b=>B-(b-13)/9*(B-T);
+c.clearRect(0,0,W,H);
+const cell=6;for(let px=L;px<R;px+=cell)for(let py=T;py<B;py+=cell){const a=32+(px+cell/2-L)/(R-L)*28,b=13+(B-py-cell/2)/(B-T)*9,q=post(a,b).q,i=q.indexOf(Math.max(...q));c.globalAlpha=.14;c.fillStyle=css('--'+SP[i].k);c.fillRect(px,py,Math.min(cell,R-px),Math.min(cell,B-py))}
+c.globalAlpha=1;const grid=css('--grid'),line=css('--line'),ink=css('--ink'),ink2=css('--ink-2'),sf=css('--surface');
+c.strokeStyle=line;c.lineWidth=1.5;c.beginPath();c.moveTo(L,T);c.lineTo(L,B);c.lineTo(R,B);c.stroke();
+c.fillStyle=ink2;c.font='12px "STIX Two Text",serif';c.textAlign='center';[35,40,45,50,55,60].forEach(a=>c.fillText(a,X(a),B+15));c.textAlign='right';[14,16,18,20,22].forEach(b=>c.fillText(b,L-5,Y(b)+4));
+c.font='12px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillText('부리 길이 (mm)',(L+R)/2,H-2);c.save();c.translate(11,(T+B)/2);c.rotate(-Math.PI/2);c.fillText('부리 높이 (mm)',0,0);c.restore();
+SP.forEach((p,j)=>{c.fillStyle=css('--'+p.k);c.globalAlpha=.6;PTS[j].forEach(([a,b])=>{if(a<32||a>60||b<13||b>22)return;c.beginPath();c.arc(X(a),Y(b),2.6,0,7);c.fill()})});c.globalAlpha=1;
+const x=X(P9[0]),y=Y(P9[1]);c.fillStyle=sf;c.strokeStyle=ink;c.lineWidth=2.5;c.beginPath();c.arc(x,y,8,0,7);c.fill();c.stroke();c.lineWidth=1.5;c.beginPath();c.moveTo(x-13,y);c.lineTo(x+13,y);c.moveTo(x,y-13);c.lineTo(x,y+13);c.stroke();
+calc9();
+}
+function calc9(){
+const [a,b]=P9,P=post(a,b);const wi=P.q.indexOf(Math.max(...P.q));
+const f=v=>v<1e-4?v.toExponential(1):v.toFixed(4);
+let h='<div class="work" style="margin:0"><h3>부리 길이 '+a.toFixed(1)+'mm, 높이 '+b.toFixed(1)+'mm '+(mode?'(길이 + 높이)':'(높이만)')+'</h3>';
+SP.forEach((p,i)=>{const L=like(a,b,p);
+h+=(i?'<hr>':'')+(mode?'<div class="ln"><span class="l '+p.k+'">'+p.name+': z₁, z₂</span><span class="v">'+L.z1.toFixed(2)+', &nbsp;'+L.z2.toFixed(2)+'</span></div><div class="ln"><span class="l">Q</span><span class="v">'+L.Q.toFixed(2)+'</span></div>':'<div class="ln"><span class="l '+p.k+'">'+p.name+': z</span><span class="v">('+b.toFixed(1)+' − '+p.my.toFixed(2)+') ÷ '+p.sy.toFixed(2)+' = '+L.z2.toFixed(2)+'</span></div>')
++'<div class="ln"><span class="l">P(x|'+p.name+')</span><span class="v">'+f(L.v)+'</span></div><div class="ln"><span class="l">× '+p.n+'/333</span><span class="v">'+f(P.w[i])+'</span></div>'});
+h+='<hr><div class="ln"><span class="l">P(x) = 세 값의 합</span><span class="v">'+f(P.s)+'</span></div>'+SP.map((p,i)=>'<div class="ln res"><span class="l '+p.k+'">P('+p.name+'|x)</span><span class="v '+p.k+'">'+P.q[i].toFixed(2)+'</span></div>').join('');
+h+='<div class="split">'+SP.map((p,i)=>'<div style="flex-basis:'+P.q[i]*100+'%;background:var(--'+p.k+')">'+(P.q[i]>.3?p.name+' '+P.q[i].toFixed(2):P.q[i]>.1?P.q[i].toFixed(2):'')+'</div>').join('')+'</div>';
+h+='<div class="small">예측: <b>'+SP[wi].name+'</b> ('+P.q[wi].toFixed(2)+'). '+(mode===0?'높이만 보면 아델리와 턱끈의 곡선이 거의 같아서, 수가 더 많은 아델리 쪽으로 기울어. 위에서 <b>길이 + 높이</b>를 눌러 봐.':'길이까지 보니 언덕끼리 덜 겹쳐서 훨씬 확실해졌어.')+'</div></div>';
+$('out9').innerHTML=h;
+}
+const setP9=(a,b)=>{P9=[Math.round(a*2)/2,Math.round(b*10)/10];$('pl').value=P9[0];$('plO').textContent=P9[0].toFixed(1)+'mm';$('pd').value=P9[1];$('pdO').textContent=P9[1].toFixed(1)+'mm';drawCls()};
+$('pl').oninput=e=>setP9(+e.target.value,P9[1]);$('pd').oninput=e=>setP9(P9[0],+e.target.value);
+$('cv9').onclick=e=>{const r=$('cv9').getBoundingClientRect(),L=40,R=r.width-10,T=12,B=r.height-32;setP9(Math.min(60,Math.max(32,32+(e.clientX-r.left-L)/(R-L)*28)),Math.min(22,Math.max(13,13+(B-(e.clientY-r.top))/(B-T)*9)))};
+[...$('sm').children].forEach(b=>b.onclick=()=>{mode=+b.dataset.m;[...$('sm').children].forEach(z=>z.classList.toggle('on',z===b));drawCls()});
+
+$('x').oninput=calc;calc();
+const h0=/^#c([1-9])$/.exec(location.hash);show(h0?+h0[1]-1:0,false);
+
+window.addEventListener('resize',()=>{if(cur===2)chart();if(cur===7)draw3d();if(cur===8)drawCls()});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',chart);
 new MutationObserver(chart).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 if(document.fonts)document.fonts.ready.then(chart);
