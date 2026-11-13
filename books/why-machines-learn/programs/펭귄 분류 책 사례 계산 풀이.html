@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>펭귄 분류 책 사례 계산 풀이</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Pen+Script&family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap">
+<style>
+/* layout: worked-solution notebook; one scrolling column of numbered cases in the book's order, every number derived on the page; same tokens as the penguin simulator */
+:root{
+--paper:#F6F8FB;--grid:#E2E8F0;--surface:#FFFFFF;--ink:#17233A;--ink-2:#55627A;--line:#D5DDE8;--soft:#EEF1F7;
+--ad:#4A4FD4;--ge:#0E8F68;--note:#C2410C;--mark:#FFE36E;
+--font-body:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;--font-math:'STIX Two Text','Times New Roman',serif;--font-hand:'Nanum Pen Script',cursive;
+color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--paper:#10161F;--grid:#1B2430;--surface:#161E29;--ink:#E7EDF5;--ink-2:#9AA7BA;--line:#2A3646;--soft:#1D2733;
+--ad:#9A9DF5;--ge:#3CC79A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#10161F;--grid:#1B2430;--surface:#161E29;--ink:#E7EDF5;--ink-2:#9AA7BA;--line:#2A3646;--soft:#1D2733;
+--ad:#9A9DF5;--ge:#3CC79A;--note:#FDBA74;--mark:#6B5A12;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:22px 22px;color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+main{max-width:640px;margin:0 auto;padding:28px 16px 48px}
+header h1{font-size:26px;line-height:1.3;font-weight:600;margin:0;text-wrap:balance}
+header p{margin:8px 0 0;color:var(--ink-2);font-size:15px}
+.map{margin:20px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.map ol{margin:0;padding-left:22px;font-size:15px;line-height:1.9}
+.map a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+section.case{margin-top:18px;display:none}
+section.case.on{display:block}
+.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;margin:16px -6px 0;padding:8px 6px;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;border-radius:10px;font-size:11px;color:var(--ink-2);text-align:center;line-height:1.3}
+.tabs .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:var(--surface)}
+.tabs button.on{color:var(--ink);font-weight:600}
+.tabs button.on .n{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.tabs button:focus-visible,.btn:focus-visible{outline:2px solid var(--ad);outline-offset:2px}
+.ten{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin:10px 0 4px}
+.ten span{aspect-ratio:1;border-radius:50%}
+.pn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:22px}
+.btn{font:inherit;font-size:15px;font-weight:500;color:var(--ink);background:var(--surface);border:1.5px solid var(--ink);border-radius:10px;padding:11px 12px;cursor:pointer}
+.btn.solid{background:var(--ink);color:var(--paper)}
+.btn.ghost{border-color:var(--line);color:var(--ink-2);font-weight:400}
+
+.case h2{display:flex;gap:10px;align-items:flex-start;font-size:20px;line-height:1.4;font-weight:600;margin:0 0 4px;text-wrap:balance}
+.case h2 .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:14px;margin-top:-1px}
+.case .pg{font-size:13px;color:var(--ink-2);margin:0 0 12px 40px}
+.case p{margin:0 0 14px}
+mark{background:linear-gradient(transparent 55%,var(--mark) 55%);color:inherit;padding:0 1px}
+.eq{background:var(--surface);border:1.5px solid var(--ink);border-radius:4px;padding:14px 16px;font-family:var(--font-math);font-size:19px;line-height:1.8;text-align:center;overflow-x:auto;margin:0 0 14px}
+.eq .k{display:block;font-family:var(--font-body);font-size:13px;color:var(--ink-2);line-height:1.6;margin-top:4px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.88em;line-height:1.3;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 3px}
+.work{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.work h3{font-size:13px;font-weight:500;color:var(--ink-2);margin:0 0 6px}
+.ln{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;padding:3px 0}
+.ln .l{font-size:14px;color:var(--ink-2);white-space:nowrap}
+.ln .v{font-family:var(--font-math);font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
+.ln.res .l{color:var(--ink);font-weight:600}
+.ln.res .v{font-size:21px}
+.work hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+.ad{color:var(--ad)}.ge{color:var(--ge)}
+.tw{overflow-x:auto;margin:0 0 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--ink-2);font-size:12px;line-height:1.4;white-space:normal;vertical-align:bottom}
+td{font-family:var(--font-math);font-size:15px}
+tr.hi td{background:var(--soft)}
+tfoot td{font-weight:600;border-bottom:0}
+caption{caption-side:top;text-align:left;padding:10px 10px 4px;font-size:13px;color:var(--ink-2)}
+.note{font-family:var(--font-hand);font-size:23px;line-height:1.25;color:var(--note);margin:6px 0 0 6px;transform:rotate(-1deg);transform-origin:left}
+.note::before{content:"✎ ";font-family:var(--font-body);font-size:14px}
+.split{display:flex;height:34px;border-radius:8px;overflow:hidden;font-size:13px;font-weight:500;color:#fff;margin:6px 0 4px}
+.split div{display:flex;align-items:center;justify-content:center;white-space:nowrap}
+canvas{width:100%;height:210px;display:block}
+.tool{background:var(--surface);border:1.5px solid var(--ink);border-radius:14px;padding:16px}
+.sl{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-bottom:10px}
+.sl label{font-size:14px;color:var(--ink-2)}
+.sl output{font-family:var(--font-math);font-size:20px;min-width:66px;text-align:right}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+.small{font-size:13px;color:var(--ink-2);line-height:1.7}
+a.ext{color:var(--ad)}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>펭귄 분류, 책 사례를 계산으로 풀어 보기</h1>
+<p>『십중팔구』 134–142쪽. 부리 높이가 16mm인 펭귄이 젠투일 확률 0.8이 어떻게 나오는지 처음부터 끝까지 손으로 계산해 볼게.</p>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="단계"></nav>
+
+<section class="case" id="c1">
+<h2><span class="n">1</span>마릿수 막대를 확률 밀도로 바꾸기</h2>
+<div class="pg">책 136~138쪽</div>
+<p>책의 첫 막대그래프는 세로축이 <mark>펭귄 마릿수</mark>야. 그런데 다음 그래프에서는 같은 모양인데 세로축이 <mark>확률 밀도</mark>로 바뀌어. 바꾸는 방법은 간단해. 막대 넓이를 전부 더했을 때 1이 되도록 나눠 주면 돼.</p>
+<div class="eq">확률 밀도 = <span class="frac"><span>그 막대의 마릿수</span><span>전체 마릿수 × 막대 폭</span></span></div>
+<div class="work">
+<h3>가장 높은 막대로 확인해 보기</h3>
+<div class="ln"><span class="l ad">아델리 36 ÷ (146 × 0.6)</span><span class="v">36 ÷ 87.6 = 0.41</span></div>
+<div class="ln"><span class="l ge">젠투 19 ÷ (119 × 0.42)</span><span class="v">19 ÷ 49.98 = 0.38</span></div>
+<hr><div class="small">책 그래프에서 가장 높은 막대가 0.40 근처까지 올라가지? 이 계산과 맞아. 막대 폭(아델리 0.6mm, 젠투 0.42mm)은 책 그래프에서 읽은 값이야.</div>
+</div>
+<p class="note">마릿수 → 비율로 바꿔야 곡선과 비교할 수 있다</p>
+</section>
+
+<section class="case" id="c2">
+<h2><span class="n">2</span>평균과 표준편차 구하기 (MLE)</h2>
+<div class="pg">책 136~138쪽 "데이터에 맞춘 정규 분포"</div>
+<p>책은 막대 위에 매끈한 <mark>정규분포 곡선</mark>을 겹쳐 그려. 정규분포는 <mark>평균 μ</mark>와 <mark>표준편차 σ</mark> 두 숫자만 알면 모양이 정해져. 정규분포에서 MLE로 구한 평균과 표준편차는 우리가 아는 <mark>데이터의 평균과 표준편차</mark>와 같아. 아델리 146마리로 직접 계산해 보자.</p>
+<div class="tw"><table>
+<caption>아델리 146마리 (구간 중앙값으로 계산)</caption>
+<thead><tr><th>구간 중앙 (mm)</th><th>마릿수</th><th>중앙 × 마릿수</th><th>(중앙 − 18.39)² × 마릿수</th></tr></thead>
+<tbody id="tA"></tbody>
+<tfoot><tr><td>합</td><td>146</td><td>2685.4</td><td>220.99</td></tr></tfoot>
+</table></div>
+<div class="work">
+<h3>아델리 계산</h3>
+<div class="ln"><span class="l">평균 μ</span><span class="v">2685.4 ÷ 146 = 18.39mm</span></div>
+<div class="ln"><span class="l">분산 σ²</span><span class="v">220.99 ÷ 146 = 1.514</span></div>
+<div class="ln res"><span class="l">표준편차 σ</span><span class="v ad">√1.514 = 1.23mm</span></div>
+</div>
+<div class="tw"><table>
+<caption>젠투 119마리</caption>
+<thead><tr><th>구간 중앙 (mm)</th><th>마릿수</th><th>중앙 × 마릿수</th><th>(중앙 − 15.00)² × 마릿수</th></tr></thead>
+<tbody id="tG"></tbody>
+<tfoot><tr><td>합</td><td>119</td><td>1785.49</td><td>115.69</td></tr></tfoot>
+</table></div>
+<div class="work">
+<h3>젠투 계산</h3>
+<div class="ln"><span class="l">평균 μ</span><span class="v">1785.49 ÷ 119 = 15.00mm</span></div>
+<div class="ln"><span class="l">분산 σ²</span><span class="v">115.69 ÷ 119 = 0.972</span></div>
+<div class="ln res"><span class="l">표준편차 σ</span><span class="v ge">√0.972 = 0.99mm</span></div>
+</div>
+<p>결과적으로 <span class="ad">아델리는 평균 18.39, 표준편차 1.23</span>, <span class="ge">젠투는 평균 15.00, 표준편차 0.99</span>인 정규분포가 돼. 젠투 부리가 평균 3.4mm 정도 낮아.</p>
+<p class="note">곡선 맞추기 = 평균·표준편차 구하기 = MLE</p>
+</section>
+
+<section class="case" id="c3">
+<h2><span class="n">3</span>P(x|y): 16mm에서 곡선 높이 구하기</h2>
+<div class="pg">책 137~138쪽 "클래스 조건부 확률"</div>
+<p><mark>P(x|y = 젠투)</mark>는 "젠투라면 부리 높이가 x일 가능성"이야. 아래 그래프에서 곡선의 높이에 해당해. 정규분포 공식에 x = 16을 넣어서 직접 구해 보자.</p>
+<div class="eq"><i>P</i>(<i>x</i>|<i>y</i>) = <span class="frac"><span>1</span><span>σ√(2π)</span></span> × <i>e</i><sup>−<i>z</i>²/2</sup>, &nbsp;&nbsp; <i>z</i> = <span class="frac"><span><i>x</i> − μ</span><span>σ</span></span>
+<span class="k">z는 "평균에서 표준편차 몇 개만큼 떨어져 있나"를 뜻해. √(2π) ≈ 2.5066이야.</span></div>
+<canvas id="cv3" aria-label="두 정규분포 곡선과 x=16 위치"></canvas>
+<div class="work">
+<h3 class="ge">젠투 (μ = 15.00, σ = 0.99)</h3>
+<div class="ln"><span class="l">① z 구하기</span><span class="v">(16 − 15.00) ÷ 0.986 = 1.01</span></div>
+<div class="ln"><span class="l">② z² ÷ 2</span><span class="v">1.01² ÷ 2 = 0.510</span></div>
+<div class="ln"><span class="l">③ e<sup>−0.510</sup></span><span class="v">0.6005</span></div>
+<div class="ln"><span class="l">④ 앞의 계수</span><span class="v">1 ÷ (0.986 × 2.5066) = 0.4046</span></div>
+<div class="ln res"><span class="l">P(16|젠투)</span><span class="v ge">0.4046 × 0.6005 = 0.243</span></div>
+</div>
+<div class="work">
+<h3 class="ad">아델리 (μ = 18.39, σ = 1.23)</h3>
+<div class="ln"><span class="l">① z 구하기</span><span class="v">(16 − 18.39) ÷ 1.230 = −1.95</span></div>
+<div class="ln"><span class="l">② z² ÷ 2</span><span class="v">(−1.95)² ÷ 2 = 1.892</span></div>
+<div class="ln"><span class="l">③ e<sup>−1.892</sup></span><span class="v">0.1508</span></div>
+<div class="ln"><span class="l">④ 앞의 계수</span><span class="v">1 ÷ (1.230 × 2.5066) = 0.3243</span></div>
+<div class="ln res"><span class="l">P(16|아델리)</span><span class="v ad">0.3243 × 0.1508 = 0.049</span></div>
+</div>
+<p>16mm는 젠투 평균에서 표준편차 1개쯤 떨어져 있어서 흔한 편이야. 아델리 평균에서는 표준편차 2개 가까이 떨어져 있어서 드물어. 그래서 젠투 곡선이 <mark>약 5배</mark>(0.243 ÷ 0.049) 더 높아.</p>
+<p class="note">z가 클수록(평균에서 멀수록) 곡선이 낮다</p>
+</section>
+
+<section class="case" id="c4">
+<h2><span class="n">4</span>P(y): 사전확률 0.45 구하기</h2>
+<div class="pg">책 140쪽</div>
+<p>부리를 재기 전에 아는 정보야. 데이터에 젠투가 119마리, 아델리가 146마리 있으니까 아무 펭귄이나 골랐을 때의 확률은 이래. 책의 "119 / (119 + 146) = 0.45"가 바로 이 계산이야.</p>
+<div class="work">
+<div class="ln"><span class="l ge">P(y = 젠투)</span><span class="v">119 ÷ 265 = 0.449</span></div>
+<div class="ln"><span class="l ad">P(y = 아델리)</span><span class="v">146 ÷ 265 = 0.551</span></div>
+<hr><div class="small">두 값을 더하면 0.449 + 0.551 = 1이야. 펭귄은 둘 중 하나니까 당연하지.</div>
+</div>
+<p class="note">아델리가 더 많으니, 재기 전엔 아델리 쪽이 조금 유리</p>
+</section>
+
+<section class="case" id="c5">
+<h2><span class="n">5</span>P(x): 베이즈 정리의 분모 구하기</h2>
+<div class="pg">책 139~140쪽</div>
+<p>책은 베이즈 정리를 <mark>가설 H</mark>와 <mark>증거 E</mark>로 먼저 보여줘. 펭귄 문제에서 가설은 "이 펭귄은 젠투다", 증거는 "부리 높이가 16mm다"야.</p>
+<div class="eq"><i>P</i>(<i>H</i>|<i>E</i>) = <span class="frac"><span><i>P</i>(<i>H</i>) × <i>P</i>(<i>E</i>|<i>H</i>)</span><span><i>P</i>(<i>E</i>)</span></span><br>↓<br><i>P</i>(젠투|<i>x</i>) = <span class="frac"><span><i>P</i>(<i>x</i>|젠투) × <i>P</i>(젠투)</span><span><i>P</i>(<i>x</i>)</span></span></div>
+<p>분자에 들어갈 두 숫자는 3번과 4번에서 이미 구했어. 남은 건 분모 <mark>P(x)</mark>, 즉 "어떤 종이든 부리 높이가 16mm일 가능성"이야. 펭귄은 젠투 아니면 아델리니까 두 경우를 더하면 돼.</p>
+<div class="eq"><i>P</i>(<i>x</i>) = <i>P</i>(<i>x</i>|아델리) × <i>P</i>(아델리)<br>+ <i>P</i>(<i>x</i>|젠투) × <i>P</i>(젠투)</div>
+<div class="work">
+<h3>x = 16mm</h3>
+<div class="ln"><span class="l ge">젠투 쪽</span><span class="v">0.2429 × 0.449 = 0.1091</span></div>
+<div class="ln"><span class="l ad">아델리 쪽</span><span class="v">0.0489 × 0.551 = 0.0269</span></div>
+<hr>
+<div class="ln res"><span class="l">P(16)</span><span class="v">0.1091 + 0.0269 = 0.1360</span></div>
+</div>
+<p class="note">P(x) = 모든 경우를 더한 것 (합이 1이 되게 만드는 역할)</p>
+</section>
+
+<section class="case" id="c6">
+<h2><span class="n">6</span>P(y|x): 젠투 0.8, 아델리 0.2</h2>
+<div class="pg">책 140~141쪽</div>
+<p>이제 나누기만 하면 끝이야.</p>
+<div class="work">
+<h3>x = 16mm</h3>
+<div class="ln res"><span class="l ge">P(젠투|16)</span><span class="v ge">0.1091 ÷ 0.1360 = 0.80</span></div>
+<div class="ln res"><span class="l ad">P(아델리|16)</span><span class="v ad">0.0269 ÷ 0.1360 = 0.20</span></div>
+<div class="split"><div style="flex-basis:20%;background:var(--ad)">0.20</div><div style="flex-basis:80%;background:var(--ge)">젠투 0.80</div></div><div class="ten" id="ten"></div><div class="small">부리 높이가 16mm인 펭귄 10마리를 모으면 8마리는 젠투(초록), 2마리는 아델리(파란색)야.</div>
+</div>
+<p>책에 나온 그대로 <mark>젠투일 확률 0.8, 아델리일 확률 0.2</mark>가 나왔어. 그래서 분류기는 "젠투"라고 예측해. 하지만 부리 높이가 16mm인 펭귄 10마리 중 2마리는 실제로 아델리야. 그러니까 <mark>20%는 틀릴 수밖에 없어</mark>. 이게 책에서 말한 "베이스 최적 분류기조차 오류를 저지른다"는 뜻이야.</p>
+<div class="work">
+<h3>비교: x = 17mm라면? (같은 순서로 계산)</h3>
+<div class="ln"><span class="l">P(17|젠투), P(17|아델리)</span><span class="v">0.0522, &nbsp;0.1708</span></div>
+<div class="ln"><span class="l">× 사전확률</span><span class="v">0.0234, &nbsp;0.0941</span></div>
+<div class="ln"><span class="l">P(17) = 합</span><span class="v">0.1175</span></div>
+<hr>
+<div class="ln res"><span class="l">P(아델리|17)</span><span class="v ad">0.0941 ÷ 0.1175 = 0.80</span></div>
+<div class="small">딱 1mm 차이인데 결과가 뒤집혀서 이번엔 아델리 0.80이야. 그 사이 어딘가(약 16.5mm)에서 두 확률이 0.5로 같아지는데, 거기가 두 종을 가르는 <b>경계</b>야.</div>
+</div>
+<p class="note">사후확률이 큰 쪽을 고른다 = 베이스 최적 분류기</p>
+</section>
+
+<section class="case" id="c7">
+<h2><span class="n">7</span>직접 계산해 보기</h2>
+<div class="pg">3~6번 계산을 한 번에</div>
+<div class="tool">
+<div class="sl"><label for="x">부리 높이 x</label><input type="range" id="x" min="13" max="21" step="0.1" value="16"><output id="xO">16.0mm</output></div>
+<div id="out"></div>
+</div>
+<p class="small" style="margin-top:14px">특징을 2개(부리 길이 + 부리 높이)로 늘린 책 142쪽 사례도 계산 방법은 똑같아. P(x|y)가 곡선 대신 언덕 모양의 2차원 정규분포가 될 뿐이야. 그 부분은 <a class="ext" href="https://claude.ai/artifact/VuqYTUMytQnLNtydaKTgpn">펭귄 시뮬레이션 7단계</a>에서 눌러 보면서 확인할 수 있어.</p>
+<p class="small">막대 구간은 책 그래프에서 읽은 값이라, 저자가 쓴 원본 데이터로 계산하면 소수점 아래 숫자가 조금 다를 수 있어. 결론(16mm에서 젠투 0.8)은 같아.</p>
+</section>
+<div class="pn"><button class="btn ghost" id="prev">이전</button><button class="btn solid" id="next">다음</button></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const TAB=['밀도','평균','P(x|y)','P(y)','P(x)','P(y|x)','계산기'];
+
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const HA={n:146,lo:15.5,w:.6,c:[3,7,23,17,25,36,16,7,6,6]},HG={n:119,lo:13.1,w:.42,c:[6,14,14,19,17,14,16,11,2,6]};
+function fill(h,id){const cs=h.c.map((_,i)=>h.lo+h.w*(i+.5)),m=h.c.reduce((a,c,i)=>a+c*cs[i],0)/h.n;const mx=Math.max(...h.c);
+$(id).innerHTML=h.c.map((n,i)=>'<tr class="'+(n===mx?'hi':'')+'"><td>'+cs[i].toFixed(2)+'</td><td>'+n+'</td><td>'+(n*cs[i]).toFixed(2)+'</td><td>'+(n*(cs[i]-m)**2).toFixed(2)+'</td></tr>').join('');
+return{m,s:Math.sqrt(h.c.reduce((a,c,i)=>a+c*(cs[i]-m)**2,0)/h.n)}}
+const FA=fill(HA,'tA'),FG=fill(HG,'tG');
+const PA=146/265,PG=119/265,SQ=Math.sqrt(2*Math.PI);
+const pdf=(x,f)=>Math.exp(-(((x-f.m)/f.s)**2)/2)/(f.s*SQ);
+function chart(){
+const cv=$('cv3'),r=cv.getBoundingClientRect();if(!r.width)return;const dp=window.devicePixelRatio||1;cv.width=r.width*dp;cv.height=r.height*dp;const c=cv.getContext('2d');c.scale(dp,dp);
+const W=r.width,H=r.height,L=36,R=W-10,T=14,B=H-30,x0=12.5,x1=22,ym=.45;
+const X=v=>L+(v-x0)/(x1-x0)*(R-L),Y=v=>B-v/ym*(B-T);
+const ink=css('--ink'),ink2=css('--ink-2'),grid=css('--grid'),line=css('--line'),ad=css('--ad'),ge=css('--ge'),sf=css('--surface');
+c.strokeStyle=grid;c.lineWidth=1;[13,14,15,16,17,18,19,20,21,22].forEach(v=>{c.beginPath();c.moveTo(X(v),T);c.lineTo(X(v),B);c.stroke()});[.1,.2,.3,.4].forEach(v=>{c.beginPath();c.moveTo(L,Y(v));c.lineTo(R,Y(v));c.stroke()});
+c.strokeStyle=line;c.lineWidth=1.5;c.beginPath();c.moveTo(L,T);c.lineTo(L,B);c.lineTo(R,B);c.stroke();
+c.fillStyle=ink2;c.font='12px "STIX Two Text",serif';c.textAlign='center';[13,14,15,16,17,18,19,20,21,22].forEach(v=>c.fillText(v,X(v),B+15));c.textAlign='right';[0,.1,.2,.3,.4].forEach(v=>c.fillText(v.toFixed(1),L-5,Y(v)+4));
+c.font='12px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillText('부리 높이 x (mm)',(L+R)/2,H-2);
+[[FG,ge],[FA,ad]].forEach(([f,col])=>{c.beginPath();for(let i=0;i<=300;i++){const x=x0+(x1-x0)*i/300;i?c.lineTo(X(x),Y(pdf(x,f))):c.moveTo(X(x),Y(pdf(x,f)))}c.strokeStyle=col;c.lineWidth=2.5;c.stroke()});
+c.strokeStyle=ink;c.setLineDash([4,4]);c.lineWidth=1.2;c.beginPath();c.moveTo(X(16),T);c.lineTo(X(16),B);c.stroke();c.setLineDash([]);
+[[pdf(16,FG),ge,'0.243'],[pdf(16,FA),ad,'0.049']].forEach(([v,col,t])=>{c.fillStyle=sf;c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();c.arc(X(16),Y(v),5.5,0,7);c.fill();c.stroke();c.fillStyle=col;c.font='600 12px "IBM Plex Sans KR",sans-serif';c.textAlign='left';c.fillText(t,X(16)+9,Y(v)+(t==='0.049'?-6:4))});
+c.font='500 12px "IBM Plex Sans KR",sans-serif';c.fillStyle=ge;c.textAlign='center';c.fillText('젠투',X(15),Y(pdf(15,FG))-8);c.fillStyle=ad;c.fillText('아델리',X(18.4),Y(pdf(18.4,FA))-8);
+}
+function calc(){
+const x=+$('x').value;$('xO').textContent=x.toFixed(1)+'mm';
+const row=(f,name,cls,p)=>{const z=(x-f.m)/f.s,e=Math.exp(-z*z/2),k=1/(f.s*SQ),v=k*e;return{z,e,k,v,w:v*p,name,cls}};
+const g=row(FG,'젠투','ge',PG),a=row(FA,'아델리','ad',PA),s=g.w+a.w;
+const blk=r=>'<div class="ln"><span class="l '+r.cls+'">'+r.name+': z</span><span class="v">('+x.toFixed(1)+' − '+(r.cls==='ge'?FG:FA).m.toFixed(2)+') ÷ '+(r.cls==='ge'?FG:FA).s.toFixed(3)+' = '+r.z.toFixed(2)+'</span></div><div class="ln"><span class="l">P(x|'+r.name+')</span><span class="v">'+r.k.toFixed(4)+' × e<sup>−'+(r.z*r.z/2).toFixed(3)+'</sup> = '+r.v.toFixed(4)+'</span></div><div class="ln"><span class="l">× 사전확률</span><span class="v">'+r.v.toFixed(4)+' × '+(r.cls==='ge'?'0.449':'0.551')+' = '+r.w.toFixed(4)+'</span></div>';
+const qg=g.w/s,qa=a.w/s,lb=(n,q)=>q>.3?n+' '+q.toFixed(2):q>.1?q.toFixed(2):'';
+$('out').innerHTML='<div class="work" style="margin:0">'+blk(g)+'<hr>'+blk(a)+'<hr><div class="ln"><span class="l">P(x) = 합</span><span class="v">'+s.toFixed(4)+'</span></div><div class="ln res"><span class="l ge">P(젠투|x)</span><span class="v ge">'+qg.toFixed(2)+'</span></div><div class="ln res"><span class="l ad">P(아델리|x)</span><span class="v ad">'+qa.toFixed(2)+'</span></div><div class="split"><div style="flex-basis:'+qa*100+'%;background:var(--ad)">'+lb('아델리',qa)+'</div><div style="flex-basis:'+qg*100+'%;background:var(--ge)">'+lb('젠투',qg)+'</div></div><div class="small">예측: <b>'+(qg>qa?'젠투':'아델리')+'</b>, 틀릴 확률 '+Math.round(Math.min(qa,qg)*100)+'%</div></div>';
+}
+const secs=[...document.querySelectorAll('section.case')];
+$('ten').innerHTML=Array.from({length:10},(_,i)=>'<span style="background:var(--'+(i<8?'ge':'ad')+')"></span>').join('');
+$('tabs').innerHTML=TAB.map((t,i)=>'<button data-i="'+i+'"><span class="n">'+(i+1)+'</span>'+t+'</button>').join('');
+let cur=0;
+function show(i,scroll){cur=i;secs.forEach((x,j)=>x.classList.toggle('on',j===i));[...$('tabs').children].forEach((b,j)=>{b.classList.toggle('on',j===i);b.setAttribute('aria-current',j===i?'step':'false')});
+$('prev').style.visibility=i?'visible':'hidden';$('next').textContent=i===6?'처음으로':'다음: '+TAB[i+1];
+if(i===2)chart();try{history.replaceState(null,'','#c'+(i+1))}catch(e){}
+if(scroll)$('tabs').scrollIntoView({block:'start'})}
+[...$('tabs').children].forEach(b=>b.onclick=()=>show(+b.dataset.i,true));
+$('prev').onclick=()=>show(cur-1,true);$('next').onclick=()=>show(cur===6?0:cur+1,true);
+$('x').oninput=calc;calc();
+const h0=/^#c([1-7])$/.exec(location.hash);show(h0?+h0[1]-1:0,false);
+
+window.addEventListener('resize',()=>{if(cur===2)chart()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',chart);
+new MutationObserver(chart).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts)document.fonts.ready.then(chart);
+</script>
+</body>
+</html>
