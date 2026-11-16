@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>최근접 이웃 분류 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f5f1e8; --card:#fffdf8; --ink:#1f1d1a; --muted:#6b655c; --line:#ddd4c4;
+  --accent:#c2410c; --cA:#3f6f78; --cB:#9a3412; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.65;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:clamp(28px,7vw,42px);line-height:1.2;margin:6px 0 8px;letter-spacing:-.02em}
+header p{margin:0;color:var(--muted);font-size:15px}
+h2{font-family:'Noto Serif KR',serif;font-weight:900;font-size:22px;margin:44px 0 12px;letter-spacing:-.01em}
+h2 .n{font-family:var(--mono);font-size:13px;color:var(--accent);margin-right:8px;font-weight:500;vertical-align:3px}
+p{font-size:15px}
+
+.lab{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 10px 30px -18px rgba(60,40,10,.25)}
+.stage{position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#fffdf8;border:1px solid var(--line)}
+canvas{display:block;touch-action:none;cursor:crosshair}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;padding:6px 12px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:.92}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.label{font-size:12px;color:var(--muted);width:100%;margin:8px 0 -2px;font-weight:500}
+.seg{display:flex;background:#efe9dd;border-radius:10px;padding:3px;gap:2px;flex:1;min-width:0}
+.seg button{flex:1;border:0;background:transparent;font:inherit;font-size:14px;padding:8px 4px;border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chip{border:1px solid var(--line);background:var(--card);font:inherit;font-size:13px;padding:7px 11px;border-radius:999px;cursor:pointer;color:var(--ink)}
+.chip:active{transform:scale(.97)}
+.chip.ghost{color:var(--muted)}
+.toggle{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;user-select:none;padding:4px 2px}
+.toggle input{accent-color:var(--accent);width:17px;height:17px}
+
+.kbox{display:flex;align-items:center;gap:12px;width:100%}
+.kval{font-family:'Noto Serif KR',serif;font-weight:900;font-size:28px;min-width:72px}
+.kval small{font-family:'Noto Sans KR';font-size:12px;color:var(--muted);font-weight:500;display:block;line-height:1}
+input[type=range]{flex:1;accent-color:var(--accent);height:28px}
+
+.readout{margin-top:12px;background:#f8f4ec;border-radius:10px;padding:10px 12px;font-size:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.stat .t{font-size:11px;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:18px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:56px;margin-top:8px;padding-bottom:16px;position:relative}
+.bar{flex:1;background:#d9cfbf;border-radius:3px 3px 0 0;position:relative;cursor:pointer}
+.bar.on{background:var(--accent)}
+.bar span{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-family:var(--mono);color:var(--muted)}
+.legend{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.8}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--cA);vertical-align:-1px}
+.tri{display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid var(--cB);vertical-align:0}
+.hatch{display:inline-block;width:14px;height:10px;vertical-align:-1px;border:1px solid #bbb;background:repeating-linear-gradient(45deg,#cdcdcd 0 3px,#e4e4e4 3px 6px)}
+.verdict{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:14px}
+.verdict b{color:var(--accent)}
+
+.cards{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:620px){.cards.two{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card b.h{display:block;font-family:'Noto Serif KR',serif;font-size:16px;margin-bottom:4px}
+.card p{margin:0;font-size:14px;color:#3d3933}
+.try{display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);font-weight:700;cursor:pointer;border:0;background:none;padding:0;font-family:inherit}
+
+.flow{counter-reset:s;list-style:none;padding:0;margin:0}
+.flow li{position:relative;padding:10px 0 10px 40px;border-bottom:1px solid var(--line);font-size:14px}
+.flow li:last-child{border-bottom:0}
+.flow li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--mono);font-size:13px;display:grid;place-items:center}
+
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+summary{cursor:pointer;font-weight:700;font-size:15px;list-style:none;display:flex;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary .q{font-family:var(--mono);color:var(--accent);font-weight:500;flex:none}
+details .how{font-size:13px;color:var(--muted);margin:6px 0 0}
+details .ans{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14px}
+details .ans::before{content:"생각해 볼 답";display:block;font-size:12px;color:var(--accent);font-weight:700;margin-bottom:2px}
+a{color:var(--accent)}
+.tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;margin:20px -18px 0;padding:8px 18px;background:rgba(245,241,232,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;font:inherit;font-size:14px;padding:9px 2px;border-radius:10px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button span{font-size:12px;margin-right:3px}
+.tabs button.on{background:var(--ink);color:#fff;font-weight:700}
+.tab{display:none}.tab.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+h2.first{margin-top:24px}
+.tab .lab:first-child,#t-lab .lab{margin-top:16px}
+.hint{font-size:13px;color:var(--muted);margin:14px 2px 0}
+.link{border:0;background:none;padding:0;font:inherit;color:var(--accent);font-weight:700;cursor:pointer}
+.next{display:block;margin:28px 0 0 auto;border:1px solid var(--ink);background:var(--card);font:inherit;font-size:14px;font-weight:700;padding:10px 16px;border-radius:999px;cursor:pointer;color:var(--ink)}
+.combo{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.combo th,.combo td{white-space:nowrap;padding:6px 6px;border-bottom:1px solid #eee6d8;text-align:center}
+.combo th{background:#f1ebdf;font-weight:700;font-size:12px}
+.combo td.v{font-family:var(--mono)}
+.combo tr.bad td{color:var(--accent);font-weight:700}
+.combo tr.sum td{background:#fbe7dc;font-weight:700}
+footer{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">k-Nearest Neighbors · 유유상종의 기계학습</div>
+  <h1>최근접 이웃 분류 실험실</h1>
+  <p>"너의 이웃을 보면 너를 안다." 새 데이터는 가장 가까운 이웃들의 다수결로 분류된다.</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="lab" class="on"><span>①</span>실험실</button>
+  <button data-tab="concept"><span>②</span>개념</button>
+  <button data-tab="risk"><span>③</span>오류율</button>
+  <button data-tab="missions"><span>④</span>미션</button>
+</nav>
+
+<div class="tab on" id="t-lab">
+
+<section class="lab">
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="label">이웃의 수 k</div>
+  <div class="kbox">
+    <div class="kval" id="kval">k = 1<small id="ksub">가장 가까운 1개</small></div>
+    <input type="range" id="kRange" min="1" max="15" step="1" value="1">
+  </div>
+
+  <div class="label">터치하면</div>
+  <div class="row">
+    <div class="seg" id="modeSeg">
+      <button data-mode="star" class="on">★ 새 데이터</button>
+      <button data-mode="A">● 추가</button>
+      <button data-mode="B">▲ 추가</button>
+      <button data-mode="del">삭제</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <label class="toggle"><input type="checkbox" id="tRegion" checked> 분류 영역 칠하기</label>
+    <label class="toggle"><input type="checkbox" id="tLine"> 직선 하나로 나눠 보기</label>
+    <label class="toggle"><input type="checkbox" id="tMan"> 맨해튼 거리</label>
+  </div>
+
+  <div class="label">데이터 배치</div>
+  <div class="row">
+    <button class="chip" data-p="book">책 그림처럼</button>
+    <button class="chip" data-p="outlier">외로운 세모 하나</button>
+    <button class="chip" data-p="linear">직선으로 나뉘는 데이터</button>
+    <button class="chip" data-p="noisy">잡음 많은 데이터</button>
+    <button class="chip ghost" data-p="clear">비우기</button>
+  </div>
+
+  <div class="readout" id="readout"></div>
+</section>
+<div class="hint">처음이라면 <button class="link" data-goto="concept">② 개념</button> 탭부터 읽고 돌아와도 좋다. 개념 탭의 「→ 확인하기」 버튼을 누르면 이 화면이 해당 실험으로 바로 세팅된다.</div>
+<button class="next" data-goto="concept">다음: 개념 →</button>
+</div>
+
+<div class="tab" id="t-concept">
+<h2 class="first"><span class="n">01</span>직선 하나로는 안 된다</h2>
+<p>동그라미와 세모가 섞인 데이터를 두 무리로 나누고 싶다. 퍼셉트론처럼 <b>직선 하나</b>로 가르는 방법은 데이터가 직선으로 깔끔히 나뉠 때만 통한다(선형 분리 가능). 책의 그림처럼 경계가 지그재그로 얽혀 있으면, 직선을 어떻게 그어도 반대편에 넘어간 점이 생긴다.</p>
+<button class="try" data-go="line">→ 「직선 하나로 나눠 보기」 켜서 확인하기</button>
+
+<h2><span class="n">02</span>가장 가까운 이웃을 따라간다</h2>
+<div class="cards two">
+  <div class="card"><b class="h">1-NN의 규칙</b><p>새 데이터(★)가 들어오면 기존 데이터 중 가장 가까운 하나를 찾아 그 라벨을 그대로 붙인다. 이게 규칙의 전부다.</p></div>
+  <div class="card"><b class="h">경계는 저절로 생긴다</b><p>모든 점에 이 규칙을 적용해 칠하면 꼬불꼬불한 <b>비선형 경계</b>가 나타난다. 아무도 경계를 설명해 주지 않았는데 알고리즘이 스스로 찾아낸 셈이다.</p></div>
+</div>
+<p class="legend" style="font-size:13px">1-NN의 경계는 각 데이터 점을 씨앗으로 한 <a href="보로노이 다이어그램 실험실.html">보로노이 다이어그램</a>에서, 라벨이 다른 셀끼리 맞닿은 변만 골라 이은 선이다.</p>
+
+<h2><span class="n">03</span>너무 잘 맞추는 것이 문제: 과적합</h2>
+<p>동그라미 무리 한가운데에 세모 하나가 잘못 섞여 있다고 하자(측정 오류일 수도, 진짜 예외일 수도 있다). 1-NN은 이 하나를 무시하지 못하고, 그 주변에 작은 <b>세모 섬</b>을 만든다. 그 섬에 떨어진 새 데이터는 주변이 온통 동그라미인데도 세모로 분류된다.</p>
+<p>훈련 데이터의 잡음까지 억지로 맞추느라 경계가 지나치게 꼬이는 현상을 <b>과적합(overfitting)</b>이라고 부른다. 1-NN은 훈련 데이터를 항상 100% 맞히지만, 처음 보는 데이터에서는 오히려 틀리기 쉽다.</p>
+<button class="try" data-go="outlier">→ 「외로운 세모 하나」로 섬 확인하기</button>
+
+<h2><span class="n">04</span>해결책: 이웃을 더 많이 부른다</h2>
+<ol class="flow">
+  <li>새 데이터에서 가장 가까운 이웃을 <b>k개</b> 찾는다.</li>
+  <li>k개의 라벨로 <b>다수결</b>을 한다. 많은 쪽이 새 데이터의 라벨이 된다.</li>
+  <li>k가 커질수록 외톨이 점 하나의 목소리가 작아져 섬이 사라지고, 경계가 매끄러워진다.</li>
+  <li>라벨이 두 종류일 때 k는 <b>홀수</b>로 잡는다. 짝수면 2:2처럼 동점이 나와 결정을 못 하기 때문이다.</li>
+</ol>
+<button class="try" data-go="k">→ k를 1 → 3 → 7로 바꿔 보기</button>
+
+<button class="next" data-goto="risk">다음: 오류율 →</button>
+</div>
+
+<div class="tab" id="t-risk">
+<h2 class="first">최근접 이웃은 얼마나 틀릴까</h2>
+<p>펭귄 데이터로 생각해 보자. 부리 길이와 몸무게 같은 특징이 똑같은 어느 지점에서, 펭귄이 <b>아델리펭귄일 확률이 p</b>, 젠투펭귄일 확률이 1−p라고 하자. 특징이 완전히 같아도 종은 다를 수 있으니 이 지점에서는 누가 분류해도 어느 정도는 틀릴 수밖에 없다.</p>
+<div class="cards two">
+  <div class="card"><b class="h">베이즈 최적 분류기</b><p>모든 확률을 정확히 아는 이상적인 분류기다. 언제나 더 확률이 높은 쪽(아델리)이라고 답한다. 그래도 젠투가 나오는 1−p만큼은 틀린다. 이 오류율을 <b>베이즈 위험</b>이라 하고, 어떤 알고리즘도 이보다 잘할 수 없다.</p></div>
+  <div class="card"><b class="h">1-NN 분류기</b><p>데이터가 무한히 많으면 가장 가까운 이웃은 사실상 같은 지점에 있다. 그 이웃의 종도 확률 p로 아델리다. 이웃과 새 펭귄이 <b>각자 동전을 던지는 셈</b>이고, 둘이 다르게 나오면 틀린다.</p></div>
+</div>
+
+<div class="lab" style="margin-top:14px">
+  <div class="label" style="margin-top:0">이 지점에서 아델리펭귄일 확률 p</div>
+  <div class="kbox">
+    <div class="kval" id="pval">0.75</div>
+    <input type="range" id="pRange" min="0.5" max="1" step="0.01" value="0.75">
+  </div>
+  <div class="label">비교할 k-NN의 k (홀수)</div>
+  <div class="kbox">
+    <div class="kval" id="k2val">k = 7</div>
+    <input type="range" id="k2Range" min="1" max="51" step="2" value="7">
+  </div>
+
+  <div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-top:12px">
+    <div class="stat"><div class="t">베이즈 최적</div><div class="v" id="eB">0.250</div></div>
+    <div class="stat"><div class="t">1-NN</div><div class="v" id="e1">0.375</div></div>
+    <div class="stat"><div class="t" id="eKt">7-NN</div><div class="v" id="eK">0.29</div></div>
+  </div>
+
+  <table class="combo" id="combo"></table>
+
+  <svg id="riskSvg" viewBox="0 0 320 300" style="width:100%;max-width:420px;display:block;margin:12px auto 0"></svg>
+  <div class="legend" style="text-align:center">
+    <span style="display:inline-block;width:18px;border-top:2px dashed #1f1d1a;vertical-align:4px"></span> 베이즈 위험 (하한) &nbsp;
+    <span style="display:inline-block;width:18px;border-top:2.5px solid #1f1d1a;vertical-align:4px"></span> 1-NN = 2R(1−R) &nbsp;
+    <span style="display:inline-block;width:18px;border-top:2.5px solid var(--accent);vertical-align:4px"></span> <span id="kLeg">7-NN</span>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button class="chip" id="simBtn">펭귄 1,000마리로 시뮬레이션</button>
+  </div>
+  <div class="verdict" id="simOut" style="display:none"></div>
+</div>
+
+<h3 style="font-family:'Noto Serif KR',serif;font-size:18px;margin:26px 0 8px">커버·하트 정리 (1967)</h3>
+<p>토머스 커버와 피터 하트는 데이터가 충분히 많을 때 1-NN의 오류율 R<sub>NN</sub>이 베이즈 위험 R*과 다음 관계에 있음을 증명했다.</p>
+<div class="card" style="text-align:center;font-family:var(--mono);font-size:16px;padding:16px">R* ≤ R<sub>NN</sub> ≤ 2R*(1 − R*) ≤ 2R*</div>
+<p>신처럼 모든 확률을 아는 분류기와 비교해도, 그냥 옆 사람을 따라 하는 단순한 규칙의 오류가 <b>최대 2배를 넘지 않는다</b>는 뜻이다. 커버와 하트는 이를 두고, 무한한 데이터가 가진 분류 정보의 절반이 가장 가까운 이웃 하나에 담겨 있다는 식으로 표현했다. 그래프에서 실선(상한)과 점선(하한) 사이가 1-NN이 있을 수 있는 범위다.</p>
+<p><b>k-NN으로 확장하면</b> 더 좋아진다. 데이터 수 n이 커질 때 k도 함께 커지되 k/n은 0으로 작아지면, k-NN의 오류는 베이즈 위험에 한없이 가까워진다. 위의 k 슬라이더를 올리면 주황 곡선이 점선에 붙는 것을 볼 수 있다.</p>
+<ul class="uses" style="list-style:none;padding:0;margin:0">
+  <li style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14px"><b>k가 커져야 하는 이유</b> — 이웃 여러 명이 투표해야 동전 던지기의 운이 평균으로 상쇄된다.</li>
+  <li style="padding:8px 0;font-size:14px"><b>k/n이 작아져야 하는 이유</b> — 이웃이 여전히 '가까이' 있어야 한다. k가 데이터의 큰 비율을 차지하면 멀리 있는 다른 동네 펭귄까지 투표에 끼어든다(앞의 과소적합).</li>
+</ul>
+<details style="margin-top:12px">
+  <summary><span class="q">Q</span>p = 0.5이면 세 분류기의 오류는?</summary>
+  <p class="how">슬라이더를 왼쪽 끝으로 옮겨 보자.</p>
+  <div class="ans">모두 0.5다. 그 지점의 특징이 두 종을 전혀 구별해 주지 못하기 때문이다. 정보가 없으면 아무리 똑똑한 분류기도 동전 던지기 이상은 못 한다. 반대로 p = 1이면 셋 다 오류가 0이다.</div>
+</details>
+<details>
+  <summary><span class="q">Q</span>이 정리는 현실 데이터에서도 그대로 성립할까?</summary>
+  <div class="ans">"데이터가 무한히 많다면"이라는 점근적 결과다. 실제 데이터는 유한하고, 특징의 수(차원)가 많아지면 가장 가까운 이웃조차 멀리 떨어져 있게 된다(차원의 저주). 그래서 이 정리는 성능의 보증서라기보다, 아주 단순한 규칙에도 이론적인 버팀목이 있다는 사실을 보여 준다.</div>
+</details>
+
+<button class="next" data-goto="missions">다음: 미션 →</button>
+</div>
+
+<div class="tab" id="t-missions">
+<h2 class="first">실험 미션</h2>
+<p class="hint" style="margin-top:0">각 질문의 안내대로 <button class="link" data-goto="lab">① 실험실</button>에서 직접 해 본 뒤 답을 펼쳐 보자.</p>
+<details>
+  <summary><span class="q">Q1</span>k를 짝수로 하면 어디서 문제가 생길까?</summary>
+  <p class="how">k를 2, 4로 맞추고 회색 빗금을 찾아보자.</p>
+  <div class="ans">빗금 친 곳은 표가 정확히 반반으로 갈린 곳이다. 라벨이 두 가지면 짝수 k는 동점을 만들 수 있다. 그래서 k는 홀수로 정하거나, 동점일 때 더 가까운 이웃의 의견을 따르는 규칙을 따로 둔다.</div>
+</details>
+<details>
+  <summary><span class="q">Q2</span>k를 데이터 개수만큼 키우면?</summary>
+  <p class="how">「잡음 많은 데이터」에서 k를 15까지 올려 보자. 데이터가 적을 때를 상상해 봐도 좋다.</p>
+  <div class="ans">k가 전체 데이터 수와 같아지면 모든 점이 전체 다수결을 따르므로 평면 전체가 한 색이 된다. 너무 단순해서 데이터의 구조를 놓치는 <b>과소적합</b>이다. k가 너무 작으면 과적합, 너무 크면 과소적합이라 적당한 k를 골라야 한다.</div>
+</details>
+<details>
+  <summary><span class="q">Q3</span>그럼 좋은 k는 어떻게 고를까?</summary>
+  <p class="how">아래 막대그래프를 보자. 막대를 누르면 그 k로 바뀐다.</p>
+  <div class="ans">데이터 하나를 빼 두고 나머지로 그 하나를 맞히는지 보는 일을 모든 점에 반복한다(<b>leave-one-out 교차검증</b>). 이 정확도가 가장 높은 k를 고른다. '훈련 정확도'는 k=1일 때 항상 100%라서 믿을 수 없다. 처음 보는 데이터 정확도를 따로 재야 하는 이유다.</div>
+</details>
+<details>
+  <summary><span class="q">Q4</span>직선으로 잘 나뉘는 데이터라면 어떤 방법이 나을까?</summary>
+  <p class="how">「직선으로 나뉘는 데이터」에서 직선과 k-NN 경계를 같이 보자.</p>
+  <div class="ans">데이터가 정말 직선으로 나뉜다면 직선 모형(퍼셉트론, 로지스틱 회귀)이 더 간단하고 계산도 빠르다. 기울기와 절편만 기억하면 되니까. k-NN은 모양에 대한 가정이 없어서 어떤 경계든 따라갈 수 있다. 대신 데이터를 전부 들고 다니며 매번 거리를 재야 한다.</div>
+</details>
+
+</div>
+
+<footer>배경색은 화면 픽셀마다 k개의 최근접 이웃 다수결을 직접 계산해 칠한 것 · 직선은 로지스틱 회귀로 구함 · 오류율 그래프는 데이터가 무한히 많을 때의 이론값</footer>
+</div>
+
+<script>
+(function(){
+const NAMES=['lab','concept','risk','missions'];
+window.showTab=function(name,noHash){
+  if(!NAMES.includes(name))name='lab';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+name));
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  if(!noHash&&location.hash!=='#'+name){try{history.replaceState(null,'','#'+name);}catch(_){location.hash=name;}}
+  const top=document.querySelector('header').getBoundingClientRect().bottom+scrollY+20;
+  if(scrollY>top)window.scrollTo(0,top);
+  if(name==='lab')requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showTab(b.dataset.goto));
+window.addEventListener('hashchange',()=>showTab(location.hash.slice(1),true));
+const h=location.hash.slice(1);if(NAMES.includes(h))showTab(h,true);
+})();
+</script>
+<script>
+(function(){
+const S=10, MAXP=80;
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), stage=document.getElementById('stage');
+let pts=[], k=1, mode='star', showRegion=true, showLine=false, man=false;
+let star={x:4.2,y:6.1}, drag=-1, dragStar=false, cssW=300, scale=1;
+const REG=[[214,230,233],[245,214,196]], TIE=[[208,208,208],[230,230,230]];
+const COL=['#3f6f78','#9a3412'];
+
+// seeded random
+function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function sample(n,f,seed,minGap=0.75,margin=0.35){
+  const r=rng(seed),a=[];let tries=0;
+  while(a.length<n&&tries<5000){tries++;const x=.6+r()*8.8,y=.6+r()*8.8,b=f(x,y);
+    if(Math.abs(b)<margin)continue; if(a.some(p=>Math.hypot(p.x-x,p.y-y)<minGap))continue;
+    a.push({x,y,c:b>0?1:0});}
+  return a;
+}
+const bookF=(x,y)=>y-(5.2+1.6*Math.sin(x*1.15)+0.25*(x-5));
+const PRESETS={
+  book:()=>sample(44,bookF,7),
+  outlier:()=>{const a=sample(44,bookF,7);a.push({x:2.0,y:2.4,c:1});return a.filter(p=>!(p.c===0&&Math.hypot(p.x-2,p.y-2.4)<.6));},
+  linear:()=>sample(40,(x,y)=>y-(0.7*x+1.8),11,.8,.5),
+  noisy:()=>{const r=rng(5);return sample(50,bookF,23,.7,.1).map(p=>r()<.17?{...p,c:1-p.c}:p);},
+  clear:()=>[]
+};
+
+const dist=(ax,ay,bx,by)=>man?Math.abs(ax-bx)+Math.abs(ay-by):Math.hypot(ax-bx,ay-by);
+
+// k nearest among pts (optionally excluding index), returns array of indices
+function knn(x,y,kk,skip=-1){
+  const bd=[],bi=[];
+  for(let i=0;i<pts.length;i++){if(i===skip)continue;const d=dist(x,y,pts[i].x,pts[i].y);
+    if(bd.length<kk||d<bd[bd.length-1]){let j=bd.length<kk?bd.length:kk-1;bd[j]=d;bi[j]=i;
+      while(j>0&&bd[j-1]>bd[j]){[bd[j-1],bd[j]]=[bd[j],bd[j-1]];[bi[j-1],bi[j]]=[bi[j],bi[j-1]];j--;}}}
+  return bi;
+}
+function vote(idx){let b=0;idx.forEach(i=>b+=pts[i].c);const a=idx.length-b;return a>b?0:b>a?1:2;}
+function classify(x,y,kk,skip){const idx=knn(x,y,Math.min(kk,pts.length-(skip>=0?1:0)),skip);return idx.length?vote(idx):2;}
+
+function gridLabels(W){
+  const L=new Uint8Array(W*W), kk=Math.min(k,pts.length);
+  const n=pts.length, px=new Float64Array(n), py=new Float64Array(n), pc=new Uint8Array(n);
+  pts.forEach((p,i)=>{px[i]=p.x;py[i]=p.y;pc[i]=p.c;});
+  const bd=new Float64Array(kk+1), bc=new Uint8Array(kk+1);
+  for(let r=0;r<W;r++){const wy=S*(1-(r+.5)/W);
+    for(let c=0;c<W;c++){const wx=S*(c+.5)/W;let m=0;
+      for(let i=0;i<n;i++){const dx=wx-px[i],dy=wy-py[i];const d=man?(dx<0?-dx:dx)+(dy<0?-dy:dy):dx*dx+dy*dy;
+        if(m<kk||d<bd[m-1]){let j=m<kk?m++:kk-1;bd[j]=d;bc[j]=pc[i];
+          while(j>0&&bd[j-1]>bd[j]){let t=bd[j];bd[j]=bd[j-1];bd[j-1]=t;t=bc[j];bc[j]=bc[j-1];bc[j-1]=t;j--;}}}
+      let b=0;for(let j=0;j<m;j++)b+=bc[j];const a=m-b;L[r*W+c]=a>b?0:b>a?1:2;}}
+  return L;
+}
+
+// logistic regression line
+function fitLine(){
+  if(pts.length<2||pts.every(p=>p.c===pts[0].c))return null;
+  let w=[0,0,0];const X=pts.map(p=>[1,(p.x-5)/5,(p.y-5)/5]),Y=pts.map(p=>p.c);
+  for(let it=0;it<4000;it++){const g=[0,0,0];
+    for(let i=0;i<X.length;i++){const z=w[0]+w[1]*X[i][1]+w[2]*X[i][2],e=1/(1+Math.exp(-z))-Y[i];for(let j=0;j<3;j++)g[j]+=e*X[i][j];}
+    for(let j=0;j<3;j++)w[j]-=0.8*g[j]/X.length+0.0005*w[j];}
+  let ok=0;X.forEach((x,i)=>{const z=w[0]+w[1]*x[1]+w[2]*x[2];if((z>0?1:0)===Y[i])ok++;});
+  return {w,acc:ok/X.length};
+}
+
+function render(fast){
+  scale=fast?.5:Math.min(window.devicePixelRatio||1,2);
+  const W=Math.max(1,Math.round(cssW*scale));
+  cv.width=Math.round(cssW*Math.min(window.devicePixelRatio||1,2)); cv.height=cv.width;
+  const dpr=cv.width/cssW;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,cv.width,cv.width);
+  if(showRegion&&pts.length){
+    const L=gridLabels(W), off=document.createElement('canvas');off.width=W;off.height=W;
+    const octx=off.getContext('2d'), img=octx.createImageData(W,W), D=img.data, sh=W>500?3:2, ew=Math.max(1,Math.round(scale*1.3));
+    for(let y=0;y<W;y++)for(let x=0;x<W;x++){const i=y*W+x,l=L[i];let c;
+      if(l===2)c=TIE[((x+y)>>sh)&1]; else c=REG[l];
+      let r=c[0],g=c[1],b=c[2];
+      if((x+ew<W&&L[i+ew]!==l)||(y+ew<W&&L[i+ew*W]!==l)){r=60;g=55;b=50;}
+      const o=i*4;D[o]=r;D[o+1]=g;D[o+2]=b;D[o+3]=255;}
+    octx.putImageData(img,0,0);
+    ctx.imageSmoothingEnabled=!fast;ctx.drawImage(off,0,0,cv.width,cv.width);
+  }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  vector();
+}
+const X=x=>x/S*cssW, Y=y=>(1-y/S)*cssW;
+
+function drawTri(x,y,r){ctx.beginPath();ctx.moveTo(x,y-r*1.15);ctx.lineTo(x+r,y+r*.7);ctx.lineTo(x-r,y+r*.7);ctx.closePath();}
+function drawStar(x,y,R){ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?R*.45:R;ctx.lineTo(x+r*Math.cos(a),y+r*Math.sin(a));}ctx.closePath();}
+
+let lineFit=null;
+function vector(){
+  if(showLine&&lineFit){const [w0,w1,w2]=lineFit.w;
+    // w0 + w1*(x-5)/5 + w2*(y-5)/5 = 0
+    ctx.save();ctx.strokeStyle='#1f1d1a';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();
+    if(Math.abs(w2)>Math.abs(w1)){const yAt=x=>5-5*(w0+w1*(x-5)/5)/w2;ctx.moveTo(X(0),Y(yAt(0)));ctx.lineTo(X(S),Y(yAt(S)));}
+    else{const xAt=y=>5-5*(w0+w2*(y-5)/5)/w1;ctx.moveTo(X(xAt(0)),Y(0));ctx.lineTo(X(xAt(S)),Y(S));}
+    ctx.stroke();ctx.restore();
+    // mark misclassified
+    pts.forEach(p=>{const z=w0+w1*(p.x-5)/5+w2*(p.y-5)/5;if((z>0?1:0)!==p.c){ctx.strokeStyle='#c2410c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(X(p.x),Y(p.y),12,0,Math.PI*2);ctx.stroke();}});
+  }
+  // neighbor lines
+  let nb=[];
+  if(mode==='star'&&star&&pts.length){nb=knn(star.x,star.y,Math.min(k,pts.length));
+    ctx.save();ctx.setLineDash([4,4]);ctx.lineWidth=1.6;
+    nb.forEach(i=>{ctx.strokeStyle=COL[pts[i].c];ctx.beginPath();ctx.moveTo(X(star.x),Y(star.y));
+      if(man){ctx.lineTo(X(pts[i].x),Y(star.y));}ctx.lineTo(X(pts[i].x),Y(pts[i].y));ctx.stroke();});
+    ctx.restore();}
+  const nbSet=new Set(nb);
+  pts.forEach((p,i)=>{const x=X(p.x),y=Y(p.y),big=drag===i||nbSet.has(i);
+    ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.fillStyle=COL[p.c];
+    if(p.c===0){ctx.beginPath();ctx.arc(x,y,big?7.5:6,0,Math.PI*2);}else drawTri(x,y,big?8.5:7);
+    ctx.fill();ctx.stroke();});
+  if(mode==='star'&&star){const v=pts.length?classify(star.x,star.y,k):2;
+    drawStar(X(star.x),Y(star.y),11);ctx.fillStyle=v===2?'#777':'#1f1d1a';ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=v===2?'#fff':COL[v];ctx.stroke();}
+}
+
+// stats
+function accTrain(kk){if(!pts.length)return 0;let s=0;pts.forEach((p,i)=>{const v=classify(p.x,p.y,kk,-1);s+=v===2?.5:(v===p.c?1:0);});return s/pts.length;}
+function accLOO(kk){if(pts.length<2)return 0;let s=0;pts.forEach((p,i)=>{const v=classify(p.x,p.y,kk,i);s+=v===2?.5:(v===p.c?1:0);});return s/pts.length;}
+const pct=v=>Math.round(v*100)+'%';
+
+function updateReadout(){
+  const r=document.getElementById('readout');
+  if(!pts.length){r.innerHTML='<div style="color:var(--muted);font-size:13px">● 추가, ▲ 추가 모드로 점을 찍어 데이터를 만들어 보세요.</div>';return;}
+  const loo=[];for(let kk=1;kk<=15;kk++)loo.push(accLOO(kk));
+  const mx=Math.max(...loo), mn=Math.min(...loo);
+  let h=`<div class="stats">
+    <div class="stat"><div class="t">훈련 데이터 정확도</div><div class="v">${pct(accTrain(k))}</div></div>
+    <div class="stat"><div class="t">처음 보는 데이터 정확도 (LOO)</div><div class="v">${pct(loo[k-1])}</div></div></div>`;
+  h+=`<div class="bars">`+loo.map((v,i)=>`<div class="bar ${i+1===k?'on':''}" data-k="${i+1}" style="height:${8+40*(mx===mn?1:(v-mn)/(mx-mn))}px" title="k=${i+1}: ${pct(v)}"><span>${i+1}</span></div>`).join('')+`</div>`;
+  h+=`<div class="legend" style="margin-top:2px">막대 = k별 처음 보는 데이터 정확도 (가장 높은 값 ${pct(mx)}) · 누르면 k 변경</div>`;
+  if(showLine&&lineFit) h+=`<div class="verdict">직선 하나로 나누면 훈련 데이터 정확도 <b>${pct(lineFit.acc)}</b>${lineFit.acc<1?' — 주황 원이 직선 반대편에 놓인 점들':' — 이 데이터는 직선으로 완벽히 나뉜다'}</div>`;
+  if(mode==='star'&&star){const nb=knn(star.x,star.y,Math.min(k,pts.length));let b=0;nb.forEach(i=>b+=pts[i].c);const a=nb.length-b;
+    const res=a>b?'<b style="color:var(--cA)">● 동그라미</b>':b>a?'<b style="color:var(--cB)">▲ 세모</b>':'<b>동점! 결정 불가</b>';
+    h+=`<div class="verdict">★ 가까운 이웃 ${nb.length}개의 투표: ● ${a}표 · ▲ ${b}표 → ${res}</div>`;}
+  h+=`<div class="legend"><span class="dot"></span> 동그라미 영역 &nbsp; <span class="tri"></span> 세모 영역 &nbsp; <span class="hatch"></span> 동점(짝수 k)</div>`;
+  r.innerHTML=h;
+  r.querySelectorAll('.bar').forEach(el=>el.onclick=()=>setK(+el.dataset.k));
+}
+
+let pending=null,raf=0;
+function update(fast,refit){if(refit)lineFit=showLine?fitLine():null;pending=pending===null?fast:(pending&&fast);if(raf)return;
+  raf=requestAnimationFrame(()=>{raf=0;const f=pending;pending=null;render(f);if(!f)updateReadout();});}
+
+function setK(v){k=v;document.getElementById('kRange').value=v;
+  document.getElementById('kval').innerHTML=`k = ${v}<small>${v===1?'가장 가까운 1개':'가까운 '+v+'개 다수결'}${v%2===0?' · 짝수!':''}</small>`;update(false);}
+
+function world(e){const r=cv.getBoundingClientRect();return{x:Math.min(S-.05,Math.max(.05,(e.clientX-r.left)/r.width*S)),y:Math.min(S-.05,Math.max(.05,(1-(e.clientY-r.top)/r.height)*S))};}
+function hit(p){const R=20/cssW*S;let bi=-1,bd=R;pts.forEach((q,i)=>{const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;bi=i;}});return bi;}
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1500);}
+
+cv.addEventListener('pointerdown',e=>{e.preventDefault();const p=world(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  if(mode==='star'){star=p;dragStar=true;update(true);return;}
+  const h=hit(p);
+  if(mode==='del'){if(h>=0){pts.splice(h,1);update(false,true);}return;}
+  if(h>=0){drag=h;update(true);return;}
+  if(pts.length>=MAXP){toast('점은 최대 '+MAXP+'개까지');return;}
+  pts.push({x:p.x,y:p.y,c:mode==='A'?0:1});drag=pts.length-1;update(true);
+});
+cv.addEventListener('pointermove',e=>{if(drag<0&&!dragStar)return;const p=world(e);
+  if(dragStar)star=p;else{pts[drag].x=p.x;pts[drag].y=p.y;}update(true);});
+function end(){if(drag>=0||dragStar){const moved=drag>=0;drag=-1;dragStar=false;update(false,moved);}}
+cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;
+  document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));update(false);});
+document.getElementById('kRange').oninput=e=>setK(+e.target.value);
+const tR=document.getElementById('tRegion'),tL=document.getElementById('tLine'),tM=document.getElementById('tMan');
+tR.onchange=()=>{showRegion=tR.checked;update(false);};
+tL.onchange=()=>{showLine=tL.checked;update(false,true);};
+tM.onchange=()=>{man=tM.checked;update(false);};
+function load(name){pts=PRESETS[name]();
+  if(name==='outlier'){star={x:2.45,y:2.3};}else star={x:4.2,y:6.1};
+  update(false,true);}
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>load(b.dataset.p));
+
+// "try" buttons in the text
+const labTop=()=>window.showTab('lab');
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;
+  if(g==='line'){load('book');tL.checked=true;showLine=true;setK(1);update(false,true);}
+  if(g==='outlier'){load('outlier');tL.checked=false;showLine=false;setK(1);}
+  if(g==='k'){if(!pts.length)load('outlier');let seq=[1,3,7],i=0;setK(1);const t=setInterval(()=>{i++;if(i>=seq.length){clearInterval(t);return;}setK(seq[i]);toast('k = '+seq[i]);},1300);}
+  document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode==='star'));mode='star';
+  labTop();});
+
+function resize(){cssW=Math.floor(stage.getBoundingClientRect().width);cv.style.width=cssW+'px';cv.style.height=cssW+'px';update(false);}
+window.addEventListener('resize',resize);
+pts=PRESETS.book();
+resize();setK(1);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>update(false));
+})();
+
+// ===== Cover–Hart section =====
+(function(){
+const pR=document.getElementById('pRange'), kR=document.getElementById('k2Range'), svg=document.getElementById('riskSvg');
+const f3=v=>v.toFixed(3);
+function binomGE(k,p,m){let s=0,c=1;for(let i=0;i<=k;i++){if(i>0)c=c*(k-i+1)/i;if(i>=m)s+=c*Math.pow(p,i)*Math.pow(1-p,k-i);}return s;}
+// error of k-NN at a point where majority class has prob q (q>=.5), infinite data
+function errK(k,q){const PA=binomGE(k,q,(k+1)/2);return PA*(1-q)+(1-PA)*q;}
+const errB=q=>1-q, err1=q=>2*q*(1-q);
+
+const PX=40,PY=20,PW=260,PH=240;
+const sx=r=>PX+r/0.5*PW, sy=e=>PY+PH-e/0.5*PH;
+function path(fn){let d='';for(let i=0;i<=100;i++){const R=i/100*0.5;d+=(i?'L':'M')+sx(R).toFixed(1)+' '+sy(fn(R)).toFixed(1);}return d;}
+
+function draw(){
+  const p=+pR.value, k=+kR.value, R=1-p;
+  document.getElementById('pval').textContent=p.toFixed(2);
+  document.getElementById('k2val').textContent='k = '+k;
+  document.getElementById('eKt').textContent=k+'-NN';document.getElementById('kLeg').textContent=k+'-NN';
+  const eb=errB(p),e1=err1(p),ek=errK(k,p);
+  document.getElementById('eB').textContent=f3(eb);
+  document.getElementById('e1').textContent=f3(e1);
+  document.getElementById('eK').textContent=f3(ek);
+  const g=1-p, rows=[
+    ['아델리','아델리',p*p,false],['아델리','젠투',p*g,true],['젠투','아델리',g*p,true],['젠투','젠투',g*g,false]];
+  document.getElementById('combo').innerHTML='<tr><th>이웃</th><th>새 펭귄</th><th>확률</th><th>판정</th></tr>'+
+    rows.map(r=>`<tr class="${r[3]?'bad':''}"><td>${r[0]}</td><td>${r[1]}</td><td class="v">${f3(r[2])}</td><td>${r[3]?'틀림':'맞음'}</td></tr>`).join('')+
+    `<tr class="sum"><td colspan="2">틀릴 확률 = 2·p·(1−p)</td><td class="v" colspan="2">2 × ${p.toFixed(2)} × ${g.toFixed(2)} = ${f3(e1)}</td></tr>`;
+
+  let s='';
+  // axes & grid
+  for(let i=0;i<=4;i++){const v=i*0.125;
+    s+=`<line x1="${sx(0)}" y1="${sy(v)}" x2="${sx(.5)}" y2="${sy(v)}" stroke="#eee6d8"/>`;
+    s+=`<line x1="${sx(v)}" y1="${sy(0)}" x2="${sx(v)}" y2="${sy(.5)}" stroke="#eee6d8"/>`;
+    if(i%2===0){s+=`<text x="${sx(v)}" y="${sy(0)+16}" font-size="10" text-anchor="middle" fill="#6b655c" font-family="JetBrains Mono">${v.toFixed(2)}</text>`;
+      s+=`<text x="${sx(0)-6}" y="${sy(v)+3}" font-size="10" text-anchor="end" fill="#6b655c" font-family="JetBrains Mono">${v.toFixed(2)}</text>`;}}
+  s+=`<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(.5)}" y2="${sy(0)}" stroke="#1f1d1a"/><line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(0)}" y2="${sy(.5)}" stroke="#1f1d1a"/>`;
+  s+=`<text x="${sx(.25)}" y="${PY+PH+32}" font-size="11" text-anchor="middle" fill="#1f1d1a">베이즈 위험 R*</text>`;
+  s+=`<text x="12" y="${sy(.25)}" font-size="11" text-anchor="middle" fill="#1f1d1a" transform="rotate(-90 12 ${sy(.25)})">분류기 오류율</text>`;
+  // region between bounds
+  let area=path(R=>2*R*(1-R));for(let i=100;i>=0;i--){const R=i/100*.5;area+='L'+sx(R).toFixed(1)+' '+sy(R).toFixed(1);}
+  s+=`<path d="${area}Z" fill="rgba(194,65,12,.07)"/>`;
+  s+=`<path d="${path(R=>R)}" fill="none" stroke="#1f1d1a" stroke-width="1.8" stroke-dasharray="6 5"/>`;
+  s+=`<path d="${path(R=>2*R*(1-R))}" fill="none" stroke="#1f1d1a" stroke-width="2.5"/>`;
+  if(k>1)s+=`<path d="${path(R=>errK(k,1-R))}" fill="none" stroke="#c2410c" stroke-width="2.5"/>`;
+  // current point markers
+  s+=`<line x1="${sx(R)}" y1="${sy(0)}" x2="${sx(R)}" y2="${sy(Math.max(e1,ek))}" stroke="#9a948a" stroke-dasharray="2 3"/>`;
+  s+=`<circle cx="${sx(R)}" cy="${sy(eb)}" r="5" fill="#fff" stroke="#1f1d1a" stroke-width="2"/>`;
+  s+=`<circle cx="${sx(R)}" cy="${sy(e1)}" r="5.5" fill="#1f1d1a"/>`;
+  if(k>1)s+=`<circle cx="${sx(R)}" cy="${sy(ek)}" r="5.5" fill="#c2410c"/>`;
+  s+=`<text x="${sx(R)-9}" y="${sy(e1)-6}" text-anchor="end" font-size="11" font-weight="700" fill="#1f1d1a" font-family="JetBrains Mono" paint-order="stroke" stroke="#fffdf8" stroke-width="3">${f3(e1)}</text>`;
+  svg.innerHTML=s;
+}
+pR.oninput=draw;kR.oninput=draw;
+
+document.getElementById('simBtn').onclick=()=>{
+  const p=+pR.value,k=+kR.value,N=1000;let b=0,n1=0,nk=0;
+  const sp=()=>Math.random()<p?1:0; // 1 = Adelie
+  for(let i=0;i<N;i++){const t=sp();
+    if(t!==1)b++;                          // Bayes says Adelie always
+    if(sp()!==t)n1++;                      // 1-NN copies one neighbor
+    let a=0;for(let j=0;j<k;j++)a+=sp();if((a>k/2?1:0)!==t)nk++;}
+  const o=document.getElementById('simOut');o.style.display='block';
+  o.innerHTML=`펭귄 1,000마리 중 틀린 수 → 베이즈 <b>${b}</b> · 1-NN <b>${n1}</b> · ${k}-NN <b>${nk}</b><br><span style="font-size:12px;color:var(--muted)">이론값: ${Math.round(errB(p)*N)} · ${Math.round(err1(p)*N)} · ${Math.round(errK(k,p)*N)} (누를 때마다 조금씩 달라진다)</span>`;
+};
+draw();
+})();
+</script>
+</body>
+</html>
