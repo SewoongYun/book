@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCA — 행렬에는 마법이 있다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f0e6;--card:#fffdf7;--ink:#1c2127;--mute:#6a6e75;--line:#e1dacb;
+  --acc:#2c5b98;--acc2:#c4532f;--soft:#dce6f4;--soft2:#f7e2d8;--hl:#cfe0f3;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#13161b;--card:#1a1e25;--ink:#e9e6df;--mute:#9aa0a8;--line:#2b313a;
+  --acc:#7ea9e8;--acc2:#f08d66;--soft:#223349;--soft2:#3f281f;--hl:#25405f;}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Noto Sans KR",system-ui,sans-serif;line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 80px}
+header.hero{padding:56px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:8px}
+.kicker{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;color:var(--acc2);text-transform:uppercase}
+h1{font-family:"Noto Serif KR",serif;font-weight:900;font-size:clamp(36px,8.5vw,60px);line-height:1.12;margin:10px 0 6px;letter-spacing:-.02em}
+h1 small{display:block;font-family:"JetBrains Mono",monospace;font-weight:400;font-size:14px;letter-spacing:.04em;color:var(--mute);margin-top:10px}
+.lede{font-size:18px;margin:18px 0 0;max-width:36em}
+.lede b{background:linear-gradient(transparent 55%,var(--hl) 55%)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--card);padding:6px 11px;border-radius:999px}
+nav.toc a span{font-family:"JetBrains Mono",monospace;color:var(--acc);margin-right:4px}
+section{padding:44px 0 8px;border-bottom:1px solid var(--line)}
+.num{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--acc);letter-spacing:.08em}
+h2{font-family:"Noto Serif KR",serif;font-size:clamp(25px,5.4vw,32px);line-height:1.3;margin:6px 0 14px;letter-spacing:-.01em}
+h3{font-size:17px;margin:26px 0 8px}
+p{margin:0 0 14px}
+.math{font-family:"JetBrains Mono",monospace;font-size:.95em;background:var(--soft);padding:1px 6px;border-radius:4px}
+.formula{font-family:"JetBrains Mono",monospace;text-align:center;font-size:16px;padding:16px 6px;margin:6px 0 16px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);overflow-x:auto;white-space:nowrap}
+.mat{display:inline-grid;gap:1px 14px;padding:3px 9px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:5px;font-family:"JetBrains Mono",monospace;vertical-align:middle;text-align:right;font-size:14px;line-height:1.5;margin:0 3px}
+.lab{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:12px}
+.ctrl label{font-size:14px;color:var(--mute)}
+.dval{font-family:"JetBrains Mono",monospace;font-weight:600;font-size:20px;color:var(--acc);min-width:3.2em}
+input[type=range]{flex:1;min-width:160px;accent-color:var(--acc);height:28px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-size:13px;padding:7px 11px;cursor:pointer}
+.seg button.on{background:var(--acc);color:var(--card)}
+.btn{border:1px solid var(--acc);background:transparent;color:var(--acc);font:inherit;font-size:13.5px;font-weight:500;padding:6px 12px;border-radius:9px;cursor:pointer}
+.btn.fill{background:var(--acc);color:var(--card)}
+.btn:active{transform:translateY(1px)}
+canvas{display:block;width:100%}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.tile .k{font-size:12px;color:var(--mute)}
+.tile .v{font-family:"JetBrains Mono",monospace;font-weight:600;font-size:18px;line-height:1.35;word-break:break-all}
+.tile.alt .v{color:var(--acc2)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--mute);margin:8px 0 2px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.note{font-size:14px;color:var(--mute);border-left:3px solid var(--acc2);padding:2px 0 2px 12px;margin:14px 0}
+.insight{background:var(--soft2);border-radius:10px;padding:12px 14px;font-size:15px;margin:14px 0}
+.insight b{color:var(--acc2)}
+.minput{display:inline-grid;grid-template-columns:auto auto;gap:6px 8px;padding:6px 10px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px}
+.minput input,.ptab input{width:64px;font:inherit;font-family:"JetBrains Mono",monospace;font-size:15px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);text-align:right}
+.readout{font-family:"JetBrains Mono",monospace;font-size:14px;line-height:1.8;margin-top:10px}
+.readout .star{color:var(--acc2);font-weight:600}
+.ptab{border-collapse:collapse;margin:4px 0 10px}
+.ptab th{font-size:12.5px;color:var(--mute);font-weight:500;padding:2px 8px;text-align:center}
+.ptab td{padding:3px 6px;text-align:center}
+.ptab td.idx{font-family:"JetBrains Mono",monospace;color:var(--mute);font-size:13px}
+.xbtn{border:0;background:none;color:var(--mute);font-size:16px;cursor:pointer;padding:2px 6px}
+.calc{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin:12px 0}
+.calc .cap{font-size:12px;color:var(--mute);display:block;margin-bottom:4px}
+ol.steps{padding-left:0;list-style:none;counter-reset:s;margin:10px 0 16px}
+ol.steps li{counter-increment:s;position:relative;padding:10px 0 10px 46px;border-bottom:1px dashed var(--line)}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:32px;height:32px;border-radius:50%;background:var(--acc);color:var(--card);font-family:"JetBrains Mono",monospace;font-weight:600;display:flex;align-items:center;justify-content:center}
+.eeg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.eeg div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.eeg b{display:block;font-family:"JetBrains Mono",monospace;font-size:20px;color:var(--acc)}
+.eeg span{font-size:12px;color:var(--mute)}
+.eeg .big b{color:var(--acc2)}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0}
+summary{cursor:pointer;font-weight:500}
+details .ans{margin-top:10px;font-size:15px}
+footer{padding:28px 0;font-size:13px;color:var(--mute)}
+footer a{color:var(--acc)}
+@media (max-width:480px){.eeg{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">주성분 분석 · 고윳값 · 공분산 행렬</div>
+  <h1>행렬에는<br>마법이 있다<small>PRINCIPAL COMPONENT ANALYSIS</small></h1>
+  <p class="lede">고차원 데이터를 <b>훨씬 적은 수의 축에 투영</b>하되, 데이터가 <b>가장 크게 퍼지는 방향</b>을 고른다. 그 방향의 정체는 공분산 행렬의 고유벡터다. 차원성의 저주를 피하는 가장 강력한 도구를 직접 만져 보자.</p>
+  <nav class="toc">
+    <a href="#s1"><span>01</span>왜 PCA인가</a>
+    <a href="#s2"><span>02</span>아기 PCA</a>
+    <a href="#s3"><span>03</span>행렬 곱과 고유벡터</a>
+    <a href="#s4"><span>04</span>공분산 행렬</a>
+    <a href="#s5"><span>05</span>PCA 한눈에</a>
+    <a href="#s6"><span>06</span>수업용 질문</a>
+  </nav>
+</header>
+
+<!-- 1 -->
+<section id="s1">
+  <div class="num">MOTIVATION</div>
+  <h2>왜 PCA인가 — 마취 환자의 뇌파</h2>
+  <p>에머리 브라운 연구팀은 마취 중인 사람의 뇌파(EEG)만 보고 의식이 있는지 판별할 수 있는지 알고 싶었다. 전극 하나에서 모은 데이터만 해도 이 정도다.</p>
+  <div class="eeg">
+    <div><b>1</b><span>전극</span></div>
+    <div><b>100</b><span>주파수 성분</span></div>
+    <div><b>5,400</b><span>2초 구간 (3시간)</span></div>
+    <div class="big"><b>54만</b><span>1인당 데이터 점</span></div>
+  </div>
+  <p>각 시간 구간은 100차원 공간의 한 점이다. 이대로는 차원성의 저주에 정면으로 걸린다. 그래서 통계학자의 연장통에서 PCA를 빌린다. <b>데이터를 더 적은 축에 투영하되, 데이터가 가장 많이 변하는 방향을 축으로 고르는 것</b>, 핵심은 그 축의 집합을 제대로 찾는 데 있다.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <div class="num">EXPERIMENT 01</div>
+  <h2>아기 PCA — 어느 축에 투영할까</h2>
+  <p>두 속성 x₁, x₂를 가진 데이터. 동그라미와 세모가 대각선 방향으로 늘어서 있다. 이걸 <b>한 축(1차원)</b>으로 줄이면서도 두 무리가 구분되도록 하고 싶다. 투영 축의 각도를 돌려 보자. 아래 띠는 투영 결과다.</p>
+  <div class="lab">
+    <div class="ctrl">
+      <label for="ang">투영 축 각도</label>
+      <span class="dval" id="angv">0°</span>
+      <input type="range" id="ang" min="0" max="179" value="0">
+    </div>
+    <div class="ctrl">
+      <button class="btn" data-a="0">x축</button>
+      <button class="btn" data-a="90">y축</button>
+      <button class="btn fill" id="pc1btn">주성분 축 찾기</button>
+      <button class="btn" id="newd">새 데이터 ↻</button>
+    </div>
+    <canvas id="c2"></canvas>
+    <canvas id="c2s" style="margin-top:6px"></canvas>
+    <div class="legend">
+      <span>● 동그라미 무리 · ▲ 세모 무리</span>
+      <span><i class="sw" style="background:var(--acc2)"></i>투영 축</span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">이 축이 잡은 분산</div><div class="v" id="t2v">—</div></div>
+      <div class="tile alt"><div class="k">전체 분산 중 비율</div><div class="v" id="t2r">—</div></div>
+      <div class="tile"><div class="k">주성분(PC1) 각도</div><div class="v" id="t2p">—</div></div>
+    </div>
+  </div>
+  <div class="insight">x축이나 y축에 투영해도 두 무리는 어느 정도 갈린다. 하지만 <b>45° 근처의 주성분 축</b>에 투영하면 분산이 최대가 되고 무리 사이 간격도 가장 넓다. 반대로 그 수직 방향(약 135°)에 투영하면 모든 점이 뭉개진다.</div>
+  <p class="note">2차원을 1차원으로 줄여도 대부분의 정보가 남는 건 이 예제가 일부러 그렇게 만들어졌기 때문이다. 줄여서 버리는 방향에 ‘작지만 결정적인’ 정보가 있을 위험은 언제나 있다(05에서 다시).</p>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <div class="num">EXPERIMENT 02</div>
+  <h2>행렬 곱, 그리고 고유벡터</h2>
+  <p>행렬 A(m×n)에 벡터 x(n차원)를 곱하면 m차원 벡터 y가 나온다. 행렬의 열 개수와 벡터의 차원이 같아야 곱할 수 있다. 정사각 행렬이면 같은 공간의 한 점을 다른 점으로 옮기는 변환이 된다.</p>
+  <div class="formula">
+    <span class="mat" style="grid-template-columns:auto auto"><span>1</span><span>0</span><span>1</span><span>−2</span></span>
+    <span class="mat"><span>1</span><span>2</span></span> =
+    <span class="mat"><span>1</span><span>−3</span></span>
+  </div>
+  <p>대부분의 벡터는 크기와 방향이 함께 바뀐다. 그런데 어떤 특별한 방향의 벡터는 <b>방향은 그대로(또는 정반대로) 두고 길이만 λ배</b> 된다. 이것이 고유벡터, λ가 고윳값이다.</p>
+  <div class="formula">A x = λ x</div>
+  <p class="note">‘eigen’은 독일어로 ‘고유한, 특징적인’. 다비트 힐베르트가 1912년 적분방정식에 관한 책에서 Eigenwert(고윳값), Eigenfunktion(고유함수)이라는 말을 썼다.</p>
+
+  <div class="lab">
+    <div class="ctrl">
+      <label>예시</label>
+      <div class="seg" id="mpre">
+        <button data-m="1,0,1,-2" class="on">책 예제</button><button data-m="3,1,1,2">대칭 행렬</button><button data-m="2,0,0,0.5">대각 행렬</button><button data-m="0,-1,1,0">90° 회전</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>A =</label>
+      <div class="minput"><input id="ma" type="number" step="0.5"><input id="mb" type="number" step="0.5"><input id="mc" type="number" step="0.5"><input id="md" type="number" step="0.5"></div>
+    </div>
+    <div class="ctrl">
+      <label for="th">벡터 x 각도</label>
+      <span class="dval" id="thv">60°</span>
+      <input type="range" id="th" min="0" max="359" value="63">
+    </div>
+    <div class="ctrl">
+      <button class="btn" id="ev1">고유벡터 ① 로</button>
+      <button class="btn" id="ev2">고유벡터 ② 로</button>
+    </div>
+    <canvas id="c3"></canvas>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--soft);border:1px solid var(--acc)"></i>단위원 → 변환 후 모양</span>
+      <span><i class="sw" style="background:var(--ink)"></i>x</span>
+      <span><i class="sw" style="background:var(--acc2)"></i>Ax</span>
+      <span>점선: 고유벡터 방향</span>
+    </div>
+    <div class="readout" id="ro3"></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">고윳값 λ₁, λ₂</div><div class="v" id="t3l">—</div></div>
+      <div class="tile"><div class="k">고유벡터 ①, ②</div><div class="v" id="t3v" style="font-size:15px">—</div></div>
+      <div class="tile alt"><div class="k">두 고유벡터가 직교?</div><div class="v" id="t3o">—</div></div>
+    </div>
+  </div>
+  <p>단위원 위의 벡터들에 행렬을 곱하면 원이 <b>타원</b>으로 찌그러진다. 책 예제 행렬의 고유벡터는 [0, 1](λ = −2)과 [3, 1](λ = 1)이고, 서로 수직이 아니다.</p>
+  <div class="insight"><b>정사각 대칭 행렬</b>(대각선을 기준으로 원소가 대칭)로 바꿔 보자. 고유벡터가 항상 <b>서로 수직</b>이고(직교 고유벡터), 정확히 <b>타원의 장축과 단축</b> 방향을 가리킨다. 고윳값은 실수다. 공분산 행렬이 바로 이런 행렬이라는 게 PCA의 핵심이다.</div>
+  <p class="note">‘90° 회전’ 행렬은 모든 벡터의 방향을 바꾸므로 실수 고유벡터가 없다(고윳값이 ±i인 복소수).</p>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <div class="num">EXPERIMENT 03</div>
+  <h2>공분산 행렬 만들기</h2>
+  <p>사람마다 키 h(피트)와 몸무게 w(파운드)를 잰 데이터를 행렬 X로 쓴다. 행 하나가 사람 하나, 열 하나가 속성 하나다.</p>
+  <p><b>① 평균 보정(centering).</b> 각 열에서 그 열의 평균을 뺀다. <b>② X<sup>T</sup>X 계산.</b> 2×3 행렬과 3×2 행렬의 곱이므로 2×2 정사각 대칭 행렬이 나온다.</p>
+  <div class="formula">
+    X<sup>T</sup>X = <span class="mat" style="grid-template-columns:auto auto"><span>Σh²</span><span>Σhw</span><span>Σhw</span><span>Σw²</span></span>
+  </div>
+  <p>대각 원소는 각 속성의 분산(에 비례하는 값), 비대각 원소는 두 속성이 함께 움직이는 정도인 <b>공분산</b>이다. 그래서 공분산 행렬이라 부른다. 키·몸무게를 직접 바꿔 보자.</p>
+
+  <div class="lab">
+    <div class="ctrl">
+      <button class="btn" id="ex1">책 예제 ① (120,160,220)</button>
+      <button class="btn" id="ex2">책 예제 ② (160,220,120)</button>
+    </div>
+    <table class="ptab"><thead><tr><th></th><th>키 h</th><th>몸무게 w</th><th></th></tr></thead><tbody id="ptb"></tbody></table>
+    <div class="ctrl">
+      <button class="btn" id="addp">+ 사람 추가</button>
+      <div class="seg" id="stdseg"><button data-s="0" class="on">원자료</button><button data-s="1">표준화</button></div>
+    </div>
+    <div class="calc">
+      <div><span class="cap" id="capX">평균 보정한 X</span><span id="mX"></span></div>
+      <div><span class="cap" id="capC">X<sup>T</sup>X</span><span id="mC"></span></div>
+    </div>
+    <canvas id="c4"></canvas>
+    <div class="legend"><span>가로: 키(평균 보정) · 세로: 몸무게(평균 보정) · 두 축의 눈금은 서로 다름</span><span><i class="sw" style="background:var(--acc2)"></i>제1 주성분 방향</span></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">고윳값 λ₁ / λ₂</div><div class="v" id="t4l">—</div></div>
+      <div class="tile"><div class="k">제1 주성분 (h, w)</div><div class="v" id="t4v">—</div></div>
+      <div class="tile alt"><div class="k">PC1이 설명하는 분산</div><div class="v" id="t4r">—</div></div>
+    </div>
+  </div>
+  <p>책의 두 예에서 비대각 원소는 각각 <span class="math">100</span>과 <span class="math">−40</span>이다. 첫째는 키가 클수록 몸무게도 늘어나는 관계(양의 공분산), 둘째는 키가 커지는데 몸무게가 오히려 줄어드는 관계(음의 공분산)를 포착한다.</p>
+  <div class="insight"><b>단위의 함정 (책 밖 한 걸음).</b> 원자료로는 PC1이 거의 몸무게 축과 같다. 몸무게 숫자가 키보다 훨씬 커서 분산을 독차지하기 때문이다. ‘표준화’를 누르면 각 속성을 표준편차로 나눠 단위를 맞춘다. 그러면 PC1이 ±45° 근처로 돌아가 두 속성의 관계 자체를 반영한다.</div>
+  <p class="note">엄밀히는 X<sup>T</sup>X를 n−1(또는 n)로 나눈 것이 공분산 행렬이다. 상수로 나눠도 고유벡터는 그대로이고 고윳값만 같은 비율로 줄어든다.</p>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <div class="num">SUMMARY</div>
+  <h2>PCA 한눈에</h2>
+  <ol class="steps">
+    <li><b>평균 보정.</b> m×n 데이터 행렬 X의 각 열에서 평균을 뺀다.</li>
+    <li><b>공분산 행렬.</b> X<sup>T</sup>X(n×n, 정사각 대칭 행렬)를 계산한다.</li>
+    <li><b>고유분해.</b> 고윳값과 고유벡터를 구한다. 대칭 행렬이므로 고유벡터는 서로 직교하고, 데이터라는 ‘타원체’의 축 방향을 가리킨다.</li>
+    <li><b>정렬과 선택.</b> 고윳값이 큰 순서대로 고유벡터를 줄 세운다. 고윳값은 그 방향의 분산이다. 위에서 k개만 고른다. 설명 비율은 <span class="math">λᵢ / Σλ</span>.</li>
+    <li><b>투영.</b> 데이터를 고른 k개의 고유벡터에 투영하면 n차원이 k차원으로 줄어든다. 이 축이 주성분이다.</li>
+  </ol>
+  <h3>예: 차량 분류</h3>
+  <p>차량마다 높이, 길이, 바퀴 수, 정원, 크기, 형태의 여섯 속성이 있다고 하자. PCA를 하면 첫 주성분은 대체로 ‘크기’ 쪽에 대응할 것이고, 크기와 형태로 대부분의 분산이 설명된다. 그런데 ‘사다리 개수’라는 속성이 더 있다면? 사다리가 있는 차는 소방차뿐이라 이 방향의 분산은 아주 작다. PCA는 이 방향을 버리고, 소방차를 다른 큰 차와 구별할 단서도 함께 사라진다.</p>
+  <div class="insight">분산이 작다 ≠ 중요하지 않다. PCA로 줄인 뒤 버린 방향에 결정적 정보가 있을 수 있다는 위험을 늘 의식해야 한다. 그럼에도 차원을 몇 개로 줄여 계산을 다룰 만하게 만드는 이점이 워낙 크기 때문에 데이터 과학에서 가장 중요한 방법 중 하나로 꼽힌다.</div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <div class="num">FOR CLASS</div>
+  <h2>수업용 질문</h2>
+  <details><summary>Q1. A = [[1, 0], [1, −2]]의 고윳값과 고유벡터를 직접 구하라.</summary>
+    <div class="ans">det(A − λI) = (1 − λ)(−2 − λ) − 0 = 0 ⇒ λ = 1, −2.<br>λ = −2: 첫 행 3x₁ = 0 ⇒ x₁ = 0 → <b>[0, 1]</b>. 실제로 A[0, 2] = [0, −4] = −2·[0, 2].<br>λ = 1: 둘째 행 x₁ − 3x₂ = 0 → <b>[3, 1]</b>. 내적 = 1 ≠ 0이라 직교하지 않는다.</div></details>
+  <details><summary>Q2. 대칭 행렬 [[3, 1], [1, 2]]의 고유벡터가 서로 수직임을 확인하라.</summary>
+    <div class="ans">λ² − 5λ + 5 = 0 ⇒ λ = (5 ± √5)/2 ≈ 3.618, 1.382.<br>고유벡터 (1, λ − 3)이므로 (1, (√5−1)/2), (1, (−√5−1)/2). 내적 = 1 + (√5−1)(−√5−1)/4 = 1 − 4/4 = <b>0</b>. 일반적으로 대칭 행렬의 서로 다른 고윳값에 대응하는 고유벡터는 직교한다(λ₁u·v = Au·v = u·Av = λ₂u·v).</div></details>
+  <details><summary>Q3. 평균 보정을 하지 않고 X<sup>T</sup>X를 계산하면 무엇이 잘못될까?</summary>
+    <div class="ans">대각·비대각 원소에 평균값의 제곱과 곱이 섞여 들어가 분산·공분산이 아니게 된다. 그 결과 제1 고유벡터가 ‘데이터가 퍼지는 방향’이 아니라 ‘원점에서 데이터 중심으로 가는 방향’을 가리키게 된다. 실험 03의 원자료 X를 그대로 넣어 비교해 보면 좋다.</div></details>
+  <details><summary>Q4. 책 예제 ①의 X<sup>T</sup>X = [[2, 100], [100, 5066.67]]에서 제1 주성분이 설명하는 분산 비율은?</summary>
+    <div class="ans">tr = 5068.67, det = 2·5066.67 − 100² ≈ 133.33 ⇒ λ₁ ≈ 5068.64, λ₂ ≈ 0.026. 비율 ≈ <b>99.9995%</b>. 이 숫자는 정보가 많아서라기보다 몸무게 단위가 분산을 독차지한 결과다. 표준화하면 λ₁ ≈ 3.987, λ₂ ≈ 0.013 (≈ 99.7%)로 여전히 높지만, PC1이 (0.71, 0.71) 방향으로 바뀐다.</div></details>
+  <details><summary>Q5. 고윳값이 ‘그 방향의 분산’이 되는 이유를 단위벡터 u로 설명하라.</summary>
+    <div class="ans">평균 보정된 데이터를 단위벡터 u에 투영한 값은 Xu. 그 제곱합은 (Xu)<sup>T</sup>(Xu) = u<sup>T</sup>(X<sup>T</sup>X)u. u가 고윳값 λ의 고유벡터이면 u<sup>T</sup>λu = <b>λ</b>. 그리고 u<sup>T</sup>Cu를 최대로 만드는 단위벡터가 가장 큰 고윳값의 고유벡터다(실험 01에서 각도를 돌리며 찾은 축).</div></details>
+</section>
+
+<footer>책의 ‘행렬에는 마법이 있다’ 장(pp. 185–201) 내용을 바탕으로 만든 탐구 페이지. 앞 장: <a href="차원성의 저주 — 인터랙티브 탐구.html">차원성의 저주 — 인터랙티브 탐구</a></footer>
+</div>
+
+<script>
+(function(){
+const root=document.documentElement;
+const C=n=>getComputedStyle(root).getPropertyValue(n).trim();
+const MONO='"JetBrains Mono", monospace', SANS='"Noto Sans KR", sans-serif';
+function setup(c,h){const dpr=window.devicePixelRatio||1;const w=c.clientWidth;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.height=h+'px';const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,w,h};}
+const fmt=(x,k=2)=>{let r=+x.toFixed(k);if(Object.is(r,-0)||Math.abs(r)<Math.pow(10,-k))r=0;return r.toString().replace('-','−');};
+function matHTML(rows,k=2){const n=rows[0].length;let s='<span class="mat" style="grid-template-columns:repeat('+n+',auto)">';rows.forEach(r=>r.forEach(v=>s+='<span>'+(typeof v==='number'?fmt(v,k):v)+'</span>'));return s+'</span>';}
+function eig2(a,b,c,d){const tr=a+d,det=a*d-b*c,disc=tr*tr-4*det;
+  if(disc<-1e-10)return{complex:true,re:tr/2,im:Math.sqrt(-disc)/2};
+  const s=Math.sqrt(Math.max(disc,0));const ls=[(tr+s)/2,(tr-s)/2];
+  const vs=ls.map(l=>{let v1=[b,l-a],v2=[l-d,c];const n1=Math.hypot(v1[0],v1[1]),n2=Math.hypot(v2[0],v2[1]);let v=n1>=n2?v1:v2,n=Math.max(n1,n2);
+    if(n<1e-10){v=Math.abs(a-l)<1e-9?[1,0]:[0,1];n=1;}v=[v[0]/n,v[1]/n];if(v[0]<-1e-12||(Math.abs(v[0])<=1e-12&&v[1]<0))v=[-v[0],-v[1]];return v;});
+  if(Math.abs(ls[0]-ls[1])<1e-10&&Math.abs(b)<1e-10&&Math.abs(c)<1e-10)vs[1]=[0,1],vs[0]=[1,0];
+  return{complex:false,ls,vs};}
+function arrow(ctx,x0,y0,x1,y1,col,lw=2){const a=Math.atan2(y1-y0,x1-x0),L=Math.hypot(x1-x0,y1-y0),hs=Math.min(10,L*0.4);
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1-Math.cos(a)*hs*0.6,y1-Math.sin(a)*hs*0.6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1-hs*Math.cos(a-0.4),y1-hs*Math.sin(a-0.4));ctx.lineTo(x1-hs*Math.cos(a+0.4),y1-hs*Math.sin(a+0.4));ctx.closePath();ctx.fill();ctx.lineWidth=1;}
+function mark(ctx,x,y,tri,r,fill){ctx.fillStyle=fill;ctx.beginPath();if(tri){ctx.moveTo(x,y-r*1.15);ctx.lineTo(x+r,y+r*0.75);ctx.lineTo(x-r,y+r*0.75);ctx.closePath();}else ctx.arc(x,y,r*0.85,0,2*Math.PI);ctx.fill();}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- 01 baby PCA ---------- */
+let P=[],ang=0;const c2=document.getElementById('c2'),c2s=document.getElementById('c2s');
+function genP(){P=[];const base=(40+Math.random()*15)*Math.PI/180,dx=Math.cos(base),dy=Math.sin(base);
+  for(let i=0;i<9;i++){const t=-1.55+i*0.15+gauss()*0.08,n=gauss()*0.17;P.push({x:t*dx-n*dy,y:t*dy+n*dx,tri:false});}
+  for(let i=0;i<8;i++){const t=0.35+i*0.17+gauss()*0.08,n=gauss()*0.17;P.push({x:t*dx-n*dy,y:t*dy+n*dx,tri:true});}
+  let mx=0,my=0;P.forEach(p=>{mx+=p.x;my+=p.y;});mx/=P.length;my/=P.length;P.forEach(p=>{p.x-=mx;p.y-=my;});}
+function cov2(){let a=0,b=0,d=0;P.forEach(p=>{a+=p.x*p.x;b+=p.x*p.y;d+=p.y*p.y;});const n=P.length;return[a/n,b/n,d/n];}
+function pc1Angle(){const[a,b,d]=cov2();const e=eig2(a,b,b,d);let deg=Math.atan2(e.vs[0][1],e.vs[0][0])*180/Math.PI;deg=((deg%180)+180)%180;return Math.round(deg);}
+function draw2(){
+  const {ctx,w,h}=setup(c2,300);const R=2.25,s=Math.min(w,h)/2/R,cx=w/2,cy=h/2,X=x=>cx+x*s,Y=y=>cy-y*s;
+  ctx.strokeStyle=C('--line');ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(w,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,h);ctx.stroke();
+  ctx.fillStyle=C('--mute');ctx.font='11px '+MONO;ctx.fillText('x₁',w-16,cy-6);ctx.fillText('x₂',cx+6,12);
+  const th=ang*Math.PI/180,ux=Math.cos(th),uy=Math.sin(th),L=R*3;
+  // projection lines
+  ctx.strokeStyle=C('--mute');ctx.globalAlpha=.35;ctx.setLineDash([2,3]);
+  P.forEach(p=>{const t=p.x*ux+p.y*uy;ctx.beginPath();ctx.moveTo(X(p.x),Y(p.y));ctx.lineTo(X(t*ux),Y(t*uy));ctx.stroke();});
+  ctx.setLineDash([]);ctx.globalAlpha=1;
+  ctx.strokeStyle=C('--acc2');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-L*ux),Y(-L*uy));ctx.lineTo(X(L*ux),Y(L*uy));ctx.stroke();ctx.lineWidth=1;
+  P.forEach(p=>{const t=p.x*ux+p.y*uy;mark(ctx,X(t*ux),Y(t*uy),p.tri,3.2,C('--acc2'));});
+  P.forEach(p=>mark(ctx,X(p.x),Y(p.y),p.tri,6,C('--ink')));
+  // strip
+  const st=setup(c2s,56);const sc=st.ctx,sw=st.w;const sR=2.4,SX=t=>sw/2+t/sR*(sw/2-10);
+  sc.strokeStyle=C('--acc2');sc.lineWidth=2;sc.beginPath();sc.moveTo(6,26);sc.lineTo(sw-6,26);sc.stroke();sc.lineWidth=1;
+  sc.fillStyle=C('--mute');sc.font='11px '+SANS;sc.fillText('투영 결과 (1차원)',6,52);
+  P.forEach(p=>{const t=p.x*ux+p.y*uy;sc.globalAlpha=.85;mark(sc,SX(t),p.tri?14:38,p.tri,6,C('--ink'));sc.globalAlpha=1;});
+  const[a,b,d]=cov2();const v=a*ux*ux+2*b*ux*uy+d*uy*uy,tot=a+d;
+  document.getElementById('angv').textContent=ang+'°';
+  document.getElementById('t2v').textContent=fmt(v,3);
+  document.getElementById('t2r').textContent=(v/tot*100).toFixed(1)+'%';
+  document.getElementById('t2p').textContent=pc1Angle()+'°';
+}
+const angEl=document.getElementById('ang');
+angEl.addEventListener('input',e=>{ang=+e.target.value;draw2();});
+document.querySelectorAll('#s2 [data-a]').forEach(b=>b.addEventListener('click',()=>{ang=+b.dataset.a;angEl.value=ang;draw2();}));
+document.getElementById('pc1btn').addEventListener('click',()=>{const target=pc1Angle();const start=ang;const t0=performance.now();
+  const step=now=>{const k=Math.min(1,(now-t0)/500),e=1-Math.pow(1-k,3);ang=Math.round(start+(target-start)*e);angEl.value=ang;draw2();if(k<1)requestAnimationFrame(step);};requestAnimationFrame(step);});
+document.getElementById('newd').addEventListener('click',()=>{genP();draw2();});
+
+/* ---------- 02 matrix ---------- */
+let M=[1,0,1,-2],th=63;const c3=document.getElementById('c3');const ids=['ma','mb','mc','md'];
+function setM(m){M=m.slice();ids.forEach((id,i)=>document.getElementById(id).value=M[i]);}
+ids.forEach((id,i)=>document.getElementById(id).addEventListener('input',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){M[i]=v;document.querySelectorAll('#mpre button').forEach(x=>x.classList.remove('on'));draw3();}}));
+document.querySelectorAll('#mpre button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#mpre button').forEach(x=>x.classList.remove('on'));b.classList.add('on');setM(b.dataset.m.split(',').map(Number));draw3();}));
+const thEl=document.getElementById('th');thEl.addEventListener('input',e=>{th=+e.target.value;draw3();});
+function goEv(k){const[a,b,c,d]=M;const e=eig2(a,b,c,d);if(e.complex)return;const v=e.vs[k];th=Math.round(((Math.atan2(v[1],v[0])*180/Math.PI)+360)%360);thEl.value=th;draw3();}
+document.getElementById('ev1').addEventListener('click',()=>goEv(0));
+document.getElementById('ev2').addEventListener('click',()=>goEv(1));
+function draw3(){
+  const[a,b,c,d]=M;const N=72;const pts=[];let mx=1;
+  for(let k=0;k<N;k++){const t=2*Math.PI*k/N,p=[Math.cos(t),Math.sin(t)],q=[a*p[0]+b*p[1],c*p[0]+d*p[1]];pts.push(q);mx=Math.max(mx,Math.hypot(q[0],q[1]));}
+  const {ctx,w,h}=setup(c3,320);const R=mx*1.15,s=Math.min(w,h)/2/R,cx=w/2,cy=h/2,X=x=>cx+x*s,Y=y=>cy-y*s;
+  // grid
+  const step=R<=3?1:R<=8?2:Math.ceil(R/4);
+  ctx.strokeStyle=C('--line');ctx.fillStyle=C('--mute');ctx.font='10px '+MONO;ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(w,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,h);ctx.stroke();
+  for(let v=-Math.floor(R/step)*step;v<=R;v+=step){if(!v)continue;ctx.beginPath();ctx.moveTo(X(v),cy-3);ctx.lineTo(X(v),cy+3);ctx.moveTo(cx-3,Y(v));ctx.lineTo(cx+3,Y(v));ctx.stroke();ctx.fillText(v,X(v),cy+5);ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v,cx-6,Y(v));ctx.textAlign='center';ctx.textBaseline='top';}
+  // unit disc
+  ctx.beginPath();ctx.arc(cx,cy,s,0,2*Math.PI);ctx.fillStyle=C('--soft');ctx.fill();ctx.strokeStyle=C('--acc');ctx.globalAlpha=.6;ctx.stroke();ctx.globalAlpha=1;
+  // rays
+  ctx.strokeStyle=C('--mute');ctx.globalAlpha=.3;pts.forEach(q=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(X(q[0]),Y(q[1]));ctx.stroke();});ctx.globalAlpha=1;
+  ctx.strokeStyle=C('--acc');ctx.lineWidth=2;ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.stroke();ctx.lineWidth=1;
+  // eigen lines
+  const e=eig2(a,b,c,d);
+  if(!e.complex){ctx.setLineDash([6,4]);ctx.strokeStyle=C('--acc2');ctx.lineWidth=1.3;
+    e.vs.forEach((v,i)=>{const L=R*2;ctx.beginPath();ctx.moveTo(X(-L*v[0]),Y(-L*v[1]));ctx.lineTo(X(L*v[0]),Y(L*v[1]));ctx.stroke();
+      ctx.fillStyle=C('--acc2');ctx.font='600 12px '+MONO;ctx.textAlign='left';ctx.textBaseline='bottom';const tx=X(R*0.82*v[0]),ty=Y(R*0.82*v[1]);ctx.fillText(i?'②':'①',tx+4,ty-2);});
+    ctx.setLineDash([]);ctx.lineWidth=1;}
+  // x and Ax
+  const t=th*Math.PI/180,x=[Math.cos(t),Math.sin(t)],Ax=[a*x[0]+b*x[1],c*x[0]+d*x[1]];
+  arrow(ctx,cx,cy,X(Ax[0]),Y(Ax[1]),C('--acc2'),2.6);
+  arrow(ctx,cx,cy,X(x[0]),Y(x[1]),C('--ink'),2.4);
+  ctx.font='600 12px '+MONO;ctx.textBaseline='middle';ctx.textAlign='left';
+  ctx.fillStyle=C('--ink');ctx.fillText('x',X(x[0]*1.12)-4,Y(x[1]*1.12));
+  ctx.fillStyle=C('--acc2');ctx.fillText('Ax',X(Ax[0])+(Ax[0]>=0?6:-26),Y(Ax[1])-10);
+  // readout
+  const nA=Math.hypot(Ax[0],Ax[1]),cross=x[0]*Ax[1]-x[1]*Ax[0];
+  let line='x = ('+fmt(x[0])+', '+fmt(x[1])+')  →  Ax = ('+fmt(Ax[0])+', '+fmt(Ax[1])+')';
+  let status='';
+  if(nA<1e-6)status='<span class="star">★ Ax = 0 — 고윳값 0의 고유벡터</span>';
+  else if(Math.abs(cross)/nA<0.02){const lam=x[0]*Ax[0]+x[1]*Ax[1];status='<span class="star">★ 고유벡터 방향! Ax = λx, λ ≈ '+fmt(lam)+'</span>'+(lam<0?' (방향이 뒤집힘)':'');}
+  else{const ang=Math.acos(Math.max(-1,Math.min(1,(x[0]*Ax[0]+x[1]*Ax[1])/nA)))*180/Math.PI;status='x와 Ax 사이 각도 '+ang.toFixed(1)+'° — 방향이 바뀌었다';}
+  document.getElementById('ro3').innerHTML=line+'<br>'+status;
+  document.getElementById('thv').textContent=th+'°';
+  const t3l=document.getElementById('t3l'),t3v=document.getElementById('t3v'),t3o=document.getElementById('t3o');
+  const sym=Math.abs(b-c)<1e-9;
+  if(e.complex){t3l.textContent=fmt(e.re)+' ± '+fmt(e.im)+'i';t3v.textContent='실수 고유벡터 없음';t3o.textContent='—';}
+  else{t3l.textContent=fmt(e.ls[0],3)+', '+fmt(e.ls[1],3);
+    t3v.innerHTML='① ('+fmt(e.vs[0][0])+', '+fmt(e.vs[0][1])+')<br>② ('+fmt(e.vs[1][0])+', '+fmt(e.vs[1][1])+')';
+    const dot=e.vs[0][0]*e.vs[1][0]+e.vs[0][1]*e.vs[1][1];
+    t3o.textContent=(Math.abs(dot)<1e-6?'예 (내적 0)':'아니오 (내적 '+fmt(dot)+')')+(sym?' · 대칭':' · 비대칭');}
+  document.getElementById('ev1').disabled=document.getElementById('ev2').disabled=e.complex;
+}
+
+/* ---------- 03 covariance ---------- */
+let D=[[5,120],[6,160],[7,220]],STD=false;const c4=document.getElementById('c4');
+function renderRows(){const tb=document.getElementById('ptb');tb.innerHTML='';
+  D.forEach((r,i)=>{const tr=document.createElement('tr');
+    tr.innerHTML='<td class="idx">'+(i+1)+'</td><td><input type="number" step="0.1" value="'+r[0]+'"></td><td><input type="number" step="1" value="'+r[1]+'"></td><td>'+(D.length>2?'<button class="xbtn" aria-label="삭제">×</button>':'')+'</td>';
+    const ins=tr.querySelectorAll('input');ins.forEach((inp,j)=>inp.addEventListener('input',()=>{const v=parseFloat(inp.value);if(!isNaN(v)){D[i][j]=v;draw4();}}));
+    const xb=tr.querySelector('.xbtn');if(xb)xb.addEventListener('click',()=>{D.splice(i,1);renderRows();draw4();});
+    tb.appendChild(tr);});}
+document.getElementById('ex1').addEventListener('click',()=>{D=[[5,120],[6,160],[7,220]];renderRows();draw4();});
+document.getElementById('ex2').addEventListener('click',()=>{D=[[5,160],[6,220],[7,120]];renderRows();draw4();});
+document.getElementById('addp').addEventListener('click',()=>{if(D.length>=8)return;const h=+(5+Math.random()*1.8).toFixed(1);D.push([h,Math.round(40*h-80+gauss()*20)]);renderRows();draw4();});
+document.querySelectorAll('#stdseg button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#stdseg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');STD=b.dataset.s==='1';draw4();}));
+function draw4(){
+  const n=D.length;const mh=D.reduce((s,r)=>s+r[0],0)/n,mw=D.reduce((s,r)=>s+r[1],0)/n;
+  let Xc=D.map(r=>[r[0]-mh,r[1]-mw]);
+  if(STD){const sh=Math.sqrt(Xc.reduce((s,r)=>s+r[0]*r[0],0)/(n-1))||1,sw=Math.sqrt(Xc.reduce((s,r)=>s+r[1]*r[1],0)/(n-1))||1;Xc=Xc.map(r=>[r[0]/sh,r[1]/sw]);}
+  let a=0,b=0,d=0;Xc.forEach(r=>{a+=r[0]*r[0];b+=r[0]*r[1];d+=r[1]*r[1];});
+  document.getElementById('capX').innerHTML=STD?'표준화한 Z':'평균 보정한 X';
+  document.getElementById('capC').innerHTML=STD?'Z<sup>T</sup>Z':'X<sup>T</sup>X';
+  document.getElementById('mX').innerHTML=matHTML(Xc,STD?3:2);
+  document.getElementById('mC').innerHTML=matHTML([[a,b],[b,d]],STD?3:2);
+  const e=eig2(a,b,b,d);const v=e.vs[0];
+  document.getElementById('t4l').textContent=fmt(e.ls[0],STD?3:2)+' / '+fmt(e.ls[1],STD?3:3);
+  document.getElementById('t4v').textContent='('+fmt(v[0],3)+', '+fmt(v[1],3)+')';
+  const tot=e.ls[0]+e.ls[1];document.getElementById('t4r').textContent=tot>0?(e.ls[0]/tot*100).toFixed(STD?2:4)+'%':'—';
+  // plot
+  const {ctx,w,h}=setup(c4,240);const pad=26;
+  let rx=Math.max(...Xc.map(r=>Math.abs(r[0])),1e-9)*1.35,ry=Math.max(...Xc.map(r=>Math.abs(r[1])),1e-9)*1.35;
+  if(STD){rx=ry=Math.max(rx,ry);}
+  const X=x=>w/2+x/rx*(w/2-pad),Y=y=>h/2-y/ry*(h/2-pad);
+  ctx.strokeStyle=C('--line');ctx.beginPath();ctx.moveTo(pad/2,h/2);ctx.lineTo(w-pad/2,h/2);ctx.moveTo(w/2,pad/2);ctx.lineTo(w/2,h-pad/2);ctx.stroke();
+  ctx.fillStyle=C('--mute');ctx.font='11px '+MONO;ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText(STD?'h (표준화)':'h',w-6,h/2-4);ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(STD?'w (표준화)':'w',w/2+6,4);
+  ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('±'+fmt(rx/1.35,2),w-pad-8,h/2+5);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('±'+fmt(ry/1.35,1),w/2+6,pad+2);
+  // PC line in data coords
+  const T=Math.max(rx/Math.max(Math.abs(v[0]),1e-9),ry/Math.max(Math.abs(v[1]),1e-9))*2;
+  ctx.save();ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
+  ctx.strokeStyle=C('--acc2');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(-T*v[0]),Y(-T*v[1]));ctx.lineTo(X(T*v[0]),Y(T*v[1]));ctx.stroke();ctx.restore();ctx.lineWidth=1;
+  Xc.forEach((r,i)=>{ctx.beginPath();ctx.arc(X(r[0]),Y(r[1]),6,0,2*Math.PI);ctx.fillStyle=C('--acc');ctx.fill();ctx.fillStyle=C('--ink');ctx.font='600 11px '+MONO;ctx.textAlign='left';ctx.textBaseline='bottom';ctx.fillText(i+1,X(r[0])+8,Y(r[1])-2);});
+}
+
+function all(){draw2();draw3();draw4();}
+genP();ang=0;setM(M);renderRows();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(all);all();
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(all,120);});
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',all);}catch(e){}
+})();
+</script>
+</body>
+</html>
