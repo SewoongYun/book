@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>색칠한 지도의 함정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+/* Layout: 4-step lab notebook (예상 → 지도 칠하기 → 손계산 → 정리); same token system as 「숨겨진 이윤 찾기」 */
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --ink2:#384356; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2F7A4B;
+  --shade:#7D4F57; --shade-ink:#FFFFFF; --shade-line:rgba(255,255,255,.22);
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --ink2:#C3CAD6; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25;
+    --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F;
+    --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6CC48F;
+    --shade:#C98C96; --shade-ink:#1A1014; --shade-line:rgba(0,0,0,.22);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:820px;margin:0 auto;padding:20px 16px 48px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,summary:focus-visible,.reg:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+b{font-weight:700}
+
+.top{margin-bottom:14px}
+.book{font-size:13.5px;color:var(--muted);margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4.6vw,36px);line-height:1.25;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:560px){.stepper .sl{font-size:13px}.stepper button{padding:8px 8px;gap:6px}}
+
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:28px 24px;padding-inline:clamp(18px,4vw,40px);display:flex;flex-direction:column;gap:28px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(23px,3.8vw,29px);line-height:1.35;margin:6px 0 0}
+.lead{margin:0;color:var(--ink2)}
+.lead b{color:var(--red)}
+h3{font-size:17px;font-weight:700;margin:0 0 10px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:27px;line-height:1.25;margin:0;transform:rotate(-1.5deg);transform-origin:left center}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+
+.scene{background:var(--paper);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.scene p{margin:0}
+.scene b{color:var(--red)}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;min-width:0;background:var(--sheet)}
+.tile .k{font-size:13.5px;color:var(--muted);display:block}
+.tile .v{font-family:var(--f-num);font-weight:600;font-size:clamp(21px,3.4vw,26px);line-height:1.3}
+.tile.hl{border-color:var(--ink)}
+.tile.warn{border-color:var(--red)}
+.tile.warn .v{color:var(--red)}
+.tile.up{border-color:var(--green)}
+.tile.up .v{color:var(--green)}
+@media (max-width:560px){.facts{grid-template-columns:1fr 1fr}}
+
+.gloss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:680px){.gloss{grid-template-columns:1fr}}
+.term{border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.term .nm{font-size:18px;font-weight:700;margin:0;display:flex;align-items:baseline;gap:8px}
+.term .nm small{font-size:13px;font-weight:500;color:var(--muted)}
+.term .def{margin:0}
+.term .ex{margin:0;font-size:14.5px;color:var(--ink2);background:var(--paper);border-radius:4px;padding:8px 10px}
+.term .trick{margin:0;font-size:14.5px;color:var(--red)}
+.key{margin:0;border:2px solid var(--ink);border-radius:4px;padding:12px 16px;font-weight:500}
+.key b{color:var(--red)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:15px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.predict{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border-top:2px solid var(--ink);padding:12px 2px 0}
+.pin{display:flex;align-items:center;gap:6px}
+.pin input,.calc input{width:5.5em;font-family:var(--f-num);font-size:16px;padding:7px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:15px;font-weight:700}
+figcaption small{font-weight:400;color:var(--muted);font-size:13.5px}
+.chartbox{border:1px solid var(--rule);border-radius:4px;padding:6px 4px 2px;background:var(--sheet)}
+.chartbox svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+.twin{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.twin{grid-template-columns:1fr}}
+.twin .cap{font-size:14.5px;color:var(--ink2);margin:0}
+.reg{cursor:pointer}
+.reg:hover rect.base{filter:brightness(.94)}
+
+.meters{display:flex;flex-direction:column;gap:10px}
+.meter{display:grid;grid-template-columns:7.5em 1fr 4.2em;gap:10px;align-items:center;font-size:14.5px}
+.meter .bar{height:16px;background:var(--paper);border:1px solid var(--rule);border-radius:3px;position:relative;overflow:hidden}
+.meter .fill{position:absolute;left:0;top:0;bottom:0;background:var(--shade);transition:width .25s}
+.meter .fill.inc{background:var(--blue)}
+.meter .val{font-family:var(--f-num);font-weight:600;text-align:right}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.stats{grid-template-columns:1fr 1fr}}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 16px}
+.recall b{color:var(--red)}
+.verdict{margin:0;border-left:4px solid var(--ink);padding:8px 0 8px 14px;font-weight:700;font-size:17px}
+.verdict.bad{border-color:var(--red);color:var(--red)}
+.verdict.good{border-color:var(--green);color:var(--green)}
+.challenge{margin:0;border:1px dashed var(--ink2);border-radius:4px;padding:12px 16px;font-size:15.5px}
+.challenge b{color:var(--red)}
+
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+td.num{font-family:var(--f-num);font-weight:500}
+td.big{color:var(--red)}
+.tablebox{overflow-x:auto}
+td.ex{background:var(--paper)}
+.calc input{width:4.6em;font-size:15px;padding:5px 6px}
+.mark{display:inline-block;min-width:1.4em;font-weight:700;text-align:center}
+.mark.ok{color:var(--green)} .mark.no{color:var(--red)}
+
+.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:14px}
+.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16.5px,2.6vw,19px);line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:.35em}
+.frac{display:inline-flex;flex-direction:column;align-items:center;text-align:center;vertical-align:middle}
+.frac>span{padding:0 .35em;line-height:1.4;white-space:nowrap}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding-bottom:2px}
+.frac>span:last-child{padding-top:2px}
+.ans .frac>span:first-child{border-bottom-width:1.5px}
+.formula small{font-size:14px;color:var(--muted)}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.law .t{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--muted)}
+.law p{margin:0}
+.law .main{font-family:var(--f-display);font-weight:800;font-size:clamp(19px,2.9vw,22px);line-height:1.55}
+.law b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:6px 10px;padding:14px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:15px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:14.5px;width:max-content}
+details[open] summary{margin-bottom:6px}
+.ans{background:var(--paper);padding:12px 14px;border-radius:4px}
+.mine{margin:0;font-size:15px;color:var(--ink2)}
+
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+.navbtn{border:1px solid var(--rule);background:none;padding:9px 14px;border-radius:4px;cursor:pointer;font-size:14.5px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">『새빨간 거짓말, 통계』 176~179쪽 · 색칠한 지도</p>
+    <h1>색칠한 지도의 함정</h1>
+  </header>
+
+  <ol class="stepper" aria-label="실험 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">예상</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">지도 칠하기</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">손계산</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">정리</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 4 · 예상하고 용어 익히기</p>
+      <h2 id="h1s">같은 돈, 다른 지도</h2>
+    </div>
+
+    <div class="scene">
+      <p>보스턴의 한 은행이 “연방정부가 국민소득 중 얼마를 거둬서 쓰는가”를 지도로 그렸다.</p>
+      <p><b>미시시피강 서쪽의 넓은 주들</b>을 어둡게 칠하고, 정부 지출이 이 주들의 소득을 모두 합한 것과 같다고 했다. 신문과 『뉴스위크』가 이 지도를 즐겨 옮겨 실었다.</p>
+      <p>그런데 똑같은 금액을 <b>뉴욕·뉴잉글랜드처럼 좁고 부유한 동쪽 주</b>에 칠하면 어떨까? 책 177쪽의 두 지도가 바로 그 비교다.</p>
+    </div>
+
+    <div>
+      <h3>가상의 나라 ‘통계국’으로 똑같이 해 보자</h3>
+      <div class="facts">
+        <div class="tile"><span class="k">주</span><span class="v">14개</span></div>
+        <div class="tile"><span class="k">전체 넓이</span><span class="v">160칸</span></div>
+        <div class="tile"><span class="k">국민소득</span><span class="v">1,000</span></div>
+        <div class="tile hl"><span class="k">정부 지출</span><span class="v">240</span></div>
+      </div>
+      <p class="hint">정부 지출 240은 국민소득의 24%. 두 지도 모두 소득 합이 정확히 240인 주를 칠했다.</p>
+    </div>
+
+    <div class="twin">
+      <figure>
+        <figcaption>지도 ㉮ 서쪽을 칠한 지도</figcaption>
+        <div class="chartbox"><svg id="m1" role="img" aria-label="서쪽 여섯 개 주를 칠한 지도"></svg></div>
+        <p class="cap">칠한 곳의 소득 합 = <b>240</b></p>
+      </figure>
+      <figure>
+        <figcaption>지도 ㉯ 동쪽을 칠한 지도</figcaption>
+        <div class="chartbox"><svg id="m2" role="img" aria-label="동쪽 두 개 주를 칠한 지도"></svg></div>
+        <p class="cap">칠한 곳의 소득 합 = <b>240</b></p>
+      </figure>
+    </div>
+
+    <div>
+      <h3>먼저 알아 둘 말 3개</h3>
+      <div class="gloss">
+        <div class="term" style="--c:var(--blue)">
+          <p class="nm">국민소득 <small>나라 전체가 번 돈</small></p>
+          <p class="def">한 나라 사람들이 1년 동안 번 돈을 모두 합한 것.</p>
+          <p class="ex">통계국의 국민소득 = 1,000</p>
+        </div>
+        <div class="term" style="--c:var(--shade)">
+          <p class="nm">비율 <small>전체 중 몇 %</small></p>
+          <p class="def">같은 지역이라도 <b>무엇을 기준</b>으로 재느냐에 따라 비율이 다르다.</p>
+          <p class="ex">땅으로 재면 넓이 비율, 돈으로 재면 소득 비율</p>
+          <p class="trick">지도는 <b>넓이 비율</b>만 눈에 보인다.</p>
+        </div>
+        <div class="term" style="--c:var(--amber)">
+          <p class="nm">밀도 <small>칸당 얼마</small></p>
+          <p class="def">넓이 1칸에 소득이 얼마나 담겨 있는지.</p>
+          <p class="ex">칸당 소득 = 소득 ÷ 칸 수</p>
+          <p class="trick">넓고 한산한 곳은 밀도가 낮고, 좁은 도시는 높다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>두 지도를 처음 봤을 때 느낌은?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 느낌">
+        <button class="chip" data-v="㉮가 훨씬 많이 쓰는 것 같다" aria-pressed="false">㉮가 훨씬 많이 쓰는 것 같다</button>
+        <button class="chip" data-v="비슷해 보인다" aria-pressed="false">비슷해 보인다</button>
+        <button class="chip" data-v="㉯가 더 많이 쓰는 것 같다" aria-pressed="false">㉯가 더 많이 쓰는 것 같다</button>
+      </div>
+      <div class="predict" style="margin-top:14px">
+        <label for="pTimes">㉮에서 칠한 넓이는 ㉯의 몇 배일까?</label>
+        <span class="pin"><input id="pTimes" type="number" inputmode="decimal" placeholder="?"> 배</span>
+      </div>
+      <p class="hint">지도 안의 연한 칸을 세어 봐도 좋다. STEP 2에서 확인한다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 지도 칠하기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 4 · 지도 칠하기</p>
+      <h2 id="h2s">정부 지출 240을 칠해 보자</h2>
+    </div>
+    <p class="lead">주를 눌러 칠하거나 지운다. 각 주의 숫자는 <b>그 주의 소득</b>이다.<br>소득 합을 240에 맞추고, 지도에서 얼마나 넓어 보이는지 살펴보자.</p>
+
+    <figure>
+      <figcaption>통계국 지도 <small>· 연한 칸 1개 = 같은 넓이</small></figcaption>
+      <div class="chartbox"><svg id="map" role="group" aria-label="통계국 지도. 주를 눌러 칠하기"></svg></div>
+    </figure>
+
+    <div class="controls">
+      <button class="btn" data-p="A,B,C,D,E,F">㉮ 서쪽 칠하기</button>
+      <button class="btn" data-p="L,M">㉯ 동쪽 칠하기</button>
+      <button class="btn" data-p="E,G,H,K">정직하게</button>
+      <button class="btn" data-p="">모두 지우기</button>
+    </div>
+
+    <div class="stats">
+      <div class="tile" id="tIBox"><span class="k">칠한 소득 (목표 240)</span><span class="v" id="tI">0</span></div>
+      <div class="tile"><span class="k">칠한 칸</span><span class="v" id="tC">0칸</span></div>
+      <div class="tile"><span class="k">넓이 비율</span><span class="v" id="tA">0%</span></div>
+      <div class="tile" id="tRBox"><span class="k">넓이 ÷ 소득 비율</span><span class="v" id="tR">–</span></div>
+    </div>
+
+    <div class="meters">
+      <div class="meter"><span>눈에 보이는 몫<br><small style="color:var(--muted)">넓이 비율</small></span><span class="bar"><span class="fill" id="fA" style="width:0"></span></span><span class="val" id="mA">0%</span></div>
+      <div class="meter"><span>실제 몫<br><small style="color:var(--muted)">소득 비율</small></span><span class="bar"><span class="fill inc" id="fI" style="width:0"></span></span><span class="val" id="mI">0%</span></div>
+    </div>
+    <p class="verdict" id="verdict">주를 눌러 칠해 보자</p>
+
+    <p class="challenge"><b>도전</b> · 소득 합이 정확히 240이면서 넓이 비율도 24%에 가까운(±3%p) 조합을 ‘정직하게’ 버튼 말고 하나 더 찾아보자.</p>
+
+    <figure>
+      <figcaption>같은 나라를 ‘소득’ 크기로 다시 그리면 <small>· 네모 1개 = 소득 10</small></figcaption>
+      <div class="chartbox"><svg id="waf" role="img" aria-label="소득 100칸 중 칠한 칸"></svg></div>
+      <p class="hint" id="wafTxt" style="margin:0">네모 100개 중 0개를 칠했다.</p>
+    </figure>
+
+    <p class="recall" id="recallTxt">STEP 1 내 예상: <b>아직 적지 않음</b></p>
+
+    <p class="pen">㉮도 ㉯도 네모는 똑같이 24개. 땅만 넓었을 뿐!</p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 손계산 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 4 · 손계산</p>
+      <h2 id="h3s">지도는 실제의 몇 배로 보여 줄까?</h2>
+    </div>
+
+    <div class="formula">
+      <div class="f"><span>넓이 비율(%) =</span><span class="frac"><span>칠한 칸 수</span><span>160</span></span><span>× 100</span></div>
+      <div class="f"><span>소득 비율(%) =</span><span class="frac"><span>칠한 소득</span><span>1,000</span></span><span>× 100</span></div>
+      <div class="f"><span>과장 배수 =</span><span class="frac"><span>넓이 비율</span><span>소득 비율</span></span></div>
+      <small>비율은 소수 첫째 자리, 배수는 소수 둘째 자리까지 · 배수가 1이면 정직, 1보다 크면 부풀림, 작으면 축소</small>
+    </div>
+
+    <div>
+      <h3>표를 채워 보자</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>칠한 주</th><th>칸</th><th>소득</th><th>넓이 %</th><th>소득 %</th><th>배수</th><th></th></tr></thead>
+          <tbody class="calc">
+            <tr><td class="ex">높은산 하나</td><td class="num ex">25</td><td class="num ex">30</td><td class="num ex">15.6</td><td class="num ex">3</td><td class="num ex">5.21</td><td class="ex"><span class="mark">예</span></td></tr>
+            <tr data-c="100" data-i="240"><td>㉮ 서쪽 6개 주</td><td class="num">100</td><td class="num">240</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="넓이 비율"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="i" aria-label="소득 비율"></td><td><input type="number" inputmode="decimal" step="0.01" data-k="r" aria-label="배수"></td><td><span class="mark"></span></td></tr>
+            <tr data-c="10" data-i="240"><td>㉯ 수도+금융</td><td class="num">10</td><td class="num">240</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="넓이 비율"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="i" aria-label="소득 비율"></td><td><input type="number" inputmode="decimal" step="0.01" data-k="r" aria-label="배수"></td><td><span class="mark"></span></td></tr>
+            <tr data-c="36" data-i="240"><td>호수+공장+남부+목화</td><td class="num">36</td><td class="num">240</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="넓이 비율"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="i" aria-label="소득 비율"></td><td><input type="number" inputmode="decimal" step="0.01" data-k="r" aria-label="배수"></td><td><span class="mark"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="controls"><button class="btn primary" id="grade">채점하기</button></div>
+    <p class="hint" id="gradeMsg" style="margin:-16px 0 0">소득 %는 세 줄 모두 같다. 그런데 넓이 %는?</p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">더</span>
+        <p>수도주(4칸, 소득 140)와 높은산주(25칸, 소득 30)의 <b>칸당 소득</b>은 각각 얼마일까? 몇 배 차이일까?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">수도: 140 ÷ 4 = <b>35</b><br>높은산: 30 ÷ 25 = <b>1.2</b><br>35 ÷ 1.2 ≈ <b>29배</b>. 지도에서는 똑같은 1칸이지만 담긴 돈은 약 29배 차이가 난다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>넓이 비율과 소득 비율이 <b>같아지려면</b> 칠한 지역의 칸당 소득이 얼마여야 할까?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">
+            <span class="frac"><span>칸</span><span>160</span></span> = <span class="frac"><span>소득</span><span>1,000</span></span> 이면
+            <span class="frac"><span>소득</span><span>칸</span></span> = <span class="frac"><span>1,000</span><span>160</span></span> = <b>6.25</b><br>
+            즉 칠한 지역의 밀도가 <b>나라 평균(6.25)</b>과 같아야 한다.<br>㉮ 240 ÷ 100 = 2.4 (평균보다 낮음 → 넓게 보임)<br>㉯ 240 ÷ 10 = 24 (평균보다 높음 → 좁게 보임)<br>정직 240 ÷ 36 ≈ 6.67 (평균에 가까움)
+          </div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>㉮ 지도에서 칠한 넓이는 ㉯의 몇 배일까? 실제 금액은 몇 배일까?</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">넓이: 100 ÷ 10 = <b>10배</b><br>금액: 240 ÷ 240 = <b>1배</b><br>같은 240이 그리는 방법에 따라 10배 차이로 보인다.</div>
+        </details>
+      </div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 4 · 정리하기</p>
+      <h2 id="h4s">지도가 보여 주는 건 ‘땅’이지 ‘돈’이 아니다</h2>
+    </div>
+
+    <div class="law">
+      <span class="t">오늘의 정리</span>
+      <p class="main">색칠한 지도는 <b>넓이</b>로 말한다. 담긴 값이 넓이에 비례하지 않으면, 칠한 넓이는 거짓 인상을 만든다.</p>
+      <p>㉮ 지도를 보면 <b>“정부가 나라 소득의 대부분을 거둬 쓴다”</b>는 느낌이 든다. 나라 땅의 62.5%가 칠해져 있기 때문이다. 실제 몫은 24%뿐인데, 지도는 그 <b>약 2.6배</b>로 보여 준다.</p>
+      <p>이렇게 보이게 만든 쪽은 정부가 아니다. 지도를 만든 은행처럼 <b>“정부가 너무 많이 쓴다”고 말하고 싶은 쪽</b>이 정부 지출을 부풀려 보이게 한 것이다.</p>
+      <p>숫자 240은 하나도 틀리지 않았다. <b>어느 땅에 칠할지</b>를 고른 순간 인상이 10배 달라졌다.</p>
+      <p>정직하게 칠하려면 칠한 지역의 <b>넓이 비율 ≈ 소득 비율</b>, 즉 밀도가 나라 평균에 가까운 곳을 골라야 한다.</p>
+    </div>
+
+    <div>
+      <h3>세 지도 한눈에</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>지도</th><th>넓이 %</th><th>소득 %</th><th>배수</th><th style="text-align:left">인상</th></tr></thead>
+          <tbody>
+            <tr><td><b>㉮ 서쪽</b></td><td class="num">62.5</td><td class="num">24</td><td class="num big">2.60</td><td style="text-align:left;white-space:normal" class="big">나라 절반 넘게 쓰는 듯</td></tr>
+            <tr><td><b>㉯ 동쪽</b></td><td class="num">6.3</td><td class="num">24</td><td class="num">0.26</td><td style="text-align:left;white-space:normal">별것 아닌 듯</td></tr>
+            <tr><td><b>정직</b></td><td class="num">22.5</td><td class="num">24</td><td class="num">0.94</td><td style="text-align:left;white-space:normal">실제와 비슷</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="scene">
+      <p>이 은행은 1929년, 1937년에도 같은 방식의 지도를 냈다. 브린턴(Willard Cope Brinton)의 교과서 『그래프 표시법』은 이 지도를 <b>“사실을 왜곡시키는”</b> 지도의 예로 실었다.</p>
+      <p>그런데도 은행은 계속 이런 지도를 만들었고, 잘 알 만한 잡지들까지 경고 없이 옮겨 실었다. 오래된 수법이 계속 통한다는 뜻이다.</p>
+    </div>
+
+    <p class="recall" id="recall2">STEP 1에서 고른 내 느낌: <b>아직 고르지 않음</b></p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">Q1</span>
+        <p>은행은 왜 하필 <b>서쪽</b>을 칠했을까? 동쪽을 칠한 지도는 왜 쓰지 않았을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">정부 지출이 <b>커 보여야</b> 하는 주장(“정부가 너무 많이 쓴다”)에 유리하기 때문이다. 저자는 공공지출을 실제보다 작게 보이고 싶어 하는 단체는 들어 본 적이 없다고 꼬집는다. 그래서 동쪽을 칠한 지도는 아무도 퍼뜨리지 않는다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q2</span>
+        <p>지도 대신 무엇으로 보여 주면 정직할까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">STEP 2의 네모 그림처럼 <b>값의 크기만큼 칸을 주는</b> 그림(와플 차트), 막대그래프, 또는 주의 넓이를 소득·인구에 비례하게 다시 그린 지도(카토그램)를 쓰면 된다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q3</span>
+        <p>「돈자루 그림의 함정」과 오늘의 「색칠한 지도」는 어떤 점이 같을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">둘 다 <b>넓이</b>가 눈을 속인다. 돈자루는 길이를 2배로 늘리면 넓이가 4배가 되고, 색칠한 지도는 땅의 넓이가 담긴 값과 비례하지 않는다. 사람의 눈은 숫자보다 넓이를 먼저 읽는다.</div>
+        </details>
+      </div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 선거 결과를 지역별로 색칠한 지도에서, 한 색이 더 넓게 칠해졌다고 그 후보가 표를 더 많이 받았다고 할 수 있을까?</p>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var NS='http://www.w3.org/2000/svg';
+  var COLS=16, ROWS=10, TOTAL_C=160, TOTAL_I=1000, SPEND=240;
+  var R=[
+    {id:'A',nm:'높은산',x:0,y:0,w:5,h:5,inc:30},
+    {id:'B',nm:'모래벌',x:0,y:5,w:5,h:5,inc:40},
+    {id:'C',nm:'큰들',x:5,y:0,w:3,h:4,inc:30},
+    {id:'D',nm:'목장',x:5,y:4,w:3,h:6,inc:40},
+    {id:'E',nm:'호수',x:8,y:0,w:2,h:5,inc:40},
+    {id:'F',nm:'강변',x:8,y:5,w:2,h:5,inc:60},
+    {id:'G',nm:'공장',x:10,y:0,w:2,h:5,inc:90},
+    {id:'H',nm:'남부',x:10,y:5,w:2,h:5,inc:60},
+    {id:'I',nm:'항구',x:12,y:0,w:2,h:3,inc:150},
+    {id:'J',nm:'철강',x:12,y:3,w:2,h:4,inc:90},
+    {id:'K',nm:'목화',x:12,y:7,w:2,h:3,inc:50},
+    {id:'L',nm:'수도',x:14,y:0,w:2,h:2,inc:140},
+    {id:'M',nm:'금융',x:14,y:2,w:2,h:3,inc:100},
+    {id:'N',nm:'해안',x:14,y:5,w:2,h:5,inc:80}
+  ];
+  function setOf(s){var o={};s.split(',').forEach(function(k){if(k)o[k]=true});return o}
+  var WEST=setOf('A,B,C,D,E,F'), EAST=setOf('L,M');
+  var sel={}, belief=null, current=1;
+  function r1(x){return Math.round(x*10)/10}
+  function r2(x){return Math.round(x*100)/100}
+
+  function el(p,t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+  function txt(p,a,s){var e=el(p,'text',a);e.textContent=s;return e}
+  function widthOf(svg){return Math.max(240,Math.round(svg.parentElement.clientWidth-8)||640)}
+
+  function drawMap(svg,set,o){
+    svg.innerHTML='';
+    var W=widthOf(svg), pad=6, cs=(W-pad*2)/COLS, extra=o.compass?24:0;
+    var H=Math.round(cs*ROWS+pad*2+extra);
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    R.forEach(function(r){
+      var on=!!set[r.id], x=pad+r.x*cs, y=pad+r.y*cs, w=r.w*cs, h=r.h*cs;
+      var g=el(svg,'g',{});
+      el(g,'rect',{'class':'base',x:x,y:y,width:w,height:h,fill:on?'var(--shade)':'var(--sheet)'});
+      var ln=on?'var(--shade-line)':'var(--rule)';
+      for(var i=1;i<r.w;i++) el(g,'line',{x1:x+i*cs,x2:x+i*cs,y1:y,y2:y+h,stroke:ln,'stroke-width':.8});
+      for(var j=1;j<r.h;j++) el(g,'line',{x1:x,x2:x+w,y1:y+j*cs,y2:y+j*cs,stroke:ln,'stroke-width':.8});
+      el(g,'rect',{x:x,y:y,width:w,height:h,fill:'none',stroke:'var(--ink)','stroke-width':1.4});
+      if(o.labels){
+        var fs=Math.max(10,Math.min(14,cs*.56)), cx=x+w/2, cy=y+h/2, col=on?'var(--shade-ink)':'var(--ink)';
+        txt(g,{x:cx,y:cy-fs*.15,'text-anchor':'middle','font-size':fs,'font-weight':700,fill:col},r.nm);
+        txt(g,{x:cx,y:cy+fs*1.05,'text-anchor':'middle','font-size':fs*.95,'font-family':'var(--f-num)','font-weight':600,fill:col},r.inc);
+      }
+      if(o.interactive){
+        g.setAttribute('class','reg'); g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+        g.setAttribute('aria-pressed',on?'true':'false'); g.setAttribute('data-id',r.id);
+        g.setAttribute('aria-label',r.nm+'주, '+(r.w*r.h)+'칸, 소득 '+r.inc);
+        var act=function(){ if(sel[r.id]) delete sel[r.id]; else sel[r.id]=true; update(r.id); };
+        g.addEventListener('click',act);
+        g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}});
+      }
+    });
+    if(o.compass){
+      var fy=pad+cs*ROWS+17;
+      txt(svg,{x:pad,y:fy,'font-size':13,fill:'var(--muted)'},'← 서쪽 (넓고 한산)');
+      txt(svg,{x:W-pad,y:fy,'text-anchor':'end','font-size':13,fill:'var(--muted)'},'동쪽 (좁고 부유) →');
+    }
+  }
+
+  function drawWaffle(set){
+    var svg=$('waf'); svg.innerHTML='';
+    var W=widthOf(svg), pad=6, cols=20, rows=5, s=(W-pad*2)/cols, H=Math.round(s*rows+pad*2);
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var idx=0, n=0;
+    R.forEach(function(r){
+      var on=!!set[r.id];
+      for(var k=0;k<r.inc/10;k++){
+        var c=Math.floor(idx/rows), rr=idx%rows;
+        el(svg,'rect',{x:pad+c*s+1.5,y:pad+rr*s+1.5,width:s-3,height:s-3,rx:2,fill:on?'var(--shade)':'var(--slate-soft)'});
+        if(on) n++; idx++;
+      }
+    });
+    $('wafTxt').innerHTML='네모 100개 중 <b>'+n+'개</b>를 칠했다. 땅 지도에서는 160칸 중 '+cellsOf(set)+'칸이었다.';
+  }
+
+  function cellsOf(set){var c=0;R.forEach(function(r){if(set[r.id])c+=r.w*r.h});return c}
+  function incOf(set){var c=0;R.forEach(function(r){if(set[r.id])c+=r.inc});return c}
+
+  function update(focusId){
+    drawMap($('map'),sel,{labels:true,interactive:true,compass:true});
+    if(focusId){var f=document.querySelector('#map [data-id="'+focusId+'"]'); if(f) f.focus();}
+    drawWaffle(sel);
+    var c=cellsOf(sel), inc=incOf(sel), a=c/TOTAL_C*100, ip=inc/TOTAL_I*100;
+    $('tI').textContent=inc; $('tC').textContent=c+'칸'; $('tA').textContent=r1(a)+'%';
+    $('mA').textContent=r1(a)+'%'; $('mI').textContent=r1(ip)+'%';
+    $('fA').style.width=a+'%'; $('fI').style.width=ip+'%';
+    $('tIBox').classList.toggle('up',inc===SPEND);
+    var v=$('verdict'), cls='', t;
+    var ratio=inc?a/ip:null;
+    $('tR').textContent=ratio===null?'–':r2(ratio)+'배';
+    $('tRBox').classList.remove('warn','up');
+    if(c===0) t='주를 눌러 칠해 보자';
+    else if(inc!==SPEND) t='지금 칠한 소득은 '+inc+'. 정부 지출 240에 맞추려면 '+(inc<SPEND?(SPEND-inc)+' 더 칠하자':(inc-SPEND)+' 줄이자');
+    else if(ratio>=1.5){t='같은 240인데 넓이는 실제 몫의 '+r2(ratio)+'배로 보인다 → 부풀린 지도';cls='bad';$('tRBox').classList.add('warn')}
+    else if(ratio<=0.67){t='같은 240인데 넓이는 실제 몫의 '+r2(ratio)+'배뿐 → 작아 보이는 지도';cls='bad';$('tRBox').classList.add('warn')}
+    else{t='넓이 비율 ≈ 소득 비율 → 정직한 지도에 가깝다';cls='good';$('tRBox').classList.add('up')}
+    v.textContent=t; v.className='verdict'+(cls?' '+cls:'');
+  }
+
+  document.querySelectorAll('[data-p]').forEach(function(b){b.addEventListener('click',function(){
+    sel=setOf(b.getAttribute('data-p')); update();
+  })});
+
+  function fillRecall(){
+    var v=$('pTimes').value.trim();
+    var s='STEP 1 내 예상: <b>'+(v===''?'아직 적지 않음':v+'배')+'</b> · 정답 <b>10배</b> (100칸 대 10칸)';
+    if(v!==''){var d=+v; s+=d===10?' · 정확히 맞혔다!':(d<10?' · 생각보다 더 차이가 크다':' · 실제보다 크게 예상');}
+    $('recallTxt').innerHTML=s;
+  }
+
+  function render(){
+    var m=/^#s([1-4])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=4;i++){
+      $('s'+i).hidden=(i!==current);
+      $('st'+i).setAttribute('aria-current',i===current?'step':'false');
+    }
+    if(current===1){drawMap($('m1'),WEST,{grid:true});drawMap($('m2'),EAST,{grid:true});}
+    if(current===2){update();fillRecall();}
+    if(current===4) $('recall2').innerHTML='STEP 1에서 고른 내 느낌: <b>'+(belief||'아직 고르지 않음')+'</b><br>실제로는 ㉮와 ㉯ 모두 정부 지출 240, 국민소득의 24%로 똑같다.';
+  }
+  function go(i){ if(location.hash!=='#s'+i){location.hash='s'+i}else{render()} window.scrollTo(0,0); }
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+
+  document.querySelectorAll('#belief .chip').forEach(function(b){
+    b.addEventListener('click',function(){
+      belief=b.getAttribute('data-v');
+      document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    });
+  });
+
+  var rt;
+  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){
+    if(current===1){drawMap($('m1'),WEST,{grid:true});drawMap($('m2'),EAST,{grid:true});}
+    if(current===2){drawMap($('map'),sel,{labels:true,interactive:true,compass:true});drawWaffle(sel);}
+  },120)});
+
+  $('grade').addEventListener('click',function(){
+    var ok=0,total=0;
+    document.querySelectorAll('tr[data-c]').forEach(function(tr){
+      var c=+tr.getAttribute('data-c'), inc=+tr.getAttribute('data-i');
+      var a=c/TOTAL_C*100, ip=inc/TOTAL_I*100;
+      var want={a:a,i:ip,r:a/ip}, tol={a:.06,i:.06,r:.02}, good=true;
+      ['a','i','r'].forEach(function(k){
+        var s=tr.querySelector('[data-k="'+k+'"]').value.trim();
+        if(s===''||Math.abs(+s-want[k])>tol[k]) good=false;
+      });
+      var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no');
+      total++; if(good) ok++;
+    });
+    $('gradeMsg').textContent=ok===total?'모두 맞았다! 소득은 셋 다 24%인데, 넓이는 62.5%, 6.3%, 22.5%로 제각각이다.':ok+' 개 줄 맞음 (전체 '+total+'줄) · 넓이 %는 칸 수를 160으로 나눈 값부터 확인해 보자.';
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
