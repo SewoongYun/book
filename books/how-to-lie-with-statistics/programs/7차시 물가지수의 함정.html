@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>물가지수의 함정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Myeongjo:wght@700;800&family=Nanum+Pen+Script&display=swap">
+<style>
+/* Layout: 5-step lab notebook (예상 → 기준 바꾸기 → 장바구니 → 손계산 → 정리); same token system as 「153.8%의 함정」 */
+:root{
+  --paper:#F3F5F8; --sheet:#FFFFFF; --ink:#18212F; --ink2:#384356; --muted:#5A6476; --rule:#DCE1E9;
+  --red:#C3243A; --red-soft:#F8DEE2;
+  --amber:#A86F06; --amber-soft:#F6E8C6;
+  --slate:#5E6E88; --slate-soft:#E2E8F1;
+  --blue:#23457C; --blue-soft:#E1E9F5;
+  --green:#2F7A4B;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-pen:"Nanum Pen Script","Nanum Pen",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141B; --sheet:#181E28; --ink:#E6EAF1; --ink2:#C3CAD6; --muted:#9AA4B6; --rule:#2B3442;
+    --red:#FF6F80; --red-soft:#3B1D25;
+    --amber:#E8B34E; --amber-soft:#3A2F16;
+    --slate:#9AA8BF; --slate-soft:#28323F;
+    --blue:#93B3E8; --blue-soft:#1E2A3F;
+    --green:#6CC48F;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:820px;margin:0 auto;padding:20px 16px 48px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+b{font-weight:700}
+
+.top{margin-bottom:14px}
+.book{font-size:13.5px;color:var(--muted);margin:0}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4.6vw,36px);line-height:1.25;margin:2px 0 0}
+.stepper{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.stepper button{width:100%;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:baseline;min-width:0}
+.stepper .sn{font-family:var(--f-num);font-weight:600;color:var(--muted)}
+.stepper .sl{font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepper button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.stepper button[aria-current="step"] .sn{color:var(--sheet)}
+@media (max-width:600px){.stepper .sl{display:none}.stepper button{justify-content:center;padding:8px 4px}}
+
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding-block:28px 24px;padding-inline:clamp(18px,4vw,40px);display:flex;flex-direction:column;gap:28px}
+.sheet[hidden]{display:none}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--red);margin:0}
+.sheet h2{font-family:var(--f-display);font-weight:800;font-size:clamp(23px,3.8vw,29px);line-height:1.35;margin:6px 0 0}
+.lead{margin:0;color:var(--ink2)}
+.lead b{color:var(--red)}
+h3{font-size:17px;font-weight:700;margin:0 0 10px}
+.pen{font-family:var(--f-pen);color:var(--red);font-size:27px;line-height:1.25;margin:0;transform:rotate(-1.5deg);transform-origin:left center}
+.hint{font-size:14px;color:var(--muted);margin:8px 0 0}
+
+.scene{background:var(--paper);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.scene p{margin:0}
+.scene b{color:var(--red)}
+.facts,.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.facts,.stats{grid-template-columns:1fr 1fr}}
+.tile{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;min-width:0;background:var(--sheet)}
+.tile .k{font-size:13.5px;color:var(--muted);display:block}
+.tile .v{font-family:var(--f-num);font-weight:600;font-size:clamp(20px,3.3vw,25px);line-height:1.3}
+.tile .v small{font-size:.6em;color:var(--muted);font-weight:500}
+.tile.hl{border-color:var(--ink)}
+.tile.warn{border-color:var(--red)}
+.tile.warn .v{color:var(--red)}
+.tile.up{border-color:var(--green)}
+.tile.up .v{color:var(--green)}
+.tile.milk{border-top:4px solid var(--blue)}
+.tile.bread{border-top:4px solid var(--amber)}
+
+.gloss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:680px){.gloss{grid-template-columns:1fr}}
+.term{border:1px solid var(--rule);border-top:4px solid var(--c);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.term .nm{font-size:18px;font-weight:700;margin:0;display:flex;align-items:baseline;gap:8px}
+.term .nm small{font-size:13px;font-weight:500;color:var(--muted)}
+.term .def{margin:0}
+.term .ex{margin:0;font-size:14.5px;color:var(--ink2);background:var(--paper);border-radius:4px;padding:8px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:.3em}
+.key{margin:0;border:2px solid var(--ink);border-radius:4px;padding:12px 16px;font-weight:500}
+.key b{color:var(--red)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:8px 16px;cursor:pointer;font-size:15px}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:var(--sheet);padding:8px 14px;cursor:pointer;font-size:15px;font-weight:500}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.toggles{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.toggles .lbl{font-size:14px;color:var(--muted);margin-right:6px}
+.predict{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;border-top:2px solid var(--ink);padding:12px 2px 0}
+
+.sliders{display:flex;flex-direction:column;gap:10px}
+.slc{border:1px solid var(--rule);border-left:5px solid var(--c);border-radius:4px;padding:12px 14px 8px}
+.slc .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.slc .hd label{font-size:16px;font-weight:700}
+.slc .hd b{font-family:var(--f-num);font-size:17px;font-weight:600}
+.slc .what{display:block;font-size:13.5px;color:var(--ink2);margin:2px 0 4px}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--ink);background:var(--sheet);border-radius:4px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:15px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.recall{margin:0;background:var(--paper);border-radius:4px;padding:12px 16px}
+.recall b{color:var(--red)}
+.verdict{margin:0;border-left:4px solid var(--ink);padding:8px 0 8px 14px;font-weight:700;font-size:17px}
+.verdict.up{border-color:var(--red);color:var(--red)}
+.verdict.down{border-color:var(--blue);color:var(--blue)}
+.verdict.same{border-color:var(--green);color:var(--green)}
+
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figcaption{font-size:15px;font-weight:700}
+figcaption small{font-weight:400;color:var(--muted);font-size:13.5px}
+.chartbox{border:1px solid var(--rule);border-radius:4px;padding:6px 4px 2px;background:var(--sheet)}
+.chartbox svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+th,td{padding:10px 8px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+td.why{text-align:left;white-space:normal;font-size:14.5px;color:var(--ink2)}
+thead th{font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--ink)}
+tr.tot td{border-top:2px solid var(--ink);border-bottom:0;font-weight:700}
+tr.cur td{background:var(--paper)}
+tr.cur td:first-child{box-shadow:inset 4px 0 0 var(--ink)}
+td.num{font-family:var(--f-num);font-weight:500}
+td.up{color:var(--red);font-weight:700}
+td.down{color:var(--blue);font-weight:700}
+td.same{color:var(--green);font-weight:700}
+.tablebox{overflow-x:auto}
+td.ex{background:var(--paper)}
+.calc input{width:4.8em;font-family:var(--f-num);font-size:15px;padding:5px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--sheet);color:var(--ink);text-align:right}
+.mark{display:inline-block;min-width:1.4em;font-weight:700;text-align:center}
+.mark.ok{color:var(--green)} .mark.no{color:var(--red)}
+
+.formula{margin:0;border-left:3px solid var(--red);padding:8px 0 8px 16px;display:flex;flex-direction:column;gap:14px}
+.formula .f{font-family:var(--f-display);font-weight:700;font-size:clamp(16px,2.6vw,19px);line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:.35em}
+.formula .f b{color:var(--red)}
+.formula small{font-size:14px;color:var(--muted)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;text-align:center;vertical-align:middle}
+.frac>span{padding:0 .3em;line-height:1.35;white-space:nowrap}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding-bottom:2px}
+.frac>span:last-child{padding-top:2px}
+.frac.sm{font-size:.85em}
+.frac.sm>span:first-child{border-bottom-width:1.5px}
+.rt{display:inline-flex;align-items:stretch;white-space:nowrap}
+.rt>i{font-style:normal;padding-right:1px}
+.rt>span{border-top:1.6px solid currentColor;padding:0 .2em;margin-top:.18em}
+.rt sup{font-size:.62em;margin-right:-.35em;align-self:flex-start;margin-top:-.1em}
+.fx{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.3em}
+
+.law{border:2px solid var(--ink);border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.law .t{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--muted)}
+.law p{margin:0}
+.law .main{font-family:var(--f-display);font-weight:800;font-size:clamp(19px,2.9vw,22px);line-height:1.55}
+.law b{color:var(--red)}
+.qs{border-top:2px solid var(--ink)}
+.q{display:grid;grid-template-columns:2.4em 1fr;gap:6px 10px;padding:14px 0;border-top:1px solid var(--rule)}
+.q:first-child{border-top:0}
+.q .qn{font-family:var(--f-num);font-weight:600;color:var(--red)}
+.q p{margin:0;min-width:0}
+.q details{grid-column:2;font-size:15px}
+summary{cursor:pointer;color:var(--blue);font-weight:500;font-size:14.5px;width:max-content}
+details[open] summary{margin-bottom:6px}
+.ans{background:var(--paper);padding:12px 14px;border-radius:4px;line-height:2}
+.mine{margin:0;font-size:15px;color:var(--ink2)}
+
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.flow{grid-template-columns:1fr}}
+.flow li{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.flow .no{font-family:var(--f-num);font-weight:600;font-size:14px;width:1.9em;height:1.9em;border-radius:50%;background:var(--ink);color:var(--sheet);display:flex;align-items:center;justify-content:center}
+.flow .t{margin:0;font-weight:700;font-size:16px}
+.flow .d{margin:0;font-size:14.5px;color:var(--ink2)}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:620px){.read{grid-template-columns:1fr}}
+.rd{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:15px}
+.rd b.h{display:block;font-size:15.5px;margin-bottom:4px}
+.rd p{margin:0}
+.real{border:1px solid var(--rule);border-left:5px solid var(--green);border-radius:4px;padding:12px 16px;font-size:15px}
+.real p{margin:0}
+.real p+p{margin-top:4px}
+.gloss.two{grid-template-columns:1fr 1fr}
+@media (max-width:620px){.gloss.two{grid-template-columns:1fr}}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:16px}
+.navbtn{border:1px solid var(--rule);background:none;padding:9px 14px;border-radius:4px;cursor:pointer;font-size:14.5px;font-weight:500}
+.navbtn:hover{border-color:var(--ink)}
+.spacer{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="book">『새빨간 거짓말, 통계』 199~202쪽 · 물가지수</p>
+    <h1>물가지수의 함정</h1>
+  </header>
+
+  <ol class="stepper" aria-label="실험 단계">
+    <li><button id="st1" data-go="1"><span class="sn">1</span><span class="sl">예상</span></button></li>
+    <li><button id="st2" data-go="2"><span class="sn">2</span><span class="sl">기준 바꾸기</span></button></li>
+    <li><button id="st3" data-go="3"><span class="sn">3</span><span class="sl">장바구니</span></button></li>
+    <li><button id="st4" data-go="4"><span class="sn">4</span><span class="sl">손계산</span></button></li>
+    <li><button id="st5" data-go="5"><span class="sn">5</span><span class="sl">정리</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="sheet" id="s1" aria-labelledby="h1s">
+    <div>
+      <p class="eyebrow">STEP 1 / 5 · 개념 익히고 예상하기</p>
+      <h2 id="h1s">우유는 반값, 빵은 두 배</h2>
+    </div>
+
+    <div class="facts">
+      <div class="tile milk"><span class="k">우유 · 작년</span><span class="v">50원</span></div>
+      <div class="tile milk"><span class="k">우유 · 금년</span><span class="v">25원</span></div>
+      <div class="tile bread"><span class="k">빵 · 작년</span><span class="v">20원</span></div>
+      <div class="tile bread"><span class="k">빵 · 금년</span><span class="v">40원</span></div>
+    </div>
+
+    <div class="scene">
+      <p>물가지수는 임금 인상률을 정할 때도 쓰이는 아주 중요한 숫자다. 그런데 저자는 이 숫자도 <b>필요에 따라 늘렸다 줄였다</b> 할 수 있다고 말한다.</p>
+      <p>작년에는 우유 한 병이 50원, 빵 하나가 20원이었다. 금년에는 우유가 25원으로 내리고 빵이 40원으로 올랐다. <b>생활비는 올랐을까, 내렸을까, 그대로일까?</b></p>
+    </div>
+
+    <div>
+      <h3>물가지수란?</h3>
+      <p class="lead" style="margin-bottom:14px">여러 물건 값이 <b>전체적으로</b> 얼마나 변했는지를 숫자 하나로 나타낸 것. 어떤 물건은 오르고 어떤 물건은 내리니, 하나로 묶어야 “물가가 올랐다, 내렸다”를 말할 수 있다.</p>
+      <ol class="flow">
+        <li><span class="no">1</span><p class="t">장바구니 정하기</p><p class="d">사람들이 자주 사는 물건과 서비스, 그리고 각각에 쓰는 돈의 비중을 정한다.</p></li>
+        <li><span class="no">2</span><p class="t">기준 시점 = 100</p><p class="d">기준이 되는 해의 장바구니 값을 100으로 놓는다.</p></li>
+        <li><span class="no">3</span><p class="t">지금 값과 비교</p><p class="d">같은 장바구니를 지금 가격으로 계산해 기준과 비교한다.</p></li>
+      </ol>
+    </div>
+
+    <div class="formula">
+      <div class="f"><span>물가지수 =</span><span class="frac"><span>비교 시점의 장바구니 값</span><span>기준 시점의 장바구니 값</span></span><span>× 100</span></div>
+      <div class="f"><span>물가 상승률(%) =</span><span>(</span><span class="frac"><span>올해 지수</span><span>작년 지수</span></span><span>− 1 ) × 100</span></div>
+    </div>
+
+    <div class="read">
+      <div class="rd"><b class="h">지수 읽기</b><p>지수가 110이면 같은 장바구니가 기준 시점보다 <b>10% 비싸졌다</b>는 뜻. 90이면 10% 싸졌다는 뜻.</p></div>
+      <div class="rd"><b class="h">지수 ≠ 상승률</b><p>뉴스의 “물가 2.7% 상승”은 보통 지수가 아니라 상승률이다. 예: 작년 지수 112, 올해 115이면 상승률은 약 2.7%.</p></div>
+    </div>
+
+    <div class="real">
+      <p><b>우리나라는?</b> 국가데이터처가 매달 소비자물가지수를 발표한다. 지금은 <b>2020년 = 100</b>을 기준으로, 가계가 많이 사는 <b>458개 품목</b>을 각 품목에 쓰는 돈의 비중(가중치)만큼 반영해 계산한다.</p>
+      <p>소비 습관이 바뀌니 5년마다 장바구니를 고친다. 다음 개편에서는 기준이 2025년으로 바뀌고 스마트워치, 소프트웨어 구독료 같은 품목이 새로 들어간다.</p>
+      <p style="color:var(--muted);font-size:14px">임금 협상, 연금·계약 금액 조정, 금리 결정 등에 쓰인다. 그래서 계산 방법이 중요하다.</p>
+    </div>
+
+    <p class="key">그런데 품목마다 오르내림이 다를 때, 이것을 하나로 묶는 <b>평균 방법</b>과 <b>기준 시점</b>에 따라 결과가 달라진다. 책은 우유와 빵 두 가지만으로 이것을 보여 준다.</p>
+
+    <div>
+      <h3>평균 두 가지</h3>
+      <div class="gloss two">
+        <div class="term" style="--c:var(--blue)">
+          <p class="nm">산술평균 <small>더해서 나누기</small></p>
+          <p class="def">우리가 흔히 쓰는 평균.</p>
+          <p class="ex">두 수 a, b의 산술평균 = <span class="frac sm"><span>a + b</span><span>2</span></span></p>
+        </div>
+        <div class="term" style="--c:var(--red)">
+          <p class="nm">기하평균 <small>곱해서 제곱근</small></p>
+          <p class="def">비율이나 배수를 평균 낼 때 쓰는 평균.</p>
+          <p class="ex">두 수 a, b의 기하평균 = <span class="rt"><i>√</i><span>ab</span></span></p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>기하평균은 무슨 뜻일까?</h3>
+      <div class="read">
+        <div class="rd"><b class="h">‘배수’의 평균</b><p>우유는 ×0.5, 빵은 ×2가 되었다. 두 배수를 곱하면 ×1. 두 물건이 <b>똑같은 배수</b>로 변했다고 치면 몇 배일까? x × x = 1 이므로 x = 1. 이 ‘똑같은 배수’가 기하평균이다.</p></div>
+        <div class="rd"><b class="h">돈으로 보면</b><p>100만 원을 투자해 첫해 ×2(200만 원), 다음 해 ×0.5(100만 원)가 되었다. 산술평균으로는 “해마다 평균 25% 올랐다”지만 실제로는 제자리다. 기하평균 <span class="rt"><i>√</i><span>2 × 0.5</span></span> = 1, 곧 <b>0%</b>가 맞다.</p></div>
+        <div class="rd"><b class="h">그림으로 보면</b><p>가로 a, 세로 b인 직사각형과 <b>넓이가 같은 정사각형</b>의 한 변이 <span class="rt"><i>√</i><span>ab</span></span>이다. 50 × 200 직사각형 = 100 × 100 정사각형.</p></div>
+        <div class="rd"><b class="h">뒤집어도 같은 결론</b><p>배수를 거꾸로 보면(×2 ↔ ×0.5) 기하평균도 거꾸로가 된다. 그래서 작년 기준이든 금년 기준이든 결론이 같다. 산술평균은 그렇지 않다.</p></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>생활비는 어떻게 되었을까?</h3>
+      <div class="chips" id="belief" role="group" aria-label="내 예상">
+        <button class="chip" data-v="올랐다" aria-pressed="false">올랐다</button>
+        <button class="chip" data-v="내렸다" aria-pressed="false">내렸다</button>
+        <button class="chip" data-v="그대로다" aria-pressed="false">그대로다</button>
+      </div>
+      <p class="hint">STEP 2에서 계산해 보면, 셋 다 ‘맞는 답’으로 만들 수 있다.</p>
+    </div>
+
+    <div class="nav"><span class="spacer"></span><button class="navbtn" data-go="2">STEP 2 · 기준 바꾸기 →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="sheet" id="s2" aria-labelledby="h2s" hidden>
+    <div>
+      <p class="eyebrow">STEP 2 / 5 · 기준 바꾸기</p>
+      <h2 id="h2s">기준 연도와 평균만 바꿔 보자</h2>
+    </div>
+    <p class="lead">가격은 그대로 두고 <b>무엇을 100으로 할지</b>, <b>어떤 평균을 쓸지</b>만 바꿔 보자.</p>
+
+    <div class="toggles">
+      <span><span class="lbl">기준</span><span class="seg" id="segBase"><button data-b="last" aria-pressed="true">작년 = 100</button><button data-b="this" aria-pressed="false">금년 = 100</button></span></span>
+      <span><span class="lbl">평균</span><span class="seg" id="segMean"><button data-m="am" aria-pressed="true">산술평균</button><button data-m="gm" aria-pressed="false">기하평균</button></span></span>
+    </div>
+
+    <figure>
+      <figcaption id="chartCap">작년을 100으로 한 지수 <small>· 굵은 빨간 선 = 평균(물가)</small></figcaption>
+      <div class="chartbox"><svg id="chart" role="img" aria-label="우유, 빵, 평균 지수 변화 그래프"></svg></div>
+    </figure>
+
+    <div class="stats">
+      <div class="tile milk"><span class="k" id="kM">우유 지수 (작년 → 금년)</span><span class="v" id="tM">100 → 50</span></div>
+      <div class="tile bread"><span class="k" id="kB">빵 지수 (작년 → 금년)</span><span class="v" id="tB">100 → 200</span></div>
+      <div class="tile hl"><span class="k" id="kA">평균 (작년 → 금년)</span><span class="v" id="tA">100 → 125</span></div>
+      <div class="tile" id="tCBox"><span class="k">결론</span><span class="v" id="tC">+25%</span></div>
+    </div>
+    <p class="verdict" id="verdict">물가가 25% 올랐다</p>
+
+    <div>
+      <h3>네 가지 계산 한눈에</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>기준 · 평균</th><th>작년 지수</th><th>금년 지수</th><th style="text-align:left">결론</th></tr></thead>
+          <tbody id="four"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3>가격도 바꿔 보자</h3>
+      <div class="sliders">
+        <div class="slc" style="--c:var(--blue)">
+          <div class="hd"><label for="pM">금년 우유 값</label><b id="vM">25원</b></div>
+          <span class="what">작년 50원</span>
+          <input type="range" id="pM" min="10" max="100" step="5" value="25">
+        </div>
+        <div class="slc" style="--c:var(--amber)">
+          <div class="hd"><label for="pB">금년 빵 값</label><b id="vB">40원</b></div>
+          <span class="what">작년 20원</span>
+          <input type="range" id="pB" min="5" max="80" step="5" value="40">
+        </div>
+      </div>
+      <div class="controls" style="margin-top:10px">
+        <button class="btn" data-pp="25,40">책의 예 (25원, 40원)</button>
+        <button class="btn" data-pp="40,25">우유 80%, 빵 125%</button>
+        <button class="btn" data-pp="100,40">둘 다 2배</button>
+      </div>
+      <p class="hint">두 가격이 똑같은 비율로 변하면 네 계산이 모두 같은 결론을 낸다. 비율이 다를 때만 산술평균이 기준에 따라 흔들린다.</p>
+    </div>
+
+    <p class="recall" id="recall2">STEP 1 내 예상: <b>아직 고르지 않음</b></p>
+
+    <p class="pen">작년 기준이면 ‘올랐다’, 금년 기준이면 ‘내렸다’!</p>
+
+    <div class="nav"><button class="navbtn" data-go="1">← STEP 1</button><button class="navbtn" data-go="3">STEP 3 · 장바구니 →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="sheet" id="s3" aria-labelledby="h3s" hidden>
+    <div>
+      <p class="eyebrow">STEP 3 / 5 · 내 장바구니로 재기</p>
+      <h2 id="h3s">우리 집 생활비는 어떻게 변했을까?</h2>
+    </div>
+    <p class="lead">실제 생활비는 <b>무엇을 얼마나 사느냐</b>에 달려 있다. 한 달 장바구니를 정하고, 같은 장바구니를 작년 값과 금년 값으로 계산해 비교하자.</p>
+
+    <div class="sliders">
+      <div class="slc" style="--c:var(--blue)">
+        <div class="hd"><label for="qM">한 달에 사는 우유</label><b id="vqM">10병</b></div>
+        <input type="range" id="qM" min="0" max="30" step="1" value="10">
+      </div>
+      <div class="slc" style="--c:var(--amber)">
+        <div class="hd"><label for="qB">한 달에 사는 빵</label><b id="vqB">10개</b></div>
+        <input type="range" id="qB" min="0" max="30" step="1" value="10">
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn" data-q="20,5">우유를 많이 사는 집</button>
+      <button class="btn" data-q="5,20">빵을 많이 사는 집</button>
+      <button class="btn" data-q="2,5">작년에 두 물건에 같은 돈</button>
+    </div>
+    <p class="hint" id="priceNote" style="margin:-16px 0 0">가격: 우유 50원 → 25원, 빵 20원 → 40원 (STEP 2에서 바꾼 값을 따른다)</p>
+
+    <div class="stats">
+      <div class="tile"><span class="k">작년 값으로</span><span class="v" id="cL">700원</span></div>
+      <div class="tile"><span class="k">금년 값으로</span><span class="v" id="cT">650원</span></div>
+      <div class="tile hl" id="cIBox"><span class="k">생활비 지수 (작년 = 100)</span><span class="v" id="cI">92.9</span></div>
+      <div class="tile" id="cRBox"><span class="k">변화</span><span class="v" id="cR">−7.1%</span></div>
+    </div>
+    <p class="verdict" id="bVerdict"></p>
+
+    <div class="formula">
+      <div class="f"><span>생활비 지수 =</span><span class="frac"><span>같은 장바구니의 금년 값</span><span>같은 장바구니의 작년 값</span></span><span>× 100</span></div>
+      <small>실제 소비자물가지수도 이처럼 가구가 각 품목에 쓰는 돈의 비중(가중치)을 반영한다.</small>
+    </div>
+
+    <p class="key">‘작년에 두 물건에 같은 돈’ 버튼을 눌러 보자. 우유 2병(100원)과 빵 5개(100원)를 사는 집의 생활비 지수는 <b>125</b>로, STEP 2의 <b>작년 기준 산술평균</b>과 같다. 평균을 고르는 일은 결국 <b>누구의 장바구니로 잴지</b>를 고르는 일이다.</p>
+
+    <div class="nav"><button class="navbtn" data-go="2">← STEP 2</button><button class="navbtn" data-go="4">STEP 4 · 손계산 →</button></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="sheet" id="s4" aria-labelledby="h4s" hidden>
+    <div>
+      <p class="eyebrow">STEP 4 / 5 · 손계산</p>
+      <h2 id="h4s">세 가지 방법으로 물가지수 구하기</h2>
+    </div>
+
+    <div class="formula">
+      <div class="f"><span>① 작년 기준 산술평균 =</span><span class="frac"><span>우유 지수 + 빵 지수</span><span>2</span></span><small>(금년 지수)</small></div>
+      <div class="f"><span>② 금년 기준이면 작년 지수 =</span><span class="frac"><span>100 × 100</span><span>금년 지수</span></span><span>를 각각 구해 산술평균</span></div>
+      <div class="f"><span>③ 기하평균 =</span><span class="rt"><i>√</i><span>우유 지수 × 빵 지수</span></span><small>(작년 = 100일 때 금년 지수)</small></div>
+      <small>소수 첫째 자리까지 · ②가 100보다 크면 “작년이 더 비쌌다”, 즉 물가가 내렸다는 뜻</small>
+    </div>
+
+    <div>
+      <h3>표를 채워 보자 <span style="font-weight:400;color:var(--muted);font-size:14px">(작년 = 100일 때 금년 지수)</span></h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>우유</th><th>빵</th><th>① 금년</th><th>② 작년</th><th>③ 금년</th><th></th></tr></thead>
+          <tbody class="calc">
+            <tr><td class="num ex">50</td><td class="num ex">200</td><td class="num ex">125</td><td class="num ex">125</td><td class="num ex">100</td><td class="ex"><span class="mark">예</span></td></tr>
+            <tr data-m="80" data-b="125"><td class="num">80</td><td class="num">125</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="작년 기준 산술평균"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="t" aria-label="금년 기준 작년 지수"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="g" aria-label="기하평균"></td><td><span class="mark"></span></td></tr>
+            <tr data-m="50" data-b="150"><td class="num">50</td><td class="num">150</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="작년 기준 산술평균"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="t" aria-label="금년 기준 작년 지수"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="g" aria-label="기하평균"></td><td><span class="mark"></span></td></tr>
+            <tr data-m="200" data-b="200"><td class="num">200</td><td class="num">200</td><td><input type="number" inputmode="decimal" step="0.1" data-k="a" aria-label="작년 기준 산술평균"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="t" aria-label="금년 기준 작년 지수"></td><td><input type="number" inputmode="decimal" step="0.1" data-k="g" aria-label="기하평균"></td><td><span class="mark"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="controls"><button class="btn primary" id="grade">채점하기</button></div>
+    <p class="hint" id="gradeMsg" style="margin:-16px 0 0">둘째 줄은 ①로 보면 ‘그대로’인데, ②와 ③으로 보면?</p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">더</span>
+        <p>양수 a, b에 대해 <span class="fx"><span class="frac sm"><span>a + b</span><span>2</span></span> ≥ <span class="rt"><i>√</i><span>ab</span></span></span> 임을 보이자. (산술평균 ≥ 기하평균)</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans"><span class="fx">(<span class="rt"><i>√</i><span>a</span></span> − <span class="rt"><i>√</i><span>b</span></span>)² ≥ 0</span><br>펼치면 <span class="fx">a − 2<span class="rt"><i>√</i><span>ab</span></span> + b ≥ 0</span>, 즉 <span class="fx"><span class="frac sm"><span>a + b</span><span>2</span></span> ≥ <span class="rt"><i>√</i><span>ab</span></span></span><br>등호는 a = b일 때만. 그래서 두 물건 값이 <b>다른 비율</b>로 변하면 산술평균은 늘 기하평균보다 크게 나온다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>작년 기준으로도 ‘올랐다’, 금년 기준으로도 ‘작년이 더 비쌌다’가 동시에 나오는 이유를 위 부등식으로 설명해 보자.</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">우유 지수 50, 빵 지수 200의 기하평균은 100이다. 산술평균은 늘 이보다 크니 금년 지수가 125로 ‘오른 쪽’으로 기운다.<br>기준을 금년으로 바꾸면 작년 지수가 200과 50이 되고, 이번에도 산술평균이 기하평균 100보다 커서 작년 쪽이 125로 기운다.<br>즉 산술평균은 <b>기준이 아닌 쪽</b>을 언제나 부풀린다. 기하평균은 기준을 바꿔도 결론이 같다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">더</span>
+        <p>물건이 세 개면 기하평균은 어떻게 구할까? 지수가 50, 200, 100일 때 구해 보자.</p>
+        <details><summary>풀이 보기</summary>
+          <div class="ans">세 수를 곱해 <b>세제곱근</b>을 구한다.<br><span class="fx"><span class="rt"><sup>3</sup><i>√</i><span>50 × 200 × 100</span></span> = <span class="rt"><sup>3</sup><i>√</i><span>1,000,000</span></span> = <b>100</b></span><br>네 개면 네제곱근을 구한다.</div>
+        </details>
+      </div>
+    </div>
+
+    <div class="nav"><button class="navbtn" data-go="3">← STEP 3</button><button class="navbtn" data-go="5">STEP 5 · 정리 →</button></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="sheet" id="s5" aria-labelledby="h5s" hidden>
+    <div>
+      <p class="eyebrow">STEP 5 / 5 · 정리하기</p>
+      <h2 id="h5s">물가지수는 ‘고른 결과’다</h2>
+    </div>
+
+    <div class="law">
+      <span class="t">오늘의 정리</span>
+      <p class="main">같은 가격 변화라도 <b>기준 연도</b>와 <b>평균 방법</b>을 고르면 ‘올랐다’, ‘내렸다’, ‘그대로’를 모두 말할 수 있다.</p>
+      <p>산술평균은 기준이 아닌 쪽을 언제나 부풀린다. 그래서 작년 기준이면 물가가 25% 오르고, 금년 기준이면 작년이 25% 더 비쌌던 것이 된다.</p>
+      <p>기하평균은 기준을 바꿔도 결론이 같다. 하지만 이것도 하나의 평균일 뿐이다. 실제 생활비는 <b>무엇을 얼마나 사느냐</b>에 달려 있다.</p>
+    </div>
+
+    <div>
+      <h3>책의 예 한눈에 (우유 50원 → 25원, 빵 20원 → 40원)</h3>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>계산 방법</th><th>결과</th><th style="text-align:left">말할 수 있는 것</th></tr></thead>
+          <tbody>
+            <tr><td>작년 기준 · 산술평균</td><td class="num up">125</td><td class="why">“물가가 25% 올랐다”</td></tr>
+            <tr><td>금년 기준 · 산술평균</td><td class="num down">작년 125</td><td class="why">“작년이 25% 더 비쌌다 → 물가가 내렸다”</td></tr>
+            <tr><td>기하평균 (어느 기준이든)</td><td class="num same">100</td><td class="why">“물가는 그대로다”</td></tr>
+            <tr><td>우유 1병 + 빵 1개 장바구니</td><td class="num down">92.9</td><td class="why">“이 집 생활비는 약 7% 내렸다”</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="recall" id="recall5">STEP 1에서 고른 내 예상: <b>아직 고르지 않음</b></p>
+
+    <div class="qs">
+      <div class="q">
+        <span class="qn">Q1</span>
+        <p>임금을 정할 때 물가지수를 쓴다면, 노동자 쪽과 회사 쪽은 각각 어떤 계산법을 고르고 싶을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">노동자 쪽은 물가가 많이 올랐다는 계산(작년 기준 산술평균)을 내세워 임금을 더 올려 달라고 할 것이다. 회사 쪽은 물가가 그대로이거나 내렸다는 계산을 고를 것이다. 그래서 물가지수를 어떻게 계산할지는 미리 정해 두고 공개해야 한다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q2</span>
+        <p>STEP 3에서 우유를 많이 사는 집과 빵을 많이 사는 집의 생활비는 반대로 움직였다. 나라 전체의 물가지수 하나로 모든 집의 생활비를 말할 수 있을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">물가지수는 ‘평균적인 장바구니’ 기준이다. 사는 물건이 평균과 다른 집(예: 월세가 큰 1인 가구, 아이가 있는 집)은 실제로 느끼는 물가가 지수와 다를 수 있다. 그래서 체감 물가와 발표된 물가가 다르다는 말이 나온다.</div>
+        </details>
+      </div>
+      <div class="q">
+        <span class="qn">Q3</span>
+        <p>「평균급여의 속임수」, 「153.8%의 함정」과 오늘의 물가지수는 어떤 점이 같을까?</p>
+        <details><summary>생각할 거리</summary>
+          <div class="ans">계산 자체는 모두 맞다. 하지만 <b>어떤 평균</b>을 쓸지, <b>무엇을 기준</b>으로 할지, <b>몇 자리까지</b> 보여 줄지를 고르는 순간 결론과 인상이 바뀐다.</div>
+        </details>
+      </div>
+    </div>
+
+    <p class="mine"><b>나만의 질문 1개</b> · 뉴스에서 “물가 ○% 상승”을 보면, 무엇을 기준으로 어떤 물건을 얼마나 넣어 계산했는지 어떻게 확인할 수 있을까?</p>
+
+    <div class="nav"><button class="navbtn" data-go="4">← STEP 4</button></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var NS='http://www.w3.org/2000/svg';
+  var LM=50, LB=20;
+  var st={pm:25,pb:40,base:'last',mean:'am'}, belief=null, current=1;
+  function r1(x){return Math.round(x*10)/10}
+  function fmt(x){var v=r1(x);return (Math.abs(v-Math.round(v))<1e-9?Math.round(v):v.toFixed(1))+''}
+  function sg(x){var v=r1(x);return (v>0?'+':v<0?'−':'±')+fmt(Math.abs(v))}
+
+  function idx(base){
+    var rm=st.pm/LM, rb=st.pb/LB;
+    if(base==='last') return {m:[100,100*rm], b:[100,100*rb]};
+    return {m:[100/rm,100], b:[100/rb,100]};
+  }
+  function avg(a,b,mean){return mean==='am'?(a+b)/2:Math.sqrt(a*b)}
+  function calc(base,mean){
+    var I=idx(base), A=[avg(I.m[0],I.b[0],mean),avg(I.m[1],I.b[1],mean)];
+    return {I:I,A:A};
+  }
+  function conclude(base,A){
+    if(base==='last'){
+      var d=A[1]-100;
+      if(Math.abs(d)<0.05) return {t:'물가는 그대로다',c:'same',s:'±0%'};
+      return {t:'물가가 '+fmt(Math.abs(d))+'% '+(d>0?'올랐다':'내렸다'),c:d>0?'up':'down',s:sg(d)+'%'};
+    } else {
+      var e=A[0]-100;
+      if(Math.abs(e)<0.05) return {t:'물가는 그대로다',c:'same',s:'±0%'};
+      return {t:'작년이 금년보다 '+fmt(Math.abs(e))+'% '+(e>0?'비쌌다 → 물가가 내렸다':'쌌다 → 물가가 올랐다'),c:e>0?'down':'up',s:'작년 '+sg(e)+'%'};
+    }
+  }
+
+  function el(p,t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e}
+  function tx(p,a,s){var e=el(p,'text',a);e.textContent=s;return e}
+
+  function drawChart(R){
+    var svg=$('chart'); svg.innerHTML='';
+    var W=Math.max(280,Math.round(svg.parentElement.clientWidth-8)||640), H=280, L=44, Rg=78, T=16, B=34;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var vals=R.I.m.concat(R.I.b,R.A,[100]);
+    var mx=Math.max.apply(null,vals), step=mx>420?100:50, top=Math.ceil(mx*1.08/step)*step;
+    var x0=L, x1=W-Rg, ph=H-T-B;
+    function Y(v){return T+ph-(v/top)*ph}
+    for(var v=0;v<=top;v+=step){
+      el(svg,'line',{x1:x0,x2:x1,y1:Y(v),y2:Y(v),stroke:v===100?'var(--ink2)':'var(--rule)','stroke-dasharray':v===100?'4 3':'0','stroke-width':1});
+      tx(svg,{x:x0-6,y:Y(v)+4,'text-anchor':'end','font-size':12,'font-family':'var(--f-num)',fill:'var(--muted)'},v);
+    }
+    el(svg,'line',{x1:x0,x2:x0,y1:T,y2:T+ph,stroke:'var(--ink)'});
+    el(svg,'line',{x1:x1,x2:x1,y1:T,y2:T+ph,stroke:'var(--rule)'});
+    tx(svg,{x:x0,y:H-10,'text-anchor':'middle','font-size':13.5,'font-weight':700,fill:'var(--ink)'},'작년');
+    tx(svg,{x:x1,y:H-10,'text-anchor':'middle','font-size':13.5,'font-weight':700,fill:'var(--ink)'},'금년');
+    var lines=[['우유',R.I.m,'var(--blue)',2],['빵',R.I.b,'var(--amber)',2],['물가',R.A,'var(--red)',4]];
+    var used=[];
+    lines.forEach(function(L2){
+      el(svg,'line',{x1:x0,y1:Y(L2[1][0]),x2:x1,y2:Y(L2[1][1]),stroke:L2[2],'stroke-width':L2[3],'stroke-linecap':'round'});
+      el(svg,'circle',{cx:x0,cy:Y(L2[1][0]),r:L2[3]+1.5,fill:L2[2]});
+      el(svg,'circle',{cx:x1,cy:Y(L2[1][1]),r:L2[3]+1.5,fill:L2[2]});
+      var ly=Y(L2[1][1])+4; used.forEach(function(u){if(Math.abs(u-ly)<15) ly=u+15}); used.push(ly);
+      tx(svg,{x:x1+8,y:ly,'font-size':13,'font-weight':700,fill:L2[2]},L2[0]+' '+fmt(L2[1][1]));
+    });
+  }
+
+  function update(){
+    var R=calc(st.base,st.mean), C=conclude(st.base,R.A);
+    $('vM').textContent=st.pm+'원'; $('vB').textContent=st.pb+'원';
+    $('chartCap').innerHTML=(st.base==='last'?'작년':'금년')+'을 100으로 한 지수 · '+(st.mean==='am'?'산술평균':'기하평균')+' <small>· 굵은 빨간 선 = 평균(물가)</small>';
+    $('tM').textContent=fmt(R.I.m[0])+' → '+fmt(R.I.m[1]);
+    $('tB').textContent=fmt(R.I.b[0])+' → '+fmt(R.I.b[1]);
+    $('tA').textContent=fmt(R.A[0])+' → '+fmt(R.A[1]);
+    $('kA').textContent=(st.mean==='am'?'산술평균':'기하평균')+' (작년 → 금년)';
+    $('tC').textContent=C.s;
+    $('tCBox').className='tile '+(C.c==='up'?'warn':C.c==='same'?'up':'');
+    $('verdict').textContent=C.t; $('verdict').className='verdict '+C.c;
+    var rows=[['last','am','작년 = 100 · 산술평균'],['this','am','금년 = 100 · 산술평균'],['last','gm','작년 = 100 · 기하평균'],['this','gm','금년 = 100 · 기하평균']];
+    $('four').innerHTML=rows.map(function(r){
+      var X=calc(r[0],r[1]), K=conclude(r[0],X.A), cur=(r[0]===st.base&&r[1]===st.mean);
+      return '<tr'+(cur?' class="cur"':'')+'><td>'+r[2]+'</td><td class="num">'+fmt(X.A[0])+'</td><td class="num">'+fmt(X.A[1])+'</td><td class="why '+K.c+'" style="text-align:left">'+K.t+'</td></tr>';
+    }).join('');
+    drawChart(R);
+    fillRecall();
+  }
+  function fillRecall(){
+    var b=belief||'아직 고르지 않음';
+    $('recall2').innerHTML='STEP 1 내 예상: <b>'+b+'</b> · 위 표처럼 계산법만 바꾸면 ‘올랐다’, ‘내렸다’, ‘그대로’가 모두 나온다.';
+  }
+
+  function seg(id,key){
+    document.querySelectorAll('#'+id+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        st[key]=b.getAttribute(key==='base'?'data-b':'data-m');
+        document.querySelectorAll('#'+id+' button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+        update();
+      });
+    });
+  }
+  seg('segBase','base'); seg('segMean','mean');
+  $('pM').addEventListener('input',function(){st.pm=+this.value;update()});
+  $('pB').addEventListener('input',function(){st.pb=+this.value;update()});
+  document.querySelectorAll('[data-pp]').forEach(function(b){b.addEventListener('click',function(){
+    var v=b.getAttribute('data-pp').split(','); st.pm=+v[0]; st.pb=+v[1]; $('pM').value=st.pm; $('pB').value=st.pb; update();
+  })});
+
+  /* STEP 3 basket */
+  function basket(){
+    var qm=+$('qM').value, qb=+$('qB').value;
+    $('vqM').textContent=qm+'병'; $('vqB').textContent=qb+'개';
+    $('priceNote').textContent='가격: 우유 50원 → '+st.pm+'원, 빵 20원 → '+st.pb+'원 (STEP 2에서 바꾼 값을 따른다)';
+    var cl=qm*LM+qb*LB, ct=qm*st.pm+qb*st.pb;
+    $('cL').textContent=cl.toLocaleString()+'원'; $('cT').textContent=ct.toLocaleString()+'원';
+    if(cl===0){$('cI').textContent='–';$('cR').textContent='–';$('bVerdict').textContent='장바구니가 비어 있다';$('bVerdict').className='verdict';return}
+    var I=ct/cl*100, d=I-100;
+    $('cI').textContent=fmt(I); $('cR').textContent=sg(d)+'%';
+    $('cRBox').className='tile '+(d>0.05?'warn':'');
+    var v=$('bVerdict');
+    if(Math.abs(d)<0.05){v.textContent='이 집 생활비는 그대로다';v.className='verdict same'}
+    else if(d>0){v.textContent='이 집 생활비는 '+fmt(d)+'% 올랐다';v.className='verdict up'}
+    else {v.textContent='이 집 생활비는 '+fmt(-d)+'% 내렸다';v.className='verdict down'}
+  }
+  ['qM','qB'].forEach(function(id){$(id).addEventListener('input',basket)});
+  document.querySelectorAll('[data-q]').forEach(function(b){b.addEventListener('click',function(){
+    var v=b.getAttribute('data-q').split(','); $('qM').value=v[0]; $('qB').value=v[1]; basket();
+  })});
+
+  /* STEP 4 grading */
+  $('grade').addEventListener('click',function(){
+    var ok=0,total=0;
+    document.querySelectorAll('tr[data-m]').forEach(function(tr){
+      var m=+tr.getAttribute('data-m'), b=+tr.getAttribute('data-b');
+      var want={a:(m+b)/2,t:(1e4/m+1e4/b)/2,g:Math.sqrt(m*b)}, good=true;
+      ['a','t','g'].forEach(function(k){
+        var s=tr.querySelector('[data-k="'+k+'"]').value.trim();
+        if(s===''||Math.abs(+s-want[k])>0.06) good=false;
+      });
+      var mk=tr.querySelector('.mark'); mk.textContent=good?'✓':'✗'; mk.className='mark '+(good?'ok':'no');
+      total++; if(good) ok++;
+    });
+    $('gradeMsg').textContent=ok===total?'모두 맞았다! 둘째 줄은 ①로는 그대로(100)인데 ②로는 작년이 33.3% 비쌌고, ③으로는 13.4% 내렸다. 셋째 줄처럼 둘 다 같은 비율로 변하면 세 방법이 모두 같은 결론이다.':'전체 '+total+'줄 중 '+ok+'줄 맞음 · ②는 각 지수를 먼저 100 × 100 ÷ 지수로 바꾼 뒤 평균을 낸다.';
+  });
+
+  document.querySelectorAll('#belief .chip').forEach(function(b){
+    b.addEventListener('click',function(){
+      belief=b.getAttribute('data-v');
+      document.querySelectorAll('#belief .chip').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    });
+  });
+
+  function render(){
+    var m=/^#s([1-5])$/.exec(location.hash); current=m?+m[1]:1;
+    for(var i=1;i<=5;i++){
+      $('s'+i).hidden=(i!==current);
+      $('st'+i).setAttribute('aria-current',i===current?'step':'false');
+    }
+    if(current===2) update();
+    if(current===3) basket();
+    if(current===5) $('recall5').innerHTML='STEP 1에서 고른 내 예상: <b>'+(belief||'아직 고르지 않음')+'</b><br>어느 것을 골랐든, 그 답이 나오는 계산법이 있다. 중요한 것은 <b>어떤 계산법을 썼는지</b> 묻는 것이다.';
+  }
+  function go(i){ if(location.hash!=='#s'+i){location.hash='s'+i}else{render()} window.scrollTo(0,0); }
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-go'))})});
+  window.addEventListener('hashchange',render);
+  var rt; window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){if(current===2)drawChart(calc(st.base,st.mean))},120)});
+
+  render();
+})();
+</script>
+</body>
+</html>
