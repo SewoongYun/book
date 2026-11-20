@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVM 마진과 제약 최적화, 만져보며 이해하기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f4ee;--card:#fff;--ink:#1f2328;--muted:#5b6370;--line:#e4ded3;--circ:#2f5d9e;--tri:#c4572b;--perc:#d99a1e;--accent:#6a4fb3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.75;font-size:16px;word-break:keep-all}
+header{max-width:720px;margin:0 auto;padding:24px 16px 6px}
+.eyebrow{color:var(--accent);font-weight:700;font-size:.85rem}
+h1{font-family:'Noto Serif KR',serif;font-size:1.45rem;line-height:1.4;margin:.15em 0 .2em}
+.tabs{position:sticky;top:0;z-index:5;background:rgba(247,244,238,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.tabs .in{max-width:720px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
+.tabs .in::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border-radius:999px;padding:6px 13px;font-size:.88rem;background:#fff}
+.tabs button .n{color:var(--accent);font-weight:700;margin-right:4px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabs button.on .n{color:#cdbcf5}
+main{max-width:720px;margin:0 auto;padding:6px 16px 80px}
+.tab{display:none}
+.tab.on{display:block}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 16px;margin:14px 0}
+h2{font-family:'Noto Serif KR',serif;font-size:1.22rem;line-height:1.45;margin:0 0 .5em}
+h3{font-size:1.02rem;margin:1.2em 0 .3em;color:var(--accent)}
+p{margin:.55em 0}
+ul,ol{padding-left:1.2em;margin:.35em 0}
+canvas{width:100%;display:block;border-radius:12px;background:#fbfaf7;border:1px solid var(--line);touch-action:none;margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:#f3efe7;color:var(--ink);padding:7px 12px;border-radius:10px;cursor:pointer}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
+.seg button{flex:1;border:0;border-radius:0;background:#f3efe7;font-size:.85rem;padding:8px 4px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:#fff}
+.slider{margin:12px 0 4px}
+.slider label{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);gap:8px}
+.slider label b{color:var(--ink);font-weight:500;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.status{font-size:.93rem;padding:10px 12px;border-radius:10px;background:#f3efe7;margin-top:10px;line-height:1.7}
+.status.good{background:#e6f2ea;color:#1f5a38}
+.status.bad{background:#f8e5e3;color:#8e2a2a}
+.key{background:#f1ecfa;border-left:4px solid var(--accent);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0 4px}
+.m{font-family:'Times New Roman',Times,serif;font-style:italic;white-space:nowrap;font-size:1.06em}
+.v{font-style:normal;font-weight:700}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .12em;font-size:.9em;font-style:normal}
+.frac>span:first-child{border-bottom:1.3px solid currentColor;padding:0 .25em}
+.eq{display:block;text-align:center;margin:.7em 0;font-family:'Times New Roman',Times,serif;font-size:1.15rem}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.83rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px}
+.sw.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);height:2px}
+details{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fdfcf9}
+summary{cursor:pointer;font-weight:500;font-size:.95rem}
+.small{font-size:.86rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.6em 0}
+th,td{border:1px solid var(--line);padding:6px 6px;text-align:center}
+th{background:#f3efe7;font-weight:500}
+td.ok{color:#1f5a38;font-weight:700}
+td.no{color:#8e2a2a;font-weight:700}
+.navrow{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+.navrow button{background:#fff}
+.flow{display:flex;flex-direction:column;gap:6px;margin:.6em 0}
+.flow div{background:#f3efe7;border-radius:10px;padding:8px 12px;font-size:.93rem}
+.flow div b{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">커널 밧줄 탈출소 · 214–221쪽</div>
+  <h1>SVM 마진과 제약 최적화, 만져보며 이해하기</h1>
+</header>
+
+<nav class="tabs"><div class="in" id="tabbar">
+  <button data-t="perceptron"><span class="n">1</span>퍼셉트론 vs SVM</button>
+  <button data-t="ge1"><span class="n">2</span>왜 ≥ 1 ?</button>
+  <button data-t="margin"><span class="n">3</span>길 폭과 ‖w‖</button>
+  <button data-t="bowl"><span class="n">4</span>그릇 바닥만이 아니다</button>
+  <button data-t="lagrange"><span class="n">5</span>등고선과 라그랑주</button>
+  <button data-t="summary"><span class="n">6</span>정리</button>
+</div></nav>
+
+<main>
+<!-- ============ TAB 1 ============ -->
+<div class="tab" id="t-perceptron">
+<section>
+  <h2>퍼셉트론의 답은 하나가 아니다</h2>
+  <p>퍼셉트론은 <b>모든 점을 맞게 나누는 직선을 하나 찾으면 바로 멈춥니다.</b> 시작값과 점을 보는 순서에 따라 매번 다른 직선이 나오죠. 책에서 “분리 초평면이 무한히 많다”고 한 게 이 뜻이에요.</p>
+  <p>문제는 경계가 한쪽 무리에 바짝 붙어 있으면, <b>새 점</b>이 조금만 다른 곳에 와도 틀린다는 것(214쪽 그림).</p>
+  <canvas id="c1"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--perc)"></span>퍼셉트론 경계</span>
+    <span><span class="sw" style="background:#1f2328"></span>SVM 경계</span>
+    <span style="color:#6a4fb3"><span class="sw dash"></span>길의 가장자리</span>
+  </div>
+  <div class="controls">
+    <button class="primary" id="b1run">퍼셉트론 한 번 더 돌리기</button>
+    <button id="b1new">새 세모 점 넣기</button>
+    <button id="b1svm">SVM 경계 보기</button>
+  </div>
+  <div class="status" id="s1"></div>
+  <div class="key"><b>SVM의 아이디어</b>: 두 무리 사이에 <b>가장 넓은 길(통로)</b>을 내고, 그 한가운데 선을 경계로 쓴다. 길 가장자리에 딱 걸치는 점(테두리 친 점)이 <b>서포트 벡터</b>.</div>
+</section>
+<div class="navrow"><span></span><button data-go="ge1">다음: 왜 ≥ 1 ? →</button></div>
+</div>
+
+<!-- ============ TAB 2 ============ -->
+<div class="tab" id="t-ge1">
+<section>
+  <h2><span class="m">y<sub>i</sub>(<b class="v">w</b>·<b class="v">x</b><sub>i</sub> + b) ≥ 1</span>은 어디서 나올까?</h2>
+  <p>이 식은 세 조각으로 나눠 보면 쉬워요.</p>
+
+  <h3>조각 1 · <span class="m"><b class="v">w</b>·<b class="v">x</b> + b</span>의 부호 = 경계의 어느 쪽인가</h3>
+  <p>경계는 <span class="m"><b class="v">w</b>·<b class="v">x</b> + b = 0</span>인 점들이에요. 점을 넣어 계산한 값이 <b>양수면 세모 쪽, 음수면 동그라미 쪽</b>. 값의 크기는 경계에서 멀수록 커집니다(실제 거리는 <span class="frac"><span>|<b>w</b>·<b>x</b> + b|</span><span>‖<b>w</b>‖</span></span>).</p>
+
+  <h3>조각 2 · 왜 <span class="m">y<sub>i</sub></span>를 곱할까? (두 조건을 한 줄로)</h3>
+  <p>책에서 동그라미는 <span class="m">y = −1</span>, 세모는 <span class="m">y = +1</span>이에요. 맞게 분류되려면:</p>
+  <table>
+    <tr><th>점</th><th><span class="m">y<sub>i</sub></span></th><th>원하는 <span class="m"><b>w</b>·<b>x</b> + b</span></th><th>둘을 곱하면</th></tr>
+    <tr><td>세모</td><td>+1</td><td>양수</td><td class="ok">양수</td></tr>
+    <tr><td>동그라미</td><td>−1</td><td>음수</td><td class="ok">양수</td></tr>
+    <tr><td>잘못된 쪽</td><td>±1</td><td>반대 부호</td><td class="no">음수</td></tr>
+  </table>
+  <p>즉 <b>“곱이 양수 = 맞게 분류됨”</b>. 세모용 식, 동그라미용 식을 따로 쓰지 않으려는 요령이에요. 퍼셉트론은 여기까지, 곱 <span class="m">&gt; 0</span>만 요구합니다.</p>
+
+  <h3>조각 3 · 그런데 왜 0이 아니라 1일까?</h3>
+  <p>핵심은 <b>같은 직선을 쓰는 방법이 무수히 많다</b>는 거예요. <span class="m">2x − y + 1 = 0</span>과 <span class="m">4x − 2y + 2 = 0</span>은 똑같은 직선이죠. <b>w</b>와 <span class="m">b</span>에 같은 수를 곱해도 경계는 그대로인데, 점마다 계산되는 <b>값의 크기만</b> 바뀝니다.</p>
+  <p>아래 슬라이더로 <b>w</b>, <span class="m">b</span>에 곱하는 수 <span class="m">k</span>를 바꿔 보세요. 검은 경계선은 꿈쩍 안 하는데, 점 옆의 숫자 <span class="m">y<sub>i</sub>(<b class="v">w</b>·<b class="v">x</b><sub>i</sub> + b)</span>가 전부 같이 커지고 작아져요. 점을 누르면 계산 과정이 나와요.</p>
+  <canvas id="c2a"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:#1f2328"></span>경계 (값 = 0)</span>
+    <span style="color:#6a4fb3"><span class="sw dash"></span>값 = +1, −1 인 선</span>
+  </div>
+  <div class="slider">
+    <label><span><b style="font-weight:400;color:var(--muted)">w</b>, b에 곱하는 수 <span class="m">k</span></span><b id="l2a"></b></label>
+    <input type="range" id="r2a" min="0.4" max="2.2" step="0.01" value="1.6">
+  </div>
+  <div class="controls"><button id="b2a1">k = 1 (표준 눈금)으로</button></div>
+  <div class="status" id="s2a"></div>
+  <div class="key">
+    <b>그래서 ≥ 1</b>
+    <ol>
+      <li>크기를 마음대로 바꿀 수 있으니 <b>“가장 가까운 점에서 값이 딱 1”</b>이 되도록 눈금을 정한다. (1은 약속일 뿐. 5로 정해도 경계는 같고 <b>w</b>, b만 5배가 됨)</li>
+      <li>그러면 <b>≥ 1</b> = “모든 점이 가장 가까운 점만큼은 떨어져 있다” = <b>길 안에 점이 하나도 없다.</b></li>
+      <li>만약 &gt; 0만 요구하고 ‖<b>w</b>‖를 줄이면? 부호는 안 바뀌니 <b>w</b>를 0까지 계속 줄여도 OK → 의미 없는 답. ‘1’이라는 기준을 박아 둬야 ‖<b>w</b>‖ 줄이기가 길 넓히기가 됩니다(다음 탭).</li>
+    </ol>
+  </div>
+</section>
+<div class="navrow"><button data-go="perceptron">← 이전</button><button data-go="margin">다음: 길 폭과 ‖w‖ →</button></div>
+</div>
+
+<!-- ============ TAB 3 ============ -->
+<div class="tab" id="t-margin">
+<section>
+  <h2>길의 폭은 <span class="frac"><span>2</span><span>‖<b>w</b>‖</span></span>, 그래서 ‖<b>w</b>‖를 줄인다</h2>
+  <p>앞 탭의 약속대로 길 가장자리를 <span class="m"><b class="v">w</b>·<b class="v">x</b> + b = ±1</span>로 정하면 <b>길의 폭 = <span class="frac"><span>2</span><span>‖<b>w</b>‖</span></span></b>. ‖<b>w</b>‖가 작을수록 길이 넓어져요.</p>
+  <p>슬라이더로 ‖<b>w</b>‖를 줄여 보세요. 길이 넓어지다가, 너무 줄이면 점이 길 안으로 들어와 <b>제약(≥ 1)이 깨집니다.</b></p>
+  <canvas id="c2"></canvas>
+  <div class="slider">
+    <label><span>‖w‖ (작을수록 길이 넓다)</span><b id="l2s"></b></label>
+    <input type="range" id="r2s" min="0.3" max="3" step="0.01" value="0.6">
+  </div>
+  <div class="slider">
+    <label><span>경계의 방향(기울기) 돌리기</span><b id="l2t"></b></label>
+    <input type="range" id="r2t" min="-40" max="40" step="0.5" value="0">
+  </div>
+  <div class="controls"><button id="b2opt">최적 SVM으로 맞추기</button></div>
+  <div class="status" id="s2"></div>
+  <div class="key"><b>정리</b>: “모든 점이 ≥ 1을 지키는 범위 안에서 ‖<b>w</b>‖를 가장 작게” = 마진 최대화. 책이 ‖<b>w</b>‖ 대신 <span class="frac"><span>‖<b>w</b>‖<sup>2</sup></span><span>2</span></span>을 쓰는 건, 답은 똑같으면서 매끈한 <b>2차함수(그릇 모양)</b>라 미분·계산이 편해서예요.</div>
+  <details>
+    <summary>왜 <b>w</b>는 경계에 수직이고, 폭은 <span class="frac"><span>2</span><span>‖<b>w</b>‖</span></span>일까?</summary>
+    <p><b>수직인 이유</b>: 경계 위의 두 점 <span class="m"><b class="v">p</b>, <b class="v">q</b></span>는 <span class="m"><b class="v">w</b>·<b class="v">p</b> + b = 0</span>, <span class="m"><b class="v">w</b>·<b class="v">q</b> + b = 0</span>. 빼면 <span class="m"><b class="v">w</b>·(<b class="v">p</b> − <b class="v">q</b>) = 0</span>. 경계 방향과 <b>w</b>의 내적이 0이니 수직.</p>
+    <p><b>폭</b>: 경계 위 점 <b>p</b>에서 <b>w</b> 방향(단위벡터)으로 거리 <span class="m">t</span>만큼 가서 가장자리 <span class="m"><b class="v">w</b>·<b class="v">x</b> + b = 1</span>에 닿는다면</p>
+    <span class="eq"><b class="v">w</b>·<b class="v">p</b> + b + t‖<b class="v">w</b>‖ = 1 &nbsp;⇒&nbsp; t = <span class="frac"><span>1</span><span>‖<b class="v">w</b>‖</span></span></span>
+    <p>반대쪽도 똑같으니 전체 폭은 <span class="frac"><span>2</span><span>‖<b>w</b>‖</span></span>.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="ge1">← 이전</button><button data-go="bowl">다음: 그릇 바닥만이 아니다 →</button></div>
+</div>
+
+<!-- ============ TAB 4 ============ -->
+<div class="tab" id="t-bowl">
+<section>
+  <h2>그릇 바닥만이 아니다</h2>
+  <p>제약이 없으면 최솟값 찾기는 “경사를 따라 바닥으로 내려가기”예요. 그런데 책의 비유처럼 <b>정해진 원 모양 길 위에서만</b> 움직여야 한다면? 답은 바닥이 아니라 <b>그 길 위에서 가장 낮은 곳</b>이 됩니다.</p>
+  <p class="small">그림을 손가락으로 끌면 돌아가요. 점선 원 = 바닥 평면 위의 제약 <span class="m">x<sup>2</sup> + y<sup>2</sup> = r<sup>2</sup></span>, 보라 곡선 = 그 원을 따라 곡면 위를 걸을 때의 경로.</p>
+  <div class="seg" id="surfSeg">
+    <button data-s="bowl" class="on">그릇</button>
+    <button data-s="valley">책의 계곡 (219쪽)</button>
+    <button data-s="saddle">말안장 xy + 30</button>
+  </div>
+  <p class="small" id="surfLabel" style="text-align:center;margin:.6em 0 0"></p>
+  <canvas id="c3d"></canvas>
+  <div class="legend">
+    <span style="color:#6a4fb3"><span class="sw" style="background:#6a4fb3"></span>원 위의 길</span>
+    <span><span class="sw" style="background:#1f2328"></span>지금 위치</span>
+    <span style="color:#2e7d4f"><span class="sw" style="background:#2e7d4f"></span>길 위 최저점</span>
+    <span style="color:#d99a1e"><span class="sw" style="background:#d99a1e"></span>제약 없을 때 바닥·안장점</span>
+  </div>
+  <div class="slider">
+    <label><span>원 위의 위치(각도)</span><b id="l3d"></b></label>
+    <input type="range" id="r3d" min="0" max="359" step="1" value="200">
+  </div>
+  <div class="slider">
+    <label><span>원의 반지름 r</span><b id="l3r"></b></label>
+    <input type="range" id="r3r" min="0.5" max="2.3" step="0.01" value="1">
+  </div>
+  <div class="controls"><button class="primary" id="bWalk">▶ 원 따라 한 바퀴 걸으며 최저점 찾기</button></div>
+  <p class="small" style="margin-top:10px">원을 한 바퀴 돌 때의 높이:</p>
+  <canvas id="c3p"></canvas>
+  <div class="status" id="s3d"></div>
+  <div class="key"><b>SVM에서는</b>: 그릇 = <span class="frac"><span>‖<b>w</b>‖<sup>2</sup></span><span>2</span></span>, 바닥 = <span class="m"><b class="v">w</b> = 0</span>. 그런데 <b>w</b> = 0이면 ≥ 1을 지킬 수 없으니 바닥엔 못 간다. 그래서 “제약을 지키는 영역 안에서 가장 낮은 곳”을 찾아야 하고, 이게 책의 <b>제약하 최적화 문제</b>예요.</div>
+</section>
+<div class="navrow"><button data-go="margin">← 이전</button><button data-go="lagrange">다음: 등고선과 라그랑주 →</button></div>
+</div>
+
+<!-- ============ TAB 5 ============ -->
+<div class="tab" id="t-lagrange">
+<section>
+  <h2>극값은 등고선이 길에 ‘접하는’ 곳</h2>
+  <p>앞 탭의 말안장 <span class="m">f(x, y) = xy + 30</span>을 <b>위에서 내려다본 지도</b>예요. 주황은 높은 곳, 파랑은 낮은 곳, 얇은 선은 등고선. 제약은 반지름 2인 원 <span class="m">x<sup>2</sup> + y<sup>2</sup> = 4</span>. <b>원 위의 점을 끌어 보세요.</b></p>
+  <canvas id="c3"></canvas>
+  <div class="legend">
+    <span style="color:#6a4fb3"><span class="sw" style="background:#6a4fb3"></span>지금 점을 지나는 등고선</span>
+    <span style="color:#c4572b"><span class="sw" style="background:#c4572b"></span>∇f (가장 가파르게 오르는 방향)</span>
+    <span style="color:#2f5d9e"><span class="sw" style="background:#2f5d9e"></span>∇g (원에 수직인 방향)</span>
+  </div>
+  <div class="slider">
+    <label><span>원 위의 위치(각도)</span><b id="l3"></b></label>
+    <input type="range" id="r3" min="0" max="359" step="1" value="20">
+  </div>
+  <p class="small" style="margin-top:10px">원을 한 바퀴 돌 때의 높이 <span class="m">f</span>:</p>
+  <canvas id="c3g"></canvas>
+  <div class="status" id="s3"></div>
+  <div class="key"><b>핵심</b>: 등고선이 원을 <b>가로지르면</b> 원을 따라 조금만 가도 높이가 변하니 극값이 아니다. 극값은 등고선이 원에 <b>딱 접하는</b> 곳. 접한다 = 두 곡선의 수직 방향(그래디언트)이 평행하다는 뜻이고, 식으로 쓰면
+  <span class="eq">∇f = λ ∇g</span>
+  이게 라그랑주 승수법의 출발점이에요.</div>
+  <details>
+    <summary>직접 풀어보기: 원 위에서 xy + 30의 최대·최소</summary>
+    <p><span class="m">g(x, y) = x<sup>2</sup> + y<sup>2</sup></span>라 하면 <span class="m">∇f = (y, x)</span>, <span class="m">∇g = (2x, 2y)</span>.</p>
+    <ol>
+      <li><span class="m">∇f = λ∇g</span> → <span class="m">y = 2λx</span>, <span class="m">x = 2λy</span></li>
+      <li>대입하면 <span class="m">x = 4λ<sup>2</sup>x</span> → <span class="m">λ = ±</span><span class="frac"><span>1</span><span>2</span></span></li>
+      <li><span class="m">λ = </span><span class="frac"><span>1</span><span>2</span></span>이면 <span class="m">y = x</span>, <span class="m">λ = −</span><span class="frac"><span>1</span><span>2</span></span>이면 <span class="m">y = −x</span></li>
+      <li>원에 대입: <span class="m">2x<sup>2</sup> = 4</span> → <span class="m">x = ±√2</span></li>
+    </ol>
+    <p>→ <span class="m">(√2, √2), (−√2, −√2)</span>에서 <b>최댓값 32</b>, <span class="m">(√2, −√2), (−√2, √2)</span>에서 <b>최솟값 28</b>.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="bowl">← 이전</button><button data-go="summary">다음: 정리 →</button></div>
+</div>
+
+<!-- ============ TAB 6 ============ -->
+<div class="tab" id="t-summary">
+<section>
+  <h2>한 줄씩 정리</h2>
+  <div class="flow">
+    <div><b>1.</b> 퍼셉트론은 아무 분리선이나 찾고 멈춘다 → 새 점에 약하다.</div>
+    <div><b>2.</b> SVM은 두 무리 사이 <b>가장 넓은 길</b>의 한가운데를 경계로 쓴다.</div>
+    <div><b>3.</b> 길 가장자리를 <span class="m"><b class="v">w</b>·<b class="v">x</b> + b = ±1</span>로 약속 → 모든 점이 길 밖: <span class="m">y<sub>i</sub>(<b class="v">w</b>·<b class="v">x</b><sub>i</sub> + b) ≥ 1</span></div>
+    <div><b>4.</b> 길 폭 = <span class="frac"><span>2</span><span>‖<b>w</b>‖</span></span> → 폭 최대 = ‖<b>w</b>‖ 최소 = <span class="frac"><span>‖<b>w</b>‖<sup>2</sup></span><span>2</span></span> 최소</div>
+    <div><b>5.</b> 그릇의 바닥(<b>w</b> = 0)은 제약 때문에 못 감 → <b>제약하 최적화</b></div>
+    <div><b>6.</b> 제약 위 극값 = 등고선이 제약에 접하는 곳 → <span class="m">∇f = λ∇g</span> (라그랑주)</div>
+  </div>
+  <p>SVM은 원 예제의 큰 버전이에요. 최소화할 함수는 <span class="frac"><span>‖<b>w</b>‖<sup>2</sup></span><span>2</span></span>, 제약은 원 하나 대신 <b>데이터 점마다 하나씩</b>, 그리고 등식이 아니라 <b>부등식</b>.</p>
+  <p class="small">책 뒷부분에서 이어질 내용: 이렇게 라그랑주 방식으로 풀면 경계가 서포트 벡터들만으로 정해지고, 계산에 데이터 점끼리의 <b>내적</b>만 등장해요. 장 제목의 ‘커널’이 거기서 나옵니다.</p>
+</section>
+<div class="navrow"><button data-go="lagrange">← 이전</button><span></span></div>
+</div>
+</main>
+
+<script>
+(function(){
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const PAD = 14;
+function fit(cv, ratio){
+  const w = cv.clientWidth || 600, h = Math.round(w * ratio);
+  cv.style.height = h + 'px';
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  const ctx = cv.getContext('2d'); ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {ctx, W:w, H:h};
+}
+function mk(W,H,x0,x1,y0,y1){
+  return {
+    X: x => PAD + (x-x0)/(x1-x0)*(W-2*PAD),
+    Y: y => H-PAD - (y-y0)/(y1-y0)*(H-2*PAD),
+    inv: (px,py) => [x0 + (px-PAD)/(W-2*PAD)*(x1-x0), y0 + (H-PAD-py)/(H-2*PAD)*(y1-y0)],
+    k: (W-2*PAD)/(x1-x0)
+  };
+}
+const fr = (a,b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const W_ = '‖<b>w</b>‖';
+const $ = id => document.getElementById(id);
+
+// ---------- data ----------
+const pts = [
+  [1.6,8.2,-1],[2.6,7.0,-1],[3.4,8.4,-1],[2.2,5.6,-1],[3.6,6.2,-1],[4.6,7.6,-1],[4.2,5.0,-1],
+  [6.0,3.6,1],[7.2,4.6,1],[6.6,2.2,1],[8.2,3.0,1],[5.8,1.6,1],[8.0,5.8,1],[7.4,1.4,1]
+];
+function gapAt(th){
+  const ux=Math.cos(th), uy=Math.sin(th); let pmin=Infinity, nmax=-Infinity;
+  for(const [x,y,l] of pts){ const p=ux*x+uy*y; if(l>0) pmin=Math.min(pmin,p); else nmax=Math.max(nmax,p); }
+  return {gap:pmin-nmax, c:(pmin+nmax)/2, pmin, nmax, ux, uy};
+}
+function solveSVM(){
+  let best=-Infinity, bt=0;
+  for(let i=0;i<3600;i++){ const th=i/3600*2*Math.PI, g=gapAt(th).gap; if(g>best){best=g;bt=th;} }
+  const lo=bt-0.002, hi=bt+0.002;
+  for(let i=0;i<=2000;i++){ const th=lo+(hi-lo)*i/2000, g=gapAt(th).gap; if(g>best){best=g;bt=th;} }
+  const r=gapAt(bt); return {th:bt, ux:r.ux, uy:r.uy, c:r.c, m:r.gap/2, pmin:r.pmin, nmax:r.nmax};
+}
+const SVM = solveSVM();
+
+// ---------- drawing helpers ----------
+function dot(ctx,x,y,r,col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
+function tri(ctx,x,y,r,col,stroke){
+  ctx.beginPath(); ctx.moveTo(x,y-r); ctx.lineTo(x+r*0.92,y+r*0.62); ctx.lineTo(x-r*0.92,y+r*0.62); ctx.closePath();
+  if(stroke){ ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.stroke(); } else { ctx.fillStyle=col; ctx.fill(); }
+}
+function ring(ctx,x,y,r,col,w){ ctx.strokeStyle=col; ctx.lineWidth=w||2; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.stroke(); }
+function clipBox(ctx,W,H){ ctx.beginPath(); ctx.rect(PAD,PAD,W-2*PAD,H-2*PAD); ctx.clip(); }
+function lineW(ctx,M,ux,uy,c,col,w,dash){
+  const px=c*ux, py=c*uy, dx=-uy, dy=ux;
+  ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(M.X(px-40*dx),M.Y(py-40*dy)); ctx.lineTo(M.X(px+40*dx),M.Y(py+40*dy)); ctx.stroke(); ctx.setLineDash([]);
+}
+function band(ctx,M,ux,uy,c1,c2,col){
+  const dx=-uy, dy=ux, a=[c1*ux,c1*uy], b=[c2*ux,c2*uy];
+  ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(M.X(a[0]-40*dx),M.Y(a[1]-40*dy)); ctx.lineTo(M.X(a[0]+40*dx),M.Y(a[1]+40*dy));
+  ctx.lineTo(M.X(b[0]+40*dx),M.Y(b[1]+40*dy)); ctx.lineTo(M.X(b[0]-40*dx),M.Y(b[1]-40*dy)); ctx.closePath(); ctx.fill();
+}
+function arrow(ctx,x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w||2.6;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), h=10;
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-0.42),y2-h*Math.sin(a-0.42)); ctx.lineTo(x2-h*Math.cos(a+0.42),y2-h*Math.sin(a+0.42)); ctx.closePath(); ctx.fill();
+}
+function drawPts(ctx,M,mark){
+  for(let i=0;i<pts.length;i++){
+    const [x,y,l]=pts[i], X=M.X(x), Y=M.Y(y);
+    if(l<0) dot(ctx,X,Y,7,'#2f5d9e'); else tri(ctx,X,Y,9,'#c4572b');
+    if(mark && mark[i]) ring(ctx,X,Y,13,mark[i],2.2);
+  }
+}
+const isSV = i => { const [x,y]=pts[i]; const p=SVM.ux*x+SVM.uy*y; return Math.abs(p-SVM.pmin)<0.01 || Math.abs(p-SVM.nmax)<0.01; };
+
+// ================= TAB 1 =================
+const c1=$('c1'), s1=$('s1');
+let perc=null, hist=[], testPt=null, showSVM=false;
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function runPerceptron(){
+  const d=pts.map(([x,y,l])=>[x-5,y-5,l]);
+  let w1=(Math.random()-.5)*6, w2=(Math.random()-.5)*6, b=(Math.random()-.5)*6;
+  for(let ep=0;ep<3000;ep++){
+    let err=0;
+    for(const [x,y,l] of shuffle(d)){ if(l*(w1*x+w2*y+b)<=0){ w1+=l*x; w2+=l*y; b+=l; err++; } }
+    if(!err) break;
+  }
+  const n=Math.hypot(w1,w2);
+  return {ux:w1/n, uy:w2/n, c:-(b-5*w1-5*w2)/n};
+}
+function newPerc(){ if(perc){ hist.push(perc); if(hist.length>8) hist.shift(); } perc=runPerceptron(); }
+function makeTest(){
+  const d=SVM.ux*5+SVM.uy*5-SVM.c;
+  const bx=5-d*SVM.ux, by=5-d*SVM.uy, off=0.35*SVM.m;
+  testPt=[bx+off*SVM.ux+0.6*(-SVM.uy), by+off*SVM.uy+0.6*SVM.ux];
+}
+function draw1(){
+  const {ctx,W,H}=fit(c1,0.82), M=mk(W,H,0,10,0,10);
+  ctx.save(); clipBox(ctx,W,H);
+  if(showSVM){
+    band(ctx,M,SVM.ux,SVM.uy,SVM.c-SVM.m,SVM.c+SVM.m,'rgba(106,79,179,0.10)');
+    lineW(ctx,M,SVM.ux,SVM.uy,SVM.c-SVM.m,'#6a4fb3',1.6,[6,5]);
+    lineW(ctx,M,SVM.ux,SVM.uy,SVM.c+SVM.m,'#6a4fb3',1.6,[6,5]);
+    lineW(ctx,M,SVM.ux,SVM.uy,SVM.c,'#1f2328',2.6);
+  }
+  for(const h of hist) lineW(ctx,M,h.ux,h.uy,h.c,'rgba(217,154,30,0.25)',1.5);
+  if(perc) lineW(ctx,M,perc.ux,perc.uy,perc.c,'#d99a1e',3);
+  ctx.restore();
+  drawPts(ctx,M, showSVM ? pts.map((_,i)=>isSV(i)?'#6a4fb3':null) : null);
+  if(testPt){ const X=M.X(testPt[0]), Y=M.Y(testPt[1]); tri(ctx,X,Y,10,'#2e7d4f',true); ctx.fillStyle='#2e7d4f'; ctx.font='600 12px Noto Sans KR'; ctx.fillText('새 점',X+12,Y+4); }
+  let msg='주황 선 = 퍼셉트론이 찾은 경계. 버튼을 여러 번 눌러 보세요. 매번 다른 선이 나와요(흐린 선은 이전 결과). 모두 “정답”입니다.', cls='';
+  if(testPt){
+    const ok = perc.ux*testPt[0]+perc.uy*testPt[1]-perc.c > 0;
+    if(ok){ msg='이번 퍼셉트론은 새 세모(초록)를 세모로 맞혔어요 ✓. 몇 번 더 돌려 보면 틀리는 선도 나옵니다.'; }
+    else { msg='이번 퍼셉트론은 새 세모를 <b>동그라미 쪽으로 잘못 분류</b>했어요 ✗. 경계가 세모 무리에 너무 바짝 붙어 있어서예요.'; cls='bad'; }
+    if(showSVM) msg+=' SVM 경계는 길 한가운데라 새 점을 맞게 분류해요 ✓';
+  } else if(showSVM){ msg='검은 선 = SVM 경계, 보라 띠 = 두 무리 사이에서 가능한 가장 넓은 길. 테두리 친 점이 서포트 벡터예요.'; }
+  s1.className='status '+cls; s1.innerHTML=msg;
+}
+$('b1run').onclick=()=>{ newPerc(); draw1(); };
+$('b1new').onclick=()=>{ makeTest(); draw1(); };
+$('b1svm').onclick=function(){ showSVM=!showSVM; this.textContent= showSVM?'SVM 경계 숨기기':'SVM 경계 보기'; draw1(); };
+newPerc();
+
+// ================= TAB 2 (≥ 1) =================
+const c2a=$('c2a'), s2a=$('s2a'), r2a=$('r2a');
+let sel=6; // selected point index
+function val2(i,k){ const [x,y,l]=pts[i]; return { raw: k*(SVM.ux*x+SVM.uy*y-SVM.c)/SVM.m, y:l }; }
+function draw2a(){
+  const {ctx,W,H}=fit(c2a,0.82), M=mk(W,H,0,10,0,10);
+  const k=+r2a.value, h=SVM.m/k;
+  $('l2a').textContent='k = '+k.toFixed(2);
+  ctx.save(); clipBox(ctx,W,H);
+  band(ctx,M,SVM.ux,SVM.uy,SVM.c-h,SVM.c+h,'rgba(106,79,179,0.08)');
+  lineW(ctx,M,SVM.ux,SVM.uy,SVM.c-h,'#6a4fb3',1.6,[6,5]);
+  lineW(ctx,M,SVM.ux,SVM.uy,SVM.c+h,'#6a4fb3',1.6,[6,5]);
+  lineW(ctx,M,SVM.ux,SVM.uy,SVM.c,'#1f2328',2.6);
+  const d=SVM.ux*5+SVM.uy*5-SVM.c, bx=5-d*SVM.ux, by=5-d*SVM.uy, lx=bx+3.3*(-SVM.uy), ly=by+3.3*SVM.ux;
+  ctx.font='italic 13px Times New Roman'; ctx.fillStyle='#6a4fb3';
+  ctx.fillText('= +1', M.X(lx+h*SVM.ux)+4, M.Y(ly+h*SVM.uy)-4);
+  ctx.fillText('= −1', M.X(lx-h*SVM.ux)+4, M.Y(ly-h*SVM.uy)-4);
+  ctx.fillStyle='#1f2328'; ctx.fillText('= 0', M.X(lx)+4, M.Y(ly)-4);
+  ctx.restore();
+  const mark=pts.map((_,i)=>{ const v=val2(i,k); const p=v.y*v.raw; return p<1-1e-6?'#c23b3b':(p<1.005?'#6a4fb3':null); });
+  drawPts(ctx,M,mark);
+  if(sel!=null){ const [x,y]=pts[sel]; ring(ctx,M.X(x),M.Y(y),17,'#1f2328',1.5); }
+  ctx.font='600 11px Noto Sans KR';
+  for(let i=0;i<pts.length;i++){
+    const [x,y]=pts[i], v=val2(i,k), p=v.y*v.raw;
+    const txt=p.toFixed(2); const X=M.X(x)+12, Y=M.Y(y)-10;
+    ctx.fillStyle='rgba(255,255,255,.85)'; const tw=ctx.measureText(txt).width; ctx.fillRect(X-2,Y-10,tw+4,13);
+    ctx.fillStyle = p<1-1e-6 ? '#c23b3b' : (p<1.005 ? '#6a4fb3' : '#1f2328'); ctx.fillText(txt,X,Y);
+  }
+  // status
+  const minP=Math.min(...pts.map((_,i)=>{const v=val2(i,k);return v.y*v.raw;}));
+  let msg, cls='';
+  if(Math.abs(k-1)<0.015){ msg=`<b>k = 1: 표준 눈금.</b> 가장 가까운 점(보라 테두리)이 정확히 1이고 나머지는 모두 1보다 커요 → 모든 점 ≥ 1 ✓. 보라 점선(값 = ±1)이 딱 가장 가까운 점에 걸쳐 길이 됩니다.`; cls='good'; }
+  else if(k<1){ msg=`경계선은 그대로인데 숫자가 전부 작아졌어요. 가장 가까운 점 값이 ${minP.toFixed(2)} &lt; 1 → <b>≥ 1 위반</b>(빨간 테두리). ±1 선이 바깥으로 밀려나 점들이 ‘길 안’에 들어온 거예요.`; cls='bad'; }
+  else { msg=`모든 점이 ≥ 1을 만족해요. 하지만 가장 가까운 점도 ${minP.toFixed(2)}로 1보다 큼 → <b>k를 더 줄여도(‖w‖를 더 작게 해도) 제약이 지켜짐.</b> ‖w‖를 최소화하면 결국 가장 가까운 점이 딱 1이 되는 k = 1에서 멈춰요.`; }
+  if(sel!=null){
+    const [x,y,l]=pts[sel], v=val2(sel,k), p=v.y*v.raw;
+    const nm = l>0?'세모':'동그라미', ys = l>0?'+1':'−1';
+    msg += `<br><span class="small">선택한 점: ${nm} (x = (${x}, ${y}), y<sub>i</sub> = ${ys}) → <span class="m"><b>w</b>·<b>x</b> + b</span> = ${v.raw.toFixed(2)} → <span class="m">y<sub>i</sub>(<b>w</b>·<b>x</b><sub>i</sub> + b)</span> = (${ys}) × (${v.raw.toFixed(2)}) = <b>${p.toFixed(2)}</b></span>`;
+  }
+  s2a.className='status '+cls; s2a.innerHTML=msg;
+}
+r2a.oninput=draw2a;
+$('b2a1').onclick=()=>{ r2a.value=1; draw2a(); };
+c2a.addEventListener('pointerdown',e=>{
+  const r=c2a.getBoundingClientRect(), M=mk(c2a.clientWidth,c2a.clientHeight,0,10,0,10);
+  let best=null, bd=28;
+  pts.forEach(([x,y],i)=>{ const d=Math.hypot(M.X(x)-(e.clientX-r.left), M.Y(y)-(e.clientY-r.top)); if(d<bd){bd=d;best=i;} });
+  if(best!=null){ sel=best; draw2a(); }
+});
+
+// ================= TAB 3 (margin) =================
+const c2=$('c2'), s2=$('s2'), r2s=$('r2s'), r2t=$('r2t');
+function draw2(){
+  const {ctx,W,H}=fit(c2,0.82), M=mk(W,H,0,10,0,10);
+  const s=+r2s.value, off=+r2t.value, th=SVM.th+off*Math.PI/180, g=gapAt(th);
+  const ux=g.ux, uy=g.uy, c=g.c, h=1/s;
+  $('l2s').textContent=s.toFixed(2)+'  (폭 '+(2/s).toFixed(2)+')';
+  $('l2t').textContent=(off>0?'+':'')+off+'°';
+  let viol=0; const mark=[];
+  for(let i=0;i<pts.length;i++){ const [x,y,l]=pts[i]; const v=l*s*(ux*x+uy*y-c);
+    if(v<1-1e-6){ viol++; mark[i]='#c23b3b'; } else if(v<1.02) mark[i]='#6a4fb3'; else mark[i]=null; }
+  ctx.save(); clipBox(ctx,W,H);
+  band(ctx,M,ux,uy,c-h,c+h, viol?'rgba(194,59,59,0.10)':'rgba(106,79,179,0.12)');
+  lineW(ctx,M,ux,uy,c-h,'#6a4fb3',1.6,[6,5]);
+  lineW(ctx,M,ux,uy,c+h,'#6a4fb3',1.6,[6,5]);
+  lineW(ctx,M,ux,uy,c,'#1f2328',2.6);
+  const d=ux*5+uy*5-c, bx=5-d*ux, by=5-d*uy;
+  ctx.font='italic 13px Times New Roman'; ctx.fillStyle='#6a4fb3';
+  const lx=bx+3.2*(-uy), ly=by+3.2*ux;
+  ctx.fillText('= +1', M.X(lx+h*ux)+4, M.Y(ly+h*uy)-4);
+  ctx.fillText('= −1', M.X(lx-h*ux)+4, M.Y(ly-h*uy)-4);
+  ctx.restore();
+  const L=Math.min(0.9*s,2.6);
+  arrow(ctx,M.X(bx),M.Y(by),M.X(bx+L*ux),M.Y(by+L*uy),'#1f2328',2.4);
+  ctx.font='bold 15px Times New Roman'; ctx.fillStyle='#1f2328';
+  ctx.fillText('w',M.X(bx+L*ux)+6,M.Y(by+L*uy)+4);
+  drawPts(ctx,M,mark);
+  const minS = g.gap>0 ? 2/g.gap : Infinity;
+  let msg, cls='';
+  if(g.gap<=0){ msg='이 방향으로는 두 무리를 아예 나눌 수 없어요. 방향을 0° 쪽으로 돌려 보세요.'; cls='bad'; }
+  else if(viol){ msg=`빨간 테두리 점 <b>${viol}개</b>가 길 안에 들어왔어요 → ≥ 1 위반. ${W_}를 키워(길을 좁혀) 보세요.`; cls='bad'; }
+  else if(s-minS<0.02 && Math.abs(off)<0.6){ msg=`<b>최적!</b> 제약을 모두 지키면서 ${W_}가 가장 작은 상태 = 길 폭 ${fr(2,W_)} 최대. 보라 테두리 점이 서포트 벡터예요.`; cls='good'; }
+  else if(s-minS<0.02){ msg=`이 방향에서는 최선(${W_} = ${minS.toFixed(2)}). 그런데 <b>방향을 바꾸면 ${W_}를 더 줄일 수 있어요.</b>`; }
+  else { msg=`제약은 모두 만족 ✓. 하지만 ${W_}를 더 줄일 수 있어요 (이 방향에서 가능한 최소값 ${minS.toFixed(2)}).`; }
+  s2.className='status '+cls; s2.innerHTML=msg;
+}
+r2s.oninput=draw2; r2t.oninput=draw2;
+$('b2opt').onclick=()=>{ r2t.value=0; r2s.value=(1/SVM.m+0.004).toFixed(2); draw2(); };
+
+// ================= TAB 4 (3D bowl) =================
+const SURF = {
+  bowl:   { f:(x,y)=>(x-1.5)**2+(y-1)**2, R:2.5, r:1, label:'f(x, y) = (x − 1.5)² + (y − 1)²  ·  바닥은 (1.5, 1)', mark:[1.5,1], markName:'바닥' },
+  valley: { f:(x,y)=>x*x+Math.sin(x*y)**4+x*y, R:2, r:1, label:'f(x, y) = x² + sin⁴(xy) + xy  ·  책 219쪽의 지형', mark:null },
+  saddle: { f:(x,y)=>x*y+30, R:2.5, r:2, label:'f(x, y) = xy + 30  ·  가운데는 안장점', mark:[0,0], markName:'안장점' }
+};
+let sKey='bowl', yaw=-0.75, pitch=0.6, th3=200, walk=null;
+const c3d=$('c3d'), c3p=$('c3p'), s3d=$('s3d'), r3d=$('r3d'), r3r=$('r3r');
+function lerp(a,b,t){ return a.map((v,i)=>v+(b[i]-v)*t); }
+function cmap(t){ const lo=[47,93,158], mid=[236,231,220], hi=[196,87,43]; return t<.5?lerp(lo,mid,t*2):lerp(mid,hi,(t-.5)*2); }
+function prof(S,r){ const arr=[]; for(let a=0;a<360;a++){ const t=a*Math.PI/180; arr.push(S.f(r*Math.cos(t),r*Math.sin(t))); } return arr; }
+function draw3d(){
+  const S=SURF[sKey], R=S.R, r=+r3r.value, N=34;
+  $('surfLabel').textContent=S.label;
+  $('l3d').textContent=th3+'°';
+  $('l3r').textContent=r.toFixed(2);
+  const {ctx,W,H}=fit(c3d,0.85);
+  // grid
+  const G=[]; let fmin=Infinity,fmax=-Infinity;
+  for(let i=0;i<=N;i++){ G[i]=[]; for(let j=0;j<=N;j++){ const x=-R+2*R*i/N, y=-R+2*R*j/N, f=S.f(x,y); G[i][j]=f; if(f<fmin)fmin=f; if(f>fmax)fmax=f; } }
+  const Zh=0.85*R, zm=f=>(f-fmin)/(fmax-fmin)*Zh-Zh/2, zFloor=-Zh/2-0.08*R;
+  const cy=Math.cos(yaw), sy=Math.sin(yaw), cp=Math.cos(pitch), sp=Math.sin(pitch);
+  const sc=Math.min(W,H)/(3.3*R), ox=W/2, oy=H/2+0.02*H;
+  const P=(x,y,z)=>{ const xr=x*cy-y*sy, yr=x*sy+y*cy; return [ox+sc*xr, oy-sc*(z*cp+yr*sp), yr*cp-z*sp]; };
+  // floor
+  const fc=[[-R,-R],[R,-R],[R,R],[-R,R]].map(([x,y])=>P(x,y,zFloor));
+  ctx.fillStyle='#efebe3'; ctx.strokeStyle='#cfc8ba'; ctx.lineWidth=1;
+  ctx.beginPath(); fc.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.setLineDash([5,4]); ctx.strokeStyle='#1f2328'; ctx.lineWidth=1.6; ctx.beginPath();
+  for(let a=0;a<=360;a+=4){ const t=a*Math.PI/180, p=P(r*Math.cos(t),r*Math.sin(t),zFloor); a?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); }
+  ctx.stroke(); ctx.setLineDash([]);
+  // items
+  const items=[], L=[-0.45,-0.35,0.82];
+  for(let i=0;i<N;i++) for(let j=0;j<N;j++){
+    const x0=-R+2*R*i/N, x1=-R+2*R*(i+1)/N, y0=-R+2*R*j/N, y1=-R+2*R*(j+1)/N;
+    const z00=zm(G[i][j]), z10=zm(G[i+1][j]), z11=zm(G[i+1][j+1]), z01=zm(G[i][j+1]);
+    const q=[P(x0,y0,z00),P(x1,y0,z10),P(x1,y1,z11),P(x0,y1,z01)];
+    const e1=[x1-x0,0,z10-z00], e2=[0,y1-y0,z01-z00];
+    let n=[e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]];
+    const nl=Math.hypot(...n); n=n.map(v=>v/nl);
+    const lam=Math.max(0,n[0]*L[0]+n[1]*L[1]+n[2]*L[2]);
+    const t=((G[i][j]+G[i+1][j]+G[i+1][j+1]+G[i][j+1])/4-fmin)/(fmax-fmin);
+    const col=cmap(t).map(v=>Math.round(v*(0.62+0.38*lam)));
+    items.push({d:(q[0][2]+q[1][2]+q[2][2]+q[3][2])/4, q, col:`rgb(${col})`});
+  }
+  const SEG=180, bias=0.05*R;
+  for(let s=0;s<SEG;s++){
+    const t0=s/SEG*2*Math.PI, t1=(s+1)/SEG*2*Math.PI;
+    const a=[r*Math.cos(t0),r*Math.sin(t0)], b=[r*Math.cos(t1),r*Math.sin(t1)];
+    const pa=P(a[0],a[1],zm(S.f(a[0],a[1]))), pb=P(b[0],b[1],zm(S.f(b[0],b[1])));
+    items.push({d:(pa[2]+pb[2])/2-bias, seg:[pa,pb]});
+  }
+  items.sort((u,v)=>v.d-u.d);
+  for(const it of items){
+    if(it.q){ ctx.fillStyle=it.col; ctx.strokeStyle=it.col; ctx.lineWidth=0.8; ctx.beginPath(); it.q.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='rgba(20,20,20,0.10)'; ctx.lineWidth=0.5; ctx.stroke(); }
+    else { ctx.strokeStyle='#6a4fb3'; ctx.lineWidth=3.2; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(it.seg[0][0],it.seg[0][1]); ctx.lineTo(it.seg[1][0],it.seg[1][1]); ctx.stroke(); }
+  }
+  // markers (always on top)
+  const pr=prof(S,r);
+  function mark3(x,y,col,rad){ const p=P(x,y,zm(S.f(x,y))), q=P(x,y,zFloor);
+    ctx.setLineDash([3,3]); ctx.strokeStyle=col; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(q[0],q[1]); ctx.lineTo(p[0],p[1]); ctx.stroke(); ctx.setLineDash([]);
+    dot(ctx,q[0],q[1],3,col); dot(ctx,p[0],p[1],rad+2,'#fff'); dot(ctx,p[0],p[1],rad,col); }
+  if(S.mark) mark3(S.mark[0],S.mark[1],'#d99a1e',6);
+  if(walk && walk.best!=null){ const t=walk.best*Math.PI/180; mark3(r*Math.cos(t),r*Math.sin(t),'#2e7d4f',6); }
+  { const t=th3*Math.PI/180; mark3(r*Math.cos(t),r*Math.sin(t),'#1f2328',5.5); }
+  // axis labels
+  ctx.font='italic 14px Times New Roman'; ctx.fillStyle='#5b6370';
+  const ax=P(R*1.12,0,zFloor), ay=P(0,R*1.12,zFloor); ctx.fillText('x',ax[0]-4,ax[1]+4); ctx.fillText('y',ay[0]-4,ay[1]+4);
+  drawProfile(S,r,pr);
+  status3d(S,r,pr);
+}
+function drawProfile(S,r,pr){
+  const {ctx,W,H}=fit(c3p,0.4);
+  let lo=Math.min(...pr), hi=Math.max(...pr);
+  if(sKey==='bowl'){ lo=Math.min(lo,0); }
+  const padv=(hi-lo)*0.12||0.5, M=mk(W,H,0,360,lo-padv*2.6,hi+padv);
+  ctx.font='11px Noto Sans KR'; ctx.fillStyle='#5b6370';
+  for(const a of [0,90,180,270]) ctx.fillText(a+'°',M.X(a)+2,H-3);
+  if(sKey==='bowl'){ ctx.setLineDash([5,4]); ctx.strokeStyle='#d99a1e'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(PAD,M.Y(0)); ctx.lineTo(W-PAD,M.Y(0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#b07a10'; ctx.textAlign='right'; ctx.fillText('그릇 바닥 f = 0 (제약 없을 때)', W-PAD-4, M.Y(0)+14); ctx.textAlign='left'; }
+  if(sKey==='saddle'){ ctx.setLineDash([5,4]); ctx.strokeStyle='#d99a1e'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(PAD,M.Y(30)); ctx.lineTo(W-PAD,M.Y(30)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#b07a10'; ctx.fillText('안장점 높이 30', PAD+4, M.Y(30)-4); }
+  // full faint
+  ctx.strokeStyle='rgba(106,79,179,0.3)'; ctx.lineWidth=2; ctx.beginPath();
+  pr.forEach((v,a)=>a?ctx.lineTo(M.X(a),M.Y(v)):ctx.moveTo(M.X(a),M.Y(v))); ctx.lineTo(M.X(360),M.Y(pr[0])); ctx.stroke();
+  // walked bold
+  if(walk){ ctx.strokeStyle='#6a4fb3'; ctx.lineWidth=2.6; ctx.beginPath();
+    for(let a=0;a<=walk.done;a++){ const v=pr[a%360]; a?ctx.lineTo(M.X(a),M.Y(v)):ctx.moveTo(M.X(a),M.Y(v)); } ctx.stroke();
+    if(walk.best!=null){ const b=walk.best; dot(ctx,M.X(b),M.Y(pr[b]),6,'#2e7d4f'); ctx.fillStyle='#2e7d4f'; ctx.font='600 11px Noto Sans KR'; ctx.fillText('길 위 최저 '+pr[b].toFixed(2), Math.min(M.X(b)+10,W-110), M.Y(pr[b])-10); }
+  }
+  dot(ctx,M.X(th3),M.Y(pr[th3]),5.5,'#1f2328'); dot(ctx,M.X(th3),M.Y(pr[th3]),2.2,'#fff');
+}
+function status3d(S,r,pr){
+  const cur=pr[th3];
+  let msg=`지금 위치 θ = ${th3}°, 높이 f = <b>${cur.toFixed(2)}</b>. `, cls='';
+  if(!walk || !walk.finished){ msg += walk ? '걷는 중… 지금까지 가장 낮았던 곳을 초록 점으로 기억해요.' : '“▶ 원 따라 한 바퀴”를 눌러 길 위의 최저점을 찾아보세요.'; }
+  else {
+    const b=walk.best, t=b*Math.PI/180, bx=r*Math.cos(t), by=r*Math.sin(t), bv=pr[b];
+    cls='good';
+    if(sKey==='bowl'){
+      const dist=Math.hypot(1.5,1);
+      msg = `제약이 없으면 답은 <b>그릇 바닥 (1.5, 1), f = 0</b>. 하지만 그 바닥은 원 위에 없어요(원점에서 거리 ${dist.toFixed(2)}, 원 반지름 ${r.toFixed(2)}). 원 위에서 갈 수 있는 가장 낮은 곳은 <b>θ = ${b}°, (${bx.toFixed(2)}, ${by.toFixed(2)}), f = ${bv.toFixed(2)}</b>. 바닥이 아니라 “원을 따라 그릇 위에 그려진 곡선”의 최저점이 답이에요.`;
+      msg += Math.abs(r-dist)<0.03 ? ' <b>지금은 원이 바닥을 지나서 두 답이 같아졌어요!</b>' : ` (반지름을 ${dist.toFixed(2)}로 맞추면 원이 바닥을 지나가요.)`;
+    } else if(sKey==='valley'){
+      msg = `책 219쪽의 지형이에요. 제약 없이 보면 이 지형은 한쪽 대각선 방향으로 그림 밖까지 계속 내려가서 <b>‘바닥’이 정해지지 않아요.</b> 원 위로 제한하니 비로소 최저점이 생겼어요: <b>θ = ${b}°, (${bx.toFixed(2)}, ${by.toFixed(2)}), f = ${bv.toFixed(2)}</b>.`;
+    } else {
+      msg = `가운데 (0, 0)은 <b>안장점</b>: 한 방향으론 오르막, 다른 방향으론 내리막이라 최대도 최소도 아님(책: “최댓값이나 최솟값은 없다”). 원 위로 제한하면 최저점이 생겨요: <b>θ = ${b}°, f = ${bv.toFixed(2)}</b>. (반대편 ${(b+180)%360}°도 같은 높이) 다음 탭에서 이 지형을 위에서 내려다볼게요.`;
+    }
+  }
+  s3d.className='status '+cls; s3d.innerHTML=msg;
+}
+function stopWalk(){ if(walk && walk.raf) cancelAnimationFrame(walk.raf); walk=null; }
+$('surfSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#surfSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  sKey=b.dataset.s; r3r.value=SURF[sKey].r; stopWalk(); draw3d();
+});
+r3d.oninput=()=>{ th3=+r3d.value; draw3d(); };
+r3r.oninput=()=>{ stopWalk(); draw3d(); };
+$('bWalk').onclick=()=>{
+  stopWalk();
+  const S=SURF[sKey], r=+r3r.value, pr=prof(S,r);
+  walk={done:0,best:null,finished:false};
+  const start=th3;
+  // walk from 0 to 359 so the profile fills left to right
+  function step(){
+    if(!walk) return;
+    for(let k=0;k<3 && walk.done<360;k++){
+      const a=walk.done; if(walk.best==null || pr[a]<pr[walk.best]-1e-9) walk.best=a;
+      th3=a; walk.done++;
+    }
+    r3d.value=th3;
+    if(walk.done>=360){ walk.finished=true; walk.done=360; th3=walk.best; r3d.value=th3; draw3d(); return; }
+    draw3d(); walk.raf=requestAnimationFrame(step);
+  }
+  step();
+};
+let drag3=null;
+c3d.addEventListener('pointerdown',e=>{ drag3=[e.clientX,e.clientY]; try{c3d.setPointerCapture(e.pointerId);}catch(_){} });
+c3d.addEventListener('pointermove',e=>{ if(!drag3) return; const dx=e.clientX-drag3[0], dy=e.clientY-drag3[1]; drag3=[e.clientX,e.clientY];
+  yaw-=dx*0.01; pitch=Math.max(0.12,Math.min(1.4,pitch+dy*0.01)); draw3d(); });
+c3d.addEventListener('pointerup',()=>drag3=null);
+c3d.addEventListener('pointercancel',()=>drag3=null);
+
+// ================= TAB 5 (Lagrange 2D) =================
+const c3=$('c3'), c3g=$('c3g'), s3=$('s3'), r3=$('r3');
+let theta=20;
+function heat(v){ const t=Math.max(-1,Math.min(1,v/9)), a=Math.abs(t)*0.55, base=[251,250,247], tgt=t>0?[230,135,70]:[70,120,195];
+  return `rgb(${base.map((b,i)=>Math.round(b+(tgt[i]-b)*a)).join(',')})`; }
+function draw3(){
+  const {ctx,W,H}=fit(c3,0.9), M=mk(W,H,-3,3,-3,3), step=4;
+  for(let px=0;px<W;px+=step) for(let py=0;py<H;py+=step){ const [x,y]=M.inv(px+step/2,py+step/2); ctx.fillStyle=heat(x*y); ctx.fillRect(px,py,step,step); }
+  ctx.save(); clipBox(ctx,W,H);
+  function hyper(k,col,w){
+    ctx.strokeStyle=col; ctx.lineWidth=w;
+    if(k===0){ ctx.beginPath(); ctx.moveTo(M.X(-3),M.Y(0)); ctx.lineTo(M.X(3),M.Y(0)); ctx.moveTo(M.X(0),M.Y(-3)); ctx.lineTo(M.X(0),M.Y(3)); ctx.stroke(); return; }
+    for(const sgn of [1,-1]){ ctx.beginPath(); let st=false;
+      for(let i=0;i<=400;i++){ const x=sgn*(0.02+i*(3.2/400)), y=k/x; if(Math.abs(y)>3.4){ st=false; continue; } if(!st){ctx.moveTo(M.X(x),M.Y(y)); st=true;} else ctx.lineTo(M.X(x),M.Y(y)); }
+      ctx.stroke(); }
+  }
+  for(let k=-8;k<=8;k++) hyper(k,'rgba(31,35,40,0.22)',1);
+  const t=theta*Math.PI/180, x0=2*Math.cos(t), y0=2*Math.sin(t), k0=x0*y0;
+  hyper(k0,'#6a4fb3',2.6);
+  ctx.setLineDash([7,5]); ctx.strokeStyle='#1f2328'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(M.X(0),M.Y(0),2*M.k,0,7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle='#5b6370'; ctx.font='italic 13px Times New Roman'; ctx.fillText('x',W-PAD-10,M.Y(0)-6); ctx.fillText('y',M.X(0)+6,PAD+12);
+  ctx.font='12px Noto Sans KR'; ctx.fillText('원: x² + y² = 4',M.X(-2.9),M.Y(-2.75));
+  const P=[M.X(x0),M.Y(y0)], gf=[y0,x0], nf=Math.hypot(gf[0],gf[1]), gg=[x0/2,y0/2], L=0.95;
+  arrow(ctx,P[0],P[1],M.X(x0+L*gf[0]/nf),M.Y(y0+L*gf[1]/nf),'#c4572b',2.8);
+  arrow(ctx,P[0],P[1],M.X(x0+L*gg[0]),M.Y(y0+L*gg[1]),'#2f5d9e',2.8);
+  dot(ctx,P[0],P[1],8,'#1f2328'); dot(ctx,P[0],P[1],3.5,'#fff');
+  const f=k0+30; ctx.font='600 13px Noto Sans KR'; ctx.fillStyle='#1f2328';
+  ctx.fillText('f = '+f.toFixed(2), P[0]+(x0>0?12:-92), P[1]+(y0>0?22:-14));
+  $('l3').textContent=theta+'°  ·  ('+x0.toFixed(2)+', '+y0.toFixed(2)+')';
+  drawGraph();
+  const tang=Math.abs(Math.cos(2*t))<0.035; let msg, cls='';
+  if(tang){ const isMax=Math.sin(2*t)>0;
+    msg=`<b>등고선이 원에 접했어요!</b> ∇f와 ∇g가 한 직선 위에 있죠(평행). 여기서 f는 <b>${isMax?'최댓값 32':'최솟값 28'}</b>. 원을 따라 어느 쪽으로 가도 ${isMax?'내려가기만':'올라가기만'} 해요.`; cls='good'; }
+  else { const up=Math.cos(2*t)>0;
+    msg=`f = ${f.toFixed(2)}. 보라 등고선이 원을 <b>가로지르고</b> 있어요 → ∇f와 ∇g가 평행하지 않음. 원을 따라 ${up?'반시계':'시계'} 방향으로 가면 f가 커지고, 반대로 가면 작아져요. 아직 극값이 아닙니다.`; }
+  s3.className='status '+cls; s3.innerHTML=msg;
+}
+function drawGraph(){
+  const {ctx,W,H}=fit(c3g,0.36), M=mk(W,H,0,360,27.3,32.7);
+  ctx.strokeStyle='rgba(31,35,40,0.15)'; ctx.lineWidth=1; ctx.font='11px Noto Sans KR'; ctx.fillStyle='#5b6370';
+  for(const v of [28,30,32]){ ctx.setLineDash(v===30?[]:[4,4]); ctx.beginPath(); ctx.moveTo(PAD,M.Y(v)); ctx.lineTo(W-PAD,M.Y(v)); ctx.stroke(); ctx.fillText(v,PAD+2,M.Y(v)-3); }
+  ctx.setLineDash([]); for(const a of [45,135,225,315]) ctx.fillText(a+'°',M.X(a)-10,H-3);
+  ctx.strokeStyle='#6a4fb3'; ctx.lineWidth=2.4; ctx.beginPath();
+  for(let a=0;a<=360;a+=2){ const v=30+2*Math.sin(2*a*Math.PI/180); a?ctx.lineTo(M.X(a),M.Y(v)):ctx.moveTo(M.X(a),M.Y(v)); } ctx.stroke();
+  const v=30+2*Math.sin(2*theta*Math.PI/180); dot(ctx,M.X(theta),M.Y(v),6,'#1f2328'); dot(ctx,M.X(theta),M.Y(v),2.5,'#fff');
+}
+r3.oninput=()=>{ theta=+r3.value; draw3(); };
+let dragging=false;
+function setFromEvent(e){ const r=c3.getBoundingClientRect(), M=mk(c3.clientWidth,c3.clientHeight,-3,3,-3,3), [x,y]=M.inv(e.clientX-r.left,e.clientY-r.top);
+  let a=Math.round(Math.atan2(y,x)*180/Math.PI); if(a<0) a+=360; if(a>=360) a-=360; theta=a; r3.value=a; draw3(); }
+c3.addEventListener('pointerdown',e=>{ dragging=true; try{c3.setPointerCapture(e.pointerId);}catch(_){} setFromEvent(e); });
+c3.addEventListener('pointermove',e=>{ if(dragging) setFromEvent(e); });
+c3.addEventListener('pointerup',()=>dragging=false);
+c3.addEventListener('pointercancel',()=>dragging=false);
+
+// ================= Tabs =================
+const DRAW={perceptron:draw1, ge1:draw2a, margin:draw2, bowl:draw3d, lagrange:draw3, summary:()=>{}};
+let curTab='perceptron';
+function show(t, scroll){
+  if(!DRAW[t]) t='perceptron';
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('on', el.id==='t-'+t));
+  document.querySelectorAll('#tabbar button').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); if(on) b.scrollIntoView({block:'nearest',inline:'center'}); });
+  if(location.hash!=='#'+t){ try{ history.replaceState(null,'','#'+t); }catch(_){ location.hash=t; } }
+  DRAW[t]();
+  if(scroll) window.scrollTo({top:0,behavior:'smooth'});
+}
+$('tabbar').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.t,false); });
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go,true)));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1),false));
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>DRAW[curTab](),80); });
+show(location.hash.slice(1)||'perceptron',false);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>DRAW[curTab]());
+})();
+</script>
+</body>
+</html>

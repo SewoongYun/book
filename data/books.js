@@ -310,7 +310,18 @@ window.BOOKS = [
           }
         ]
       },
-      { no: 7,  title: "커널 밧줄 탈출쇼", page: 213, programs: [] },
+      {
+        no: 7, title: "커널 밧줄 탈출쇼", page: 213,
+        programs: [
+          {
+            id: "svm-margin", title: "SVM 마진과 제약 최적화, 만져보며 이해하기",
+            file: "programs/SVM 마진과 제약 최적화, 만져보며 이해하기.html",
+            type: "실험", session: "", pages: "214~221쪽",
+            summary: "답이 여러 개인 퍼셉트론과 달리 두 무리 사이에 가장 넓은 길을 내는 SVM을 비교하고, 왜 조건이 ≥ 1인지, 길 폭이 ‖w‖와 어떻게 이어지는지, 등고선이 제약에 접하는 곳에서 극값이 생기는 라그랑주 승수법까지 6단계로 따라가기",
+            concepts: ["서포트 벡터 머신(SVM)", "마진", "서포트 벡터", "초평면", "퍼셉트론", "노름 ‖w‖", "제약 최적화", "라그랑주 승수법", "등고선"]
+          }
+        ]
+      },
       { no: 8,  title: "물리학의 소소한 도움으로", page: 249, programs: [] },
       { no: 9,  title: "심층 학습의 발목을 잡은 사람(실은 아님)", page: 285, programs: [] },
       { no: 10, title: "오래된 신화를 깨뜨린 알고리즘", page: 310, programs: [] },
