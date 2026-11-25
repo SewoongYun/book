@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>홉필드 망, 만져보며 이해하기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f4ee;--card:#fff;--ink:#1f2328;--muted:#5b6370;--line:#e4ded3;--on:#c4572b;--off:#2f5d9e;--pos:#6a4fb3;--neg:#c23b3b;--accent:#6a4fb3;--ok:#2f8f5b;--bad:#e07a1f}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.75;font-size:16px;word-break:keep-all;overflow-x:clip}
+header{max-width:720px;margin:0 auto;padding:24px 16px 6px}
+.eyebrow{color:var(--accent);font-weight:700;font-size:.85rem}
+h1{font-family:'Noto Serif KR',serif;font-size:1.45rem;line-height:1.4;margin:.15em 0 .2em}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.tabs{position:sticky;top:0;z-index:5;background:rgba(247,244,238,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.tabs .in{max-width:720px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
+.tabs .in::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border-radius:999px;padding:6px 13px;font-size:.88rem;background:#fff}
+.tabs button .n{color:var(--accent);font-weight:700;margin-right:4px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabs button.on .n{color:#cdbcf5}
+main{max-width:720px;margin:0 auto;padding:6px 16px 80px}
+.tab{display:none}.tab.on{display:block}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 16px;margin:14px 0}
+h2{font-family:'Noto Serif KR',serif;font-size:1.22rem;line-height:1.45;margin:0 0 .5em}
+h3{font-size:1.02rem;margin:1.4em 0 .3em;color:var(--accent)}
+p{margin:.55em 0}
+ul,ol{padding-left:1.2em;margin:.35em 0}
+canvas{width:100%;display:block;border-radius:12px;background:#fbfaf7;border:1px solid var(--line);touch-action:none;margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:#f3efe7;color:var(--ink);padding:7px 12px;border-radius:10px;cursor:pointer}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
+.seg button{flex:1;border:0;border-radius:0;background:#f3efe7;font-size:.85rem;padding:8px 4px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:#fff}
+.seglabel{font-size:.85rem;color:var(--muted);margin:12px 0 0}
+.slider{margin:12px 0 4px}
+.slider label{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);gap:8px}
+.slider label b{color:var(--ink);font-weight:500;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.status{font-size:.93rem;padding:10px 12px;border-radius:10px;background:#f3efe7;margin-top:10px;line-height:1.7}
+.status.good{background:#e6f2ea;color:#1f5a38}
+.status.bad{background:#f8e5e3;color:#8e2a2a}
+.key{background:#f1ecfa;border-left:4px solid var(--accent);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0 4px}
+.note{background:#eef3f9;border-radius:10px;padding:8px 12px;font-size:.88rem;color:#2c4a6e;margin:10px 0}
+.m{font-family:'Times New Roman',Times,serif;font-style:italic;white-space:nowrap;font-size:1.06em}
+.v{font-style:normal;font-weight:700}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .12em;font-size:.9em;font-style:normal}
+.frac>span:first-child{border-bottom:1.3px solid currentColor;padding:0 .25em}
+.eq{display:block;text-align:center;margin:.7em 0;font-family:'Times New Roman',Times,serif;font-size:1.15rem;overflow-x:auto}
+.sum{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;margin:0 .1em}
+.sum .s{font-size:1.5em;font-style:normal}
+.sum small{font-size:.62em;font-style:italic}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.83rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px}
+.sw.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);height:2px}
+.dotk{display:inline-block;width:12px;height:12px;border-radius:50%}
+details{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fdfcf9}
+summary{cursor:pointer;font-weight:500;font-size:.95rem}
+details.think{border-color:#efd8ad;background:#fff8ea}
+details.think summary{color:#8a5a12}
+details.think summary b{color:#b5731b;margin-right:4px}
+.small{font-size:.86rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.6em 0}
+th,td{border:1px solid var(--line);padding:6px 6px;text-align:center}
+th{background:#f3efe7;font-weight:500}
+tr.sel td{background:#f1ecfa}
+#sTable tbody tr{cursor:pointer}
+td.ok,.ok{color:var(--ok);font-weight:700}
+td.bad,.bad{color:var(--bad);font-weight:700}
+.navrow{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+.navrow button{background:#fff}
+.flow{display:flex;flex-direction:column;gap:6px;margin:.6em 0}
+.flow div{background:#f3efe7;border-radius:10px;padding:8px 12px;font-size:.93rem}
+.flow div b{color:var(--accent)}
+.chain{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:.8em 0}
+.chain .node{background:#fff;border:1.5px solid var(--accent);border-radius:12px;padding:8px 12px;font-size:.92rem}
+.chain .node b{color:var(--accent)}
+.chain .arr{text-align:center;color:var(--muted);font-size:.82rem;padding:3px 0;line-height:1.4}
+.calc{background:#fbfaf7;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;font-family:'Times New Roman',Times,serif;font-size:1.02rem;line-height:1.9;overflow-x:auto}
+.calc .row{white-space:nowrap}
+.calc .lbl{display:inline-block;min-width:5.6em;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:.8rem}
+.calc .hi{color:var(--accent);font-weight:700}
+.calc .warn{color:var(--neg);font-weight:700}
+.calc .txt{font-family:'Noto Sans KR',sans-serif;font-size:.86rem;white-space:normal}
+.calc .row.w{white-space:normal}
+.timeline{border-left:3px solid #ddd2f3;margin:10px 0 4px 6px;padding-left:14px}
+.timeline div{margin:8px 0;font-size:.93rem}
+.timeline b{color:var(--accent)}
+.pm{display:inline-flex;align-items:center;justify-content:center;min-width:2.4em;height:2.1em;border-radius:999px;color:#fff;font-weight:700;font-size:.9rem;border:0;padding:0 .5em;font-family:'Times New Roman',serif}
+.pm.p{background:var(--on)}.pm.n{background:var(--off)}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.chiprow .lab{font-size:.85rem;color:var(--muted);margin-right:4px}
+button.pm{cursor:pointer}
+.logp{display:inline-flex;gap:2px;padding:2px 3px;border:1px solid var(--line);border-radius:999px;background:#fff}
+.logp .pm{min-width:1.9em;height:1.6em;font-size:.74rem}
+.matwrap{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:10px 0;font-family:'Times New Roman',serif}
+.mat{display:inline-grid;gap:3px;padding:4px 7px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px}
+.mat span{min-width:2.1em;text-align:center;padding:2px 3px;border-radius:5px;font-size:1.02rem}
+.mat .pos{background:#ece6f8;color:#4a3390}.mat .neg{background:#f8e5e3;color:#8e2a2a}.mat .zero{color:#9aa0a8}
+.mat .hl{outline:2px solid var(--accent)}
+.mt{display:grid;gap:4px;margin:10px auto;max-width:440px;font-family:'Times New Roman',serif}
+.mt>div{display:flex;align-items:center;justify-content:center;height:2.4em;border-radius:8px;font-size:1.02rem}
+.mt .hd{background:transparent;flex-direction:column;line-height:1.05;font-size:.82rem;color:var(--muted)}
+.mt .hd b{font-size:1rem}
+.mt .cell{cursor:pointer;border:1px solid var(--line)}
+.mt .cell.pos{background:#ece6f8;color:#4a3390}.mt .cell.neg{background:#f8e5e3;color:#8e2a2a}
+.mt .cell.zero{background:#f3efe7;color:#9aa0a8}
+.mt .cell.on{outline:2.5px solid var(--ink)}
+.mt .hd.on b{text-decoration:underline;text-decoration-thickness:2px}
+.mt .corner{font-size:.8rem;color:var(--muted)}
+.gridwrap{max-width:420px;margin:0 auto}
+.gridwrap.s{max-width:250px}
+.mem{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}
+.mem button{padding:4px;border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.75rem;color:var(--muted)}
+.mem button canvas{margin:0;border:0;border-radius:6px;width:100%;max-width:64px;aspect-ratio:1}
+.mem button.on{border:2px solid var(--accent);background:#f1ecfa;color:var(--accent);font-weight:700}
+.digseg button{font-family:'Times New Roman',serif;font-size:1rem}
+.digseg button.st{text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:3px}
+.overl{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:.85rem}
+.overl .r{display:grid;grid-template-columns:3.4em 1fr 3.6em;gap:8px;align-items:center}
+.overl .bar{height:10px;background:#f3efe7;border-radius:5px;position:relative;overflow:hidden}
+.overl .bar i{position:absolute;top:0;bottom:0;border-radius:5px}
+.overl .bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#bbb}
+.overl .val{text-align:right;font-variant-numeric:tabular-nums}
+.vmap{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.vrow{display:grid;grid-template-columns:34px minmax(0,1fr) 3em;gap:8px;align-items:center;padding:4px 6px;border-radius:10px;border:1px solid transparent;font-size:.85rem}
+.vrow.on{border-color:var(--ink);background:#f1ecfa}
+.vrow canvas{margin:0;border:0;border-radius:4px;width:34px;height:34px;image-rendering:pixelated}
+.vrow .nm{font-weight:500}
+.vrow .nm small{color:var(--muted);font-weight:400;margin-left:4px}
+.vrow .depth{height:7px;background:#f3efe7;border-radius:4px;margin-top:3px;overflow:hidden}
+.vrow .depth i{display:block;height:100%;border-radius:4px}
+.vrow .e{text-align:right;font-family:'Times New Roman',serif;font-size:1rem}
+.vrow .cnt{font-size:.78rem;color:var(--muted)}
+.tally{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tally div{background:#f3efe7;border-radius:10px;padding:8px 10px;font-size:.88rem}
+.tally b{font-size:1.15rem}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">물리학의 소소한 도움으로 · 264–275쪽</div>
+  <h1>홉필드 망, 만져보며 이해하기</h1>
+  <p class="sub">헤브 학습 → 홉필드 망 → 에너지 함수 → 최적화 알고리즘</p>
+</header>
+
+<nav class="tabs"><div class="in" id="tabbar">
+  <button data-t="hebb"><span class="n">1</span>헤브 학습</button>
+  <button data-t="outer"><span class="n">2</span>외적과 W</button>
+  <button data-t="stable"><span class="n">3</span>다수결과 안정</button>
+  <button data-t="energy"><span class="n">4</span>에너지와 ΔE</button>
+  <button data-t="local"><span class="n">5</span>지역 vs 전역</button>
+  <button data-t="lab"><span class="n">6</span>기억 인출 실험실</button>
+  <button data-t="cap"><span class="n">7</span>몇 개나 기억할까</button>
+  <button data-t="summary"><span class="n">8</span>정리</button>
+</div></nav>
+
+<main>
+<!-- ============ TAB 1 ============ -->
+<div class="tab" id="t-hebb">
+<section>
+  <h2>함께 켜지면 함께 묶인다: 헤브 학습</h2>
+  <p>1949년 헵은 이렇게 생각했어요. 두 신경세포가 <b>같이 활동할 때마다</b> 그 사이의 연결이 조금씩 강해진다. 이걸 식으로 쓰면</p>
+  <span class="eq">w<sub>ij</sub><sup>new</sup> = w<sub>ij</sub><sup>old</sup> + η · x<sub>i</sub> · x<sub>j</sub></span>
+  <table>
+    <thead><tr><th>항</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td class="m">w<sub>ij</sub><sup>old</sup></td><td style="text-align:left">지금까지 쌓인 연결의 세기</td></tr>
+      <tr><td class="m">η</td><td style="text-align:left">학습률. 한 번 경험할 때 얼마나 더할지 (에타)</td></tr>
+      <tr><td class="m">x<sub>i</sub> · x<sub>j</sub></td><td style="text-align:left">두 신경세포가 같은 값이면 <b>+1</b>(함께 켜짐), 다르면 <b>−1</b>(엇갈림)</td></tr>
+    </tbody>
+  </table>
+  <p>홉필드 망에서는 <span class="m">x</span>가 신경세포의 상태 <span class="m">y</span>(+1 또는 −1)예요. 그래서 연결은 두 종류로 나뉘어요. <b>+ 연결은 ‘친구’</b>(같은 값이 되자고 끌어당김), <b>− 연결은 ‘라이벌’</b>(반대 값이 되자고 밀어냄).</p>
+  <p class="small">① 신경세포를 눌러 패턴을 정하고 ② ‘경험하기’를 누르세요. 선의 굵기가 연결의 세기예요.</p>
+  <canvas id="cHebb"></canvas>
+  <div class="legend">
+    <span><span class="dotk" style="background:var(--on)"></span>상태 +1</span>
+    <span><span class="dotk" style="background:var(--off)"></span>상태 −1</span>
+    <span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>친구 (w &gt; 0)</span>
+    <span style="color:var(--neg)"><span class="sw dash"></span>라이벌 (w &lt; 0)</span>
+  </div>
+  <p class="seglabel">학습률 η</p>
+  <div class="seg" id="etaSeg">
+    <button data-v="1" class="on">η = 1 (책)</button>
+    <button data-v="0.5">η = 0.5</button>
+  </div>
+  <div class="controls">
+    <button class="primary" id="bHebbAdd">이 패턴 경험하기</button>
+    <button id="bHebbBook">책의 예 (−1, 1, −1)</button>
+    <button id="bHebbClr">연결 지우기</button>
+  </div>
+  <div class="calc" id="hebbCalc"></div>
+  <div class="chiprow" id="hebbLog"></div>
+  <div class="matwrap" id="hebbMat"></div>
+  <div class="status" id="sHebb"></div>
+  <div class="key"><b>홉필드 망 가중치 행렬의 두 가지 성격</b> (264쪽)
+    <ol>
+      <li><b>대각선이 0</b>: 신경세포는 자기 자신과 연결되지 않아요.</li>
+      <li><b>대칭</b>: <span class="m">w<sub>ij</sub> = w<sub>ji</sub></span>. 곱 <span class="m">x<sub>i</sub>x<sub>j</sub></span>는 순서를 바꿔도 같으니 당연하죠.</li>
+    </ol>
+  </div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>(−1, 1, −1)을 두 번, (1, 1, 1)을 한 번 경험하면 <span class="m">w<sub>13</sub></span>은?</summary>
+    <p>η = 1이면 0에서 시작해 한 번씩 더해요.</p>
+    <div class="calc"><div class="row">1번째: 0 + 1 · (−1) · (−1) = 1</div><div class="row">2번째: 1 + 1 · (−1) · (−1) = 2</div><div class="row">3번째: 2 + 1 · (1) · (1) = <span class="hi">3</span></div></div>
+    <p>1과 3은 세 번 모두 같은 값이었으니 연결이 계속 굵어져요. 위에서 직접 눌러 확인해 보세요. 반면 <span class="m">w<sub>12</sub></span>는 −1, −1, +1을 더해 −1. 한 번 친구였던 경험이 라이벌 경험 하나를 지웠어요.</p>
+  </details>
+</section>
+
+<section>
+  <h2>퍼셉트론 학습과 무엇이 다를까?</h2>
+  <p>두 규칙을 나란히 놓으면 차이가 선명해요.</p>
+  <table>
+    <thead><tr><th></th><th>헤브 학습</th><th>퍼셉트론 학습</th></tr></thead>
+    <tbody>
+      <tr><td>식</td><td class="m">Δw = η x<sub>i</sub>x<sub>j</sub></td><td class="m">Δw<sub>i</sub> = η(t − y)x<sub>i</sub></td></tr>
+      <tr><td>정답 t</td><td>필요 없음</td><td>필요함</td></tr>
+      <tr><td>언제 바꾸나</td><td>함께 활동할 때마다</td><td><b>틀렸을 때만</b></td></tr>
+      <tr><td>구조</td><td>모두가 서로 연결 (되먹임)</td><td>입력 → 출력 한 방향</td></tr>
+    </tbody>
+  </table>
+  <p><b>숫자로 해 보기.</b> 입력 <span class="m">x = (1, −1, 1)</span>, 가중치 <span class="m">w = (0.5, 0.5, −0.5)</span>, 정답 <span class="m">t = +1</span>, η = 0.5라고 해요.</p>
+  <div class="calc">
+    <div class="row"><span class="lbl">① 출력</span>w · x = 0.5·1 + 0.5·(−1) + (−0.5)·1 = −0.5 → y = −1</div>
+    <div class="row"><span class="lbl">② 오차</span>t − y = 1 − (−1) = <span class="warn">2</span> &nbsp;<span class="txt">(틀렸음)</span></div>
+    <div class="row"><span class="lbl">③ 수정량</span>Δw = 0.5 · 2 · (1, −1, 1) = (1, −1, 1)</div>
+    <div class="row"><span class="lbl">④ 새 가중치</span>w = (1.5, −0.5, 0.5) → w · x = 2.5 → y = +1 <span class="txt">맞았어요</span></div>
+  </div>
+  <p>③을 보면 <b>Δw = 2η · t · x</b>. 이건 정답 <span class="m">t</span>와 입력 <span class="m">x</span>를 곱하는 헤브 규칙 모양 그대로예요. 맞혔을 때는 <span class="m">t − y = 0</span>이라 아무것도 안 해요.</p>
+  <div class="key"><b>연결 고리</b>: 출력이 ±1일 때 퍼셉트론 학습 = <b>틀렸을 때만 정답으로 하는 헤브 학습</b>. 헤브는 ‘같이 켜졌는가’만 보고, 퍼셉트론은 여기에 ‘정답과 비교해 고친다’를 더했어요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>퍼셉트론이 이미 맞힌 데이터를 계속 보여 주면 가중치는?</summary>
+    <p>그대로예요. <span class="m">t − y = 0</span>이라 Δw = 0. 반면 헤브 학습은 같은 패턴을 보여 줄 때마다 연결이 계속 굵어져요(위 실험). 그래서 헤브 학습만 쓰면 가중치가 끝없이 커질 수 있고, 6탭처럼 기억 개수로 나눠 평균을 내기도 해요.</p>
+  </details>
+</section>
+<div class="navrow"><span></span><button data-go="outer">다음: 외적과 W →</button></div>
+</div>
+
+<!-- ============ TAB 2 ============ -->
+<div class="tab" id="t-outer">
+<section>
+  <h2>한 번에 계산하기: <span class="m">W = <b class="v">y</b><sup>T</sup><b class="v">y</b> − I</span></h2>
+  <p>칸마다 <span class="m">w<sub>ij</sub> = y<sub>i</sub>y<sub>j</sub></span>를 구하는 건 사실 <b>곱셈표</b>를 만드는 일이에요. 기억 벡터 <span class="m"><b class="v">y</b> = [y<sub>1</sub> y<sub>2</sub> y<sub>3</sub>]</span>(행벡터)의 전치(열벡터)와 자신을 곱하면 그 곱셈표가 통째로 나옵니다. 이걸 <b>외적</b>(outer product)이라고 해요(267쪽).</p>
+  <div class="slider">
+    <label><span>신경세포 개수 n</span><b id="lN2"></b></label>
+    <input type="range" id="rN2" min="3" max="6" step="1" value="3">
+  </div>
+  <div class="chiprow" id="oChips"></div>
+  <div class="controls">
+    <button id="bRand2">무작위 패턴</button>
+    <button class="primary" id="bMinusI">− I 빼기</button>
+  </div>
+  <p class="small" style="margin:10px 0 0" id="oHead"></p>
+  <div class="mt" id="oTable"></div>
+  <div class="calc" id="oCalc"></div>
+  <div class="status" id="sOuter"></div>
+  <details>
+    <summary>외적과 점곱(내적)은 어떻게 다를까?</summary>
+    <p>곱하는 순서만 바뀌었는데 결과의 모양이 완전히 달라요.</p>
+    <div class="calc" id="oInner"></div>
+    <p>(1×n)(n×1) → 1×1, 즉 <b>스칼라</b>. (n×1)(1×n) → n×n, 즉 <b>행렬</b>. 행렬의 곱셈 규칙(앞 행렬의 열 수 = 뒤 행렬의 행 수)을 떠올려 보세요.</p>
+  </details>
+  <div class="key"><b>왜 I를 빼나?</b> 외적의 대각선은 <span class="m">y<sub>i</sub> × y<sub>i</sub> = y<sub>i</sub><sup>2</sup> = 1</span>이라 항상 1이에요. 자기 자신과의 연결은 없어야 하니 단위행렬 <span class="m">I</span>를 빼서 대각선을 0으로 만듭니다(268쪽). 1탭의 ‘경험하기’ 한 번(η = 1)이 바로 이 행렬이에요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>기억 두 개 <b class="v">a</b>, <b class="v">b</b>를 저장하면 W는 어떻게 쓸까?</summary>
+    <p>헤브 규칙은 ‘더하기’였죠. 그래서 <span class="m">W = <b class="v">a</b><sup>T</sup><b class="v">a</b> + <b class="v">b</b><sup>T</sup><b class="v">b</b> − 2I</span>. 곱셈표 두 장을 겹쳐 더하고 대각선을 0으로. 6탭에서는 이걸 기억 개수로 나눠 평균을 내요(272쪽).</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="hebb">← 이전</button><button data-go="stable">다음: 다수결과 안정 →</button></div>
+</div>
+
+<!-- ============ TAB 3 ============ -->
+<div class="tab" id="t-stable">
+<section>
+  <h2>저장된 패턴은 왜 뒤집히지 않을까?</h2>
+  <p>신경세포 <span class="m">i</span>는 이웃들의 <b>표</b>를 모아 자기 값을 정해요(268쪽). 이웃 <span class="m">j</span>가 보내는 표는 <span class="m">w<sub>ij</sub>y<sub>j</sub></span>.</p>
+  <ul>
+    <li>친구(<span class="m">w = +1</span>)의 표 = 친구 자신의 값 → “나랑 <b>같게</b> 해”</li>
+    <li>라이벌(<span class="m">w = −1</span>)의 표 = 라이벌 값의 반대 → “나랑 <b>반대로</b> 해”</li>
+  </ul>
+  <p>표를 모두 더한 것이 <span class="m">h<sub>i</sub></span>. 양수면 +1, 아니면 −1. 한마디로 <b>다수결</b>이에요.</p>
+  <span class="eq">h<sub>i</sub> = <span class="sum"><span class="s">∑</span><small>j≠i</small></span> w<sub>ij</sub>y<sub>j</sub></span>
+  <span class="eq" style="margin-top:-.2em">y<sub>i</sub> = +1 &nbsp;(h<sub>i</sub> &gt; 0일 때)<br>y<sub>i</sub> = −1 &nbsp;(h<sub>i</sub> ≤ 0일 때)</span>
+  <p>신경세포 5개 망에 아래 패턴 하나를 저장했어요. <b>신경세포를 누르면 값이 뒤집히고</b>, 보라 테두리 신경세포가 받는 표 넷이 선 위에 표시돼요.</p>
+  <div class="chiprow" id="sStored"></div>
+  <canvas id="cStab"></canvas>
+  <div class="legend">
+    <span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>+1 표</span>
+    <span style="color:var(--neg)"><span class="sw" style="background:var(--neg)"></span>−1 표</span>
+    <span style="color:var(--neg)">◯ 저장된 기억과 다른 신경세포</span>
+  </div>
+  <table id="sTable"><thead><tr><th>i</th><th>지금 y<sub>i</sub></th><th>h<sub>i</sub> (표의 합)</th><th>다수결</th><th></th></tr></thead><tbody></tbody></table>
+  <div class="controls">
+    <button class="primary" id="bS3Step">무작위로 하나 갱신</button>
+    <button class="primary" id="bS3Run">안정될 때까지</button>
+    <button id="bS3Shake">두 개 흔들기</button>
+    <button id="bS3Reset">저장된 패턴으로</button>
+    <button id="bS3New">다른 패턴 저장</button>
+  </div>
+  <div class="status" id="sStab"></div>
+  <div class="key"><b>왜 만장일치가 될까?</b> 이웃 <span class="m">j</span>가 <span class="m">i</span>에게 보내는 표를 풀어 보면
+    <span class="eq">w<sub>ij</sub>y<sub>j</sub> = (y<sub>i</sub>y<sub>j</sub>) · y<sub>j</sub> = y<sub>i</sub> · y<sub>j</sub><sup>2</sup> = y<sub>i</sub></span>
+    <span class="m">y<sub>j</sub><sup>2</sup> = 1</span>이라 보내는 쪽의 값은 사라지고 <b>받는 쪽의 지금 값</b>만 남아요. 그래서 네 표가 모두 <span class="m">y<sub>i</sub></span>로 같고
+    <span class="eq">h<sub>i</sub> = y<sub>i</sub> + y<sub>i</sub> + y<sub>i</sub> + y<sub>i</sub> = y<sub>i</sub> × (n − 1) = 4y<sub>i</sub></span>
+    부호가 언제나 <span class="m">y<sub>i</sub></span>와 같으니 아무도 뒤집히지 않아요(269쪽).</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>두 개를 흔들면 남은 신경세포는 몇 대 몇으로 표를 받을까?</summary>
+    <p>흔들리지 않은 신경세포 <span class="m">i</span>는 표 4개 중 흔들린 2개만 반대, 나머지 2개는 찬성 → <span class="m">h<sub>i</sub> = 0</span>. 동점이면 규칙상 −1이라 원래 값이 +1이던 신경세포는 흔들릴 수 있어요. 반면 흔들린 신경세포는 4표 중 3표가 ‘원래대로 돌아와’(나머지 하나는 같이 흔들린 친구) → <span class="m">h</span>의 크기가 2라 원래 값으로 돌아가요. 그래서 대부분 복원돼요. ‘두 개 흔들기’를 여러 번 눌러 확인해 보세요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="outer">← 이전</button><button data-go="energy">다음: 에너지와 ΔE →</button></div>
+</div>
+
+<!-- ============ TAB 4 ============ -->
+<div class="tab" id="t-energy">
+<section>
+  <h2>에너지 = 불만의 양</h2>
+  <p>3탭의 신경세포들은 다수결만 따랐어요. 누구도 ‘에너지를 줄여라’라고 시키지 않았죠. 그런데 다수결을 따를수록 망 전체의 <b>불만</b>이 줄어들어요. 홉필드는 이 불만의 양을 자성체 물리학의 말로 <b>에너지</b>라고 불렀어요(270쪽).</p>
+  <div class="note">기호: 이 페이지의 <span class="m">y<sub>i</sub></span>는 다른 자료의 <span class="m">s<sub>i</sub></span>(상태), 헤브 식의 <span class="m">x<sub>i</sub></span>와 같은 것이에요.</div>
+  <span class="eq">E = −<span class="frac"><span>1</span><span>2</span></span> <span class="sum"><span class="s">∑</span><small>i≠j</small></span> w<sub>ij</sub>y<sub>i</sub>y<sub>j</sub></span>
+  <h3>① 식을 한 조각씩</h3>
+  <table>
+    <thead><tr><th>조각</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td class="m">w<sub>ij</sub>y<sub>i</sub>y<sub>j</sub></td><td style="text-align:left">관계 하나의 <b>만족도</b>. 친구가 같은 값, 라이벌이 다른 값이면 +1(<span class="ok">만족</span>), 아니면 −1(<span class="bad">불만</span>)</td></tr>
+      <tr><td class="m"><span class="sum"><span class="s">∑</span><small>i≠j</small></span></td><td style="text-align:left">모든 순서쌍을 더함. (1, 2)와 (2, 1)처럼 <b>관계마다 두 번</b> 세게 됨</td></tr>
+      <tr><td><span class="frac"><span>1</span><span>2</span></span></td><td style="text-align:left">두 번 센 것을 한 번으로</td></tr>
+      <tr><td>맨 앞 −</td><td style="text-align:left">만족이 많을수록 E가 <b>작아지도록</b> 부호를 뒤집음</td></tr>
+    </tbody>
+  </table>
+  <p>그래서 가중치가 ±1일 때 <b>E = (불만인 관계 수) − (만족한 관계 수)</b>. 신경세포를 눌러 불만을 만들어 보세요.</p>
+  <div class="chiprow" id="eStored"></div>
+  <canvas id="cRel"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--ink)"></span>친구</span>
+    <span><span class="sw dash" style="color:var(--ink)"></span>라이벌</span>
+    <span class="ok"><span class="dotk" style="background:var(--ok)"></span>만족</span>
+    <span class="bad"><span class="dotk" style="background:var(--bad)"></span>불만</span>
+  </div>
+  <div class="calc" id="eCalc"></div>
+
+  <h3>② 하나가 뒤집히면 에너지는 얼마나 변할까?</h3>
+  <p>신경세포 <span class="m">k</span> 하나만 <span class="m">y<sub>k</sub> → −y<sub>k</sub></span>로 바뀐다고 해요. 단계별로 따라가 봐요.</p>
+  <div class="flow">
+    <div><b>1단계</b> E의 항 중 바뀌는 건 <span class="m">k</span>가 들어 있는 것뿐. <span class="m">w<sub>kj</sub>y<sub>k</sub>y<sub>j</sub></span>와 <span class="m">w<sub>jk</sub>y<sub>j</sub>y<sub>k</sub></span>, 대칭이라 둘은 같아요.</div>
+    <div><b>2단계</b> 두 번 나오니 <span class="frac"><span>1</span><span>2</span></span>과 상쇄. 그 부분은 <span class="m">−y<sub>k</sub><span class="sum"><span class="s">∑</span><small>j≠k</small></span>w<sub>kj</sub>y<sub>j</sub> = −y<sub>k</sub>h<sub>k</sub></span></div>
+    <div><b>3단계</b> 뒤집기 전 <span class="m">−y<sub>k</sub>h<sub>k</sub></span>, 뒤집은 뒤 <span class="m">−(−y<sub>k</sub>)h<sub>k</sub> = +y<sub>k</sub>h<sub>k</sub></span></div>
+    <div><b>4단계</b> 나중 − 처음: <span class="m">ΔE = y<sub>k</sub>h<sub>k</sub> − (−y<sub>k</sub>h<sub>k</sub>) = 2y<sub>k</sub>h<sub>k</sub></span> &nbsp;(<span class="m">y<sub>k</sub></span>는 뒤집기 <b>전</b> 값)</div>
+  </div>
+  <span class="eq">ΔE = 2y<sub>k</sub><span class="sum"><span class="s">∑</span><small>j≠k</small></span>w<sub>kj</sub>y<sub>j</sub> = 2y<sub>k</sub>h<sub>k</sub></span>
+  <table>
+    <thead><tr><th>지금 값 y<sub>k</sub>와 표의 합 h<sub>k</sub></th><th>ΔE</th><th>다수결은</th></tr></thead>
+    <tbody>
+      <tr><td>부호가 <b>반대</b> (표가 반대하는 중)</td><td class="ok">음수</td><td>뒤집기 → 에너지 감소</td></tr>
+      <tr><td>부호가 <b>같음</b> (표가 찬성하는 중)</td><td class="bad">양수</td><td>그대로 (뒤집으면 증가)</td></tr>
+      <tr><td><span class="m">h<sub>k</sub> = 0</span> (동점)</td><td>0</td><td>−1로 (에너지 그대로)</td></tr>
+    </tbody>
+  </table>
+  <p>다수결은 <b>ΔE가 음수일 때만</b> 뒤집어요. 그래서 에너지는 내려가거나 그대로일 뿐, 절대 올라가지 않아요. 아래 버튼으로 숫자를 직접 확인해 보세요.</p>
+  <div class="controls">
+    <button class="primary" id="bE4Step">한 명 골라 다수결</button>
+    <button class="primary" id="bE4Run">바닥까지</button>
+  </div>
+  <div class="calc" id="eDelta"></div>
+  <div class="status" id="sEnergy"></div>
+
+  <h3>③ 8가지 상태의 에너지 지형</h3>
+  <p>신경세포 3개면 상태는 <span class="m">2<sup>3</sup> = 8</span>가지. 높이 = 에너지로 놓은 지도예요. 선으로 이어진 두 상태는 신경세포 하나만 달라요. 상태를 눌러 출발점을 고르세요.</p>
+  <canvas id="cLand"></canvas>
+  <div class="legend">
+    <span><span class="dotk" style="border:3px solid var(--ink)"></span>지금 상태</span>
+    <span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>방금 이동</span>
+  </div>
+  <p class="small" style="margin:10px 0 0">지금까지의 에너지 변화:</p>
+  <canvas id="cEh"></canvas>
+  <div class="key"><b>그래서 왜 에너지가 최소가 될까?</b>
+    <ol>
+      <li><b>지역 규칙</b>: 각 신경세포는 이웃 표만 보고 다수결. 전체를 보지 않아요.</li>
+      <li><b>내리막만</b>: 다수결로 뒤집는 순간 <span class="m">ΔE = 2y<sub>k</sub>h<sub>k</sub> &lt; 0</span>. 대칭 가중치 덕분에 ‘나의 불만’과 ‘상대의 불만’이 같은 관계라 가능한 일.</li>
+      <li><b>기억 = 바닥</b>: 헤브 학습은 기억에서 모든 관계가 만족하도록 가중치를 정해요. 그래서 기억이 가장 낮은 골짜기.</li>
+    </ol>
+    비유하면 <b>공이 비탈을 따라 굴러 내려가는 것</b>, 자석 속 작은 스핀들이 이웃과 방향을 맞추는 것과 같은 수학이에요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>위 지형에서 에너지는 −3과 +1 두 층뿐이에요. 불만인 관계는 왜 항상 0개 아니면 2개일까?</summary>
+    <p>세 관계의 만족도를 모두 곱해 봐요. <span class="m">(w<sub>12</sub>y<sub>1</sub>y<sub>2</sub>)(w<sub>13</sub>y<sub>1</sub>y<sub>3</sub>)(w<sub>23</sub>y<sub>2</sub>y<sub>3</sub>)</span>. 저장된 패턴으로 만든 가중치라 <span class="m">w<sub>12</sub>w<sub>13</sub>w<sub>23</sub> = (y′<sub>1</sub>y′<sub>2</sub>y′<sub>3</sub>)<sup>2</sup> = 1</span>, 상태 쪽도 <span class="m">(y<sub>1</sub>y<sub>2</sub>y<sub>3</sub>)<sup>2</sup> = 1</span>. 곱이 늘 +1이니 −1(불만)은 짝수 개. 그래서 0개(E = −3) 아니면 2개(E = 1)예요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="stable">← 이전</button><button data-go="local">다음: 지역 vs 전역 →</button></div>
+</div>
+
+<!-- ============ TAB 5 ============ -->
+<div class="tab" id="t-local">
+<section>
+  <h2>골짜기가 여러 개라면: 지역 최솟값과 전역 최솟값</h2>
+  <p>3×3 그림 세 개(ㅁ, +, T)를 헤브 규칙으로 저장했어요(η = 1, 세 번 경험). 상태는 <span class="m">2<sup>9</sup> = 512</span>가지. 컴퓨터로 전부 따져 보니 어느 신경세포 하나를 뒤집어도 에너지가 내려가지 않는 상태, 즉 <b>골짜기</b>가 10개 있어요.</p>
+  <ul>
+    <li><b>전역 최솟값</b>: 전체에서 가장 낮은 골짜기. 여기선 기억(과 반전된 기억)들, E = −28.</li>
+    <li><b>지역 최솟값</b>: 주변보다는 낮지만 가장 낮지는 않은 골짜기. 저장한 적 없는 <b>가짜 기억</b>이에요.</li>
+  </ul>
+  <p class="seglabel">골짜기 지도 (막대 = 깊이)</p>
+  <div class="vmap" id="vmap"></div>
+  <h3>공 굴려 보기</h3>
+  <p class="small">칸을 눌러 바꾸거나 ‘무작위 출발’을 누른 뒤 굴려 보세요. 멈추면 각 칸에 ‘그 칸을 뒤집을 때의 ΔE’가 표시돼요.</p>
+  <div class="gridwrap s"><canvas id="cS9"></canvas></div>
+  <p class="seglabel">굴리는 방법</p>
+  <div class="seg" id="modeSeg">
+    <button data-v="greedy" class="on">내리막만 (다수결)</button>
+    <button data-v="anneal">담금질 (가끔 오르막)</button>
+  </div>
+  <div class="controls">
+    <button id="bL5Rand">무작위 출발</button>
+    <button class="primary" id="bL5Run">▶ 굴리기</button>
+  </div>
+  <div class="calc" id="l5Calc"></div>
+  <canvas id="cH9"></canvas>
+  <div class="status" id="sL5"></div>
+  <h3>100번 실험: 얼마나 자주 갇힐까?</h3>
+  <p>같은 무작위 출발점 100개에서 두 방법을 각각 돌려 봐요.</p>
+  <div class="controls"><button class="primary" id="bL5Many">▶ 100번 돌리기</button></div>
+  <div class="tally" id="tally"></div>
+  <div class="status" id="sTally"></div>
+  <div class="key"><b>담금질(simulated annealing)</b>: 금속을 뜨겁게 했다가 천천히 식히면 원자들이 더 안정한 배열을 찾는 데서 따온 방법(1983). <b>온도 T</b>가 높을 때는 에너지가 올라가는 뒤집기도 확률
+    <span class="eq">P = e<sup>−ΔE ÷ T</sup></span>
+    로 허용해요. 예를 들어 ΔE = 4일 때 T = 4면 <span class="m">e<sup>−1</sup> ≈ 0.37</span>, T = 1이면 <span class="m">e<sup>−4</sup> ≈ 0.02</span>. 처음엔 공을 세게 흔들어 얕은 웅덩이를 빠져나오게 하고, 점점 식혀서 결국 깊은 골짜기에 자리 잡게 하는 거예요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>‘내리막만’ 방법이 지역 최솟값에 갇히는 이유를 ΔE로 설명해 볼까요?</summary>
+    <p>지역 최솟값에서는 9개 칸 모두 <span class="m">ΔE = 2y<sub>k</sub>h<sub>k</sub> ≥ 0</span>이에요(멈춘 뒤 칸에 표시되는 숫자). 다수결은 ΔE가 음수일 때만 움직이니 한 발짝도 못 나가요. 더 깊은 골짜기로 가려면 <b>먼저 올라갔다가</b> 내려가야 하는데, 그 ‘오르막 한 걸음’을 허락하는 게 담금질이에요.</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>이게 인공지능의 ‘최적화’와 무슨 관계일까?</summary>
+    <p>신경망 학습은 ‘오차’라는 에너지를 최소로 만드는 가중치를 찾는 일이에요. 기울기를 따라 내려가는 <b>경사하강법</b>은 여기의 ‘내리막만’과 같은 정신이라 지역 최솟값 문제를 똑같이 겪어요. 홉필드 망에 온도를 넣은 것이 힌턴의 <b>볼츠만 머신</b>(1985)이고, 두 사람은 2024년 노벨 물리학상을 함께 받았어요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="energy">← 이전</button><button data-go="lab">다음: 기억 인출 실험실 →</button></div>
+</div>
+
+<!-- ============ TAB 6 ============ -->
+<div class="tab" id="t-lab">
+<section>
+  <h2>28×28 숫자 이미지 기억하고 되살리기</h2>
+  <p>책(271–275쪽)처럼 28×28 = <b>784픽셀</b> 이미지를 신경세포 784개에 대응시켜요. 흰 픽셀은 <span class="m">+1</span>, 검은 픽셀은 <span class="m">−1</span>. 가중치 행렬은 784×784, 기억이 여러 개면 평균을 냅니다(272쪽).</p>
+  <span class="eq">W = <span class="frac"><span>1</span><span>n</span></span> <span class="sum"><span class="s">∑</span><small>k=1…n</small></span> <b class="v">y</b><sub>k</sub><sup>T</sup><b class="v">y</b><sub>k</sub> − I &nbsp;&nbsp;(n = 기억 개수)</span>
+  <p class="seglabel">① 저장할 기억 (눌러서 넣고 빼기 · 책은 5와 8)</p>
+  <div class="mem" id="memRow"></div>
+  <p class="seglabel">② 출발 이미지</p>
+  <div class="seg" id="startSeg">
+    <button data-v="noise" class="on">숫자 + 잡음</button>
+    <button data-v="rand">완전 무작위</button>
+    <button data-v="draw">빈 판에 그리기</button>
+  </div>
+  <div id="noiseBox">
+    <div class="seg digseg" id="baseSeg"></div>
+    <div class="slider">
+      <label><span>뒤집을 픽셀 비율 (잡음)</span><b id="lNoise"></b></label>
+      <input type="range" id="rNoise" min="0" max="0.7" step="0.01" value="0.25">
+    </div>
+  </div>
+  <div class="gridwrap"><canvas id="cGrid"></canvas></div>
+  <p class="small" style="text-align:center;margin:.3em 0 0">멈춰 있을 때 판을 문지르면 픽셀을 직접 칠할 수 있어요</p>
+  <div class="controls">
+    <button class="primary" id="bRun">▶ 인출 시작</button>
+    <button id="bNew">새 출발 이미지</button>
+  </div>
+  <p class="seglabel">속도</p>
+  <div class="seg" id="speedSeg">
+    <button data-v="2">천천히</button>
+    <button data-v="12" class="on">보통</button>
+    <button data-v="120">빠르게</button>
+  </div>
+  <p class="small" style="margin:12px 0 0">에너지 (점선: 저장된 기억의 에너지 = 전역 최솟값)</p>
+  <canvas id="cEn"></canvas>
+  <div class="status" id="sLab"></div>
+  <div class="overl" id="overl"></div>
+  <div class="key"><b>해 볼 것</b>
+    <ol>
+      <li>8 + 잡음 25% → 8이 깨끗하게 되살아나요(273쪽).</li>
+      <li>완전 무작위 → 5나 8, 혹은 <b>흑백이 뒤집힌</b> 5나 8이 나와요(274–275쪽의 반전된 8).</li>
+      <li>잡음을 50%보다 크게 → 원래보다 반전 이미지에 더 가까워서 <b>반전된 숫자</b>로 빠져요.</li>
+      <li>저장된 적 없는 숫자(예: 3)에 잡음 → 저장된 것 중 하나로 끌려가요.</li>
+      <li>기억을 3개 이상 저장 → <b>가짜 기억</b>(지역 최솟값, 5탭)에 갇히는 일이 잦아져요. 에너지 선이 점선보다 위에서 멈춰요.</li>
+    </ol>
+  </div>
+  <details>
+    <summary>책의 인출 알고리즘과 이 실험실의 차이</summary>
+    <p>책(273–274쪽)의 단계: 에너지 계산 → 신경세포 하나를 무작위로 고름 → 출력 계산 → 필요하면 뒤집기 → 새 에너지 계산 → 변화가 아주 작으면(≤ e) 종료, 아니면 반복.</p>
+    <p>그런데 5a단계를 글자 그대로 따르면, <b>안 뒤집히는 신경세포를 한 번만 골라도</b> 에너지 변화가 0이라 바로 멈춰 버려요. 그래서 여기서는 784개를 무작위 순서로 <b>한 바퀴</b> 도는 동안 아무도 뒤집히지 않으면 멈추게 했어요. 그때가 진짜 지역 최솟값이에요.</p>
+  </details>
+  <details id="wDetails">
+    <summary>기억은 어디에 있나? 가중치 행렬 W 들여다보기</summary>
+    <p>인출이 끝나기 전까지 연결망은 자기가 무엇을 기억하는지 ‘모릅니다’. 가진 건 아래 784×784 숫자뿐이에요(275쪽). 보라는 양수, 빨강은 음수. 이 안에 숫자 이미지가 흩어져 녹아 있어요.</p>
+    <div class="gridwrap"><canvas id="cW"></canvas></div>
+    <p class="small" id="wInfo"></p>
+  </details>
+</section>
+<div class="navrow"><button data-go="local">← 이전</button><button data-go="cap">다음: 몇 개나 기억할까 →</button></div>
+</div>
+
+<!-- ============ TAB 7 ============ -->
+<div class="tab" id="t-cap">
+<section>
+  <h2>신경세포 n개로 기억 몇 개까지?</h2>
+  <p>홉필드는 신경세포가 n개일 때 저장할 수 있는 기억이 <b>최대 약 0.14 × n개</b>임을 밝혔어요(272쪽). 신경세포 784개면 0.14 × 784 ≈ <b>109개</b>.</p>
+  <p>직접 확인해 봅시다. 신경세포 n개에 <b>무작위 패턴</b>을 1개, 2개, 3개… 저장하고, 매번 각 기억에 잡음 10%를 섞어 되살려 봅니다.</p>
+  <p class="seglabel">신경세포 개수</p>
+  <div class="seg" id="capSeg">
+    <button data-v="100" class="on">n = 100</button>
+    <button data-v="200">n = 200</button>
+  </div>
+  <div class="controls"><button class="primary" id="bCap">▶ 실험 시작</button></div>
+  <canvas id="cCap"></canvas>
+  <div class="legend">
+    <span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>거의 완벽히 되살린 기억의 비율</span>
+    <span style="color:var(--on)"><span class="sw" style="background:var(--on)"></span>평균 틀린 픽셀 비율</span>
+  </div>
+  <div class="status" id="sCap"></div>
+  <div class="key"><b>왜 한계가 있을까?</b> 기억을 하나 더 저장할 때마다 다른 기억들이 <b>잡음</b>처럼 <span class="m">h<sub>i</sub></span>에 섞여 들어와요. 3탭에선 표가 만장일치였지만, 기억이 많아지면 다른 기억들이 보내는 ‘엉뚱한 표’가 늘어 다수결을 뒤집어 버리죠. 그러면 기억이 더 이상 골짜기 바닥이 아니게 되고, 가짜 골짜기(지역 최솟값)도 늘어나요. 0.14n은 기억들이 서로 닮지 않은(<b>거의 수직인</b>) 무작위 패턴일 때의 값이에요.</div>
+  <details>
+    <summary>그런데 6탭에선 숫자 3개만 넣어도 망가지던데?</summary>
+    <p>숫자 이미지는 서로 <b>너무 닮았기</b> 때문이에요. 784픽셀 중 대부분이 공통의 검은 배경이라, 5와 8을 픽셀 단위로 비교하면 약 93%가 같아요. 기억끼리 닮을수록 서로의 <span class="m">h<sub>i</sub></span>를 크게 흔들어서, 0.14n보다 훨씬 적은 수에서도 뒤섞인 가짜 기억이 생겨요. 책 이후 연구된 ‘현대 홉필드 망’은 이 저장 용량을 크게 늘린 방법이에요(273쪽).</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>n = 100이면 기억 몇 개부터 무너질까? 실험 전에 예상해 보세요.</summary>
+    <p>이론값은 0.14 × 100 = 14개. 실험에서는 무작위라 매번 조금씩 다르지만 그 근처에서 ‘되살린 비율’이 급격히 떨어져요. 서서히가 아니라 <b>갑자기</b> 무너지는 게 특징이에요(물리학의 상전이와 같은 현상).</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="lab">← 이전</button><button data-go="summary">다음: 정리 →</button></div>
+</div>
+
+<!-- ============ TAB 8 ============ -->
+<div class="tab" id="t-summary">
+<section>
+  <h2>개념이 이어지는 길</h2>
+  <div class="chain">
+    <div class="node"><b>헤브 학습</b> · <span class="m">w<sup>new</sup> = w<sup>old</sup> + ηx<sub>i</sub>x<sub>j</sub></span><br><span class="small">함께 켜지면 친구(+), 엇갈리면 라이벌(−)</span></div>
+    <div class="arr">↓ 기억 패턴으로 가중치를 정하면</div>
+    <div class="node"><b>홉필드 망</b> · <span class="m">W = <b class="v">y</b><sup>T</sup><b class="v">y</b> − I</span>, 대칭 · 대각선 0<br><span class="small">각 신경세포는 이웃 표의 다수결 <span class="m">y<sub>i</sub> = sign(h<sub>i</sub>)</span></span></div>
+    <div class="arr">↓ 대칭이라 ‘불만의 양’을 하나로 셀 수 있어서</div>
+    <div class="node"><b>에너지 함수</b> · <span class="m">E = −<span class="frac"><span>1</span><span>2</span></span>∑ w<sub>ij</sub>y<sub>i</sub>y<sub>j</sub></span>, <span class="m">ΔE = 2y<sub>k</sub>h<sub>k</sub></span><br><span class="small">다수결로 뒤집을 때마다 ΔE &lt; 0. 기억 = 골짜기 바닥</span></div>
+    <div class="arr">↓ 골짜기가 여러 개면 갇힐 수 있어서</div>
+    <div class="node"><b>최적화 알고리즘</b> · 내리막만(경사하강) vs 담금질<br><span class="small">지역 최솟값을 벗어나려면 가끔 오르막을 허용 → 볼츠만 머신</span></div>
+  </div>
+  <h3>한 줄씩 정리</h3>
+  <div class="flow">
+    <div><b>1.</b> 홉필드 망은 기억을 출력이 아니라 <b>가중치</b>에 저장한다. 가중치 행렬은 <b>대칭</b>, <b>대각선 0</b>.</div>
+    <div><b>2.</b> 헤브 학습은 경험할 때마다 <span class="m">ηx<sub>i</sub>x<sub>j</sub></span>를 <b>더한다</b>. 퍼셉트론 학습은 ‘틀렸을 때만, 정답으로’ 하는 헤브 학습.</div>
+    <div><b>3.</b> 갱신 규칙은 이웃 표의 다수결. 저장된 패턴에서는 표가 만장일치(<span class="m">h<sub>i</sub> = y<sub>i</sub>(n − 1)</span>)라 <b>뒤집히지 않는다</b>.</div>
+    <div><b>4.</b> 에너지 = (불만인 관계) − (만족한 관계). 뒤집힘 하나의 변화는 <span class="m">ΔE = 2y<sub>k</sub>h<sub>k</sub></span>이고 다수결은 이 값이 음수일 때만 뒤집으니 에너지는 <b>내려가기만</b> 한다.</div>
+    <div><b>5.</b> 흐트러진 입력을 주면 망이 골짜기로 굴러 내려가며 기억을 되살린다 = <b>연상 기억</b>. 기억 <span class="m"><b class="v">y</b></span>를 저장하면 <span class="m">−<b class="v">y</b></span>도 같은 깊이의 골짜기.</div>
+    <div><b>6.</b> 가장 낮은 골짜기는 <b>전역 최솟값</b>, 더 얕은 가짜 기억은 <b>지역 최솟값</b>. 내리막만 가면 갇힐 수 있고, 담금질은 가끔 오르막을 허용해 빠져나온다.</div>
+    <div><b>7.</b> 저장 용량은 약 0.14n. 넘치면 기억이 서로를 흔들어 무너진다.</div>
+  </div>
+  <h3>이 장의 이야기</h3>
+  <div class="timeline">
+    <div><b>1949</b> · 헵이 『행동의 조직』에서 함께 활동하는 신경세포 사이의 연결이 강해진다는 학습 원리를 제시.</div>
+    <div><b>1958</b> · 로젠블랫의 퍼셉트론. 틀렸을 때만 고치는 학습.</div>
+    <div><b>1982</b> · 물리학자 홉필드가 자성체 모형에서 영감을 받은 연결망을 발표. 기억 = 에너지 최솟값.</div>
+    <div><b>1983–85</b> · 담금질 기법이 발표되고, 힌턴과 세즈노스키가 홉필드 망에 온도를 넣은 볼츠만 머신을 제안.</div>
+    <div><b>2024</b> · 홉필드와 힌턴이 인공 신경망의 기초를 놓은 공로로 노벨 물리학상 수상.</div>
+  </div>
+  <h3>생각해 볼 질문</h3>
+  <details class="think">
+    <summary><b>Q1</b>(−1, 1, −1)을 저장했는데 왜 (1, −1, 1)도 안정할까?</summary>
+    <p>모든 <span class="m">y</span>의 부호를 바꿔도 <span class="m">y<sub>i</sub>y<sub>j</sub></span>는 그대로예요. 그래서 가중치 행렬도, 에너지도 똑같아요. <span class="m">W</span>는 <span class="m"><b class="v">y</b></span>와 <span class="m">−<b class="v">y</b></span>를 구별할 수 없고, 둘 다 같은 깊이의 골짜기가 됩니다. 책 275쪽의 ‘흑백이 반전된 8’이 바로 이것.</p>
+  </details>
+  <details class="think">
+    <summary><b>Q2</b>신경세포가 784개면 실제로 정해야 할 가중치는 몇 개?</summary>
+    <p>행렬 칸은 784² = 614,656개지만 대각선 784개는 0이고, 대칭이라 절반만 정하면 돼요. <span class="frac"><span>784 × 783</span><span>2</span></span> = <b>306,936개</b>.</p>
+  </details>
+  <details class="think">
+    <summary><b>Q3</b>784개를 한꺼번에 갱신하면 안 될까?</summary>
+    <p>ΔE = 2y<sub>k</sub>h<sub>k</sub>는 <b>하나만</b> 바뀐다고 가정하고 구한 식이에요. 여럿이 동시에 바뀌면 서로의 <span class="m">h</span>가 달라져 이 보장이 깨지고, 두 상태를 끝없이 왔다 갔다 하는 진동이 생길 수 있어요. 그래서 책의 알고리즘도 신경세포를 <b>하나씩</b> 골라 갱신해요.</p>
+  </details>
+  <details class="think">
+    <summary><b>Q4</b>가중치가 대칭이 아니면 (w<sub>12</sub> ≠ w<sub>21</sub>) 무엇이 무너질까?</summary>
+    <p>4탭 2단계에서 ‘두 항이 같아서 <span class="frac"><span>1</span><span>2</span></span>과 상쇄’된 부분이 성립하지 않아요. 그러면 다수결로 뒤집어도 ΔE가 음수라는 보장이 사라지고, 망이 바닥에 멈추지 않고 빙빙 돌 수 있어요. 대칭이 ‘에너지’라는 하나의 지형을 만들어 주는 열쇠예요.</p>
+  </details>
+  <details class="think">
+    <summary><b>Q5</b>누가 에너지를 최소화하라고 시키는 걸까?</summary>
+    <p>아무도요. 각 신경세포는 이웃 표만 보는 <b>지역 규칙</b>을 따를 뿐인데, 그 결과가 전체 에너지를 줄이는 것과 정확히 같아요. 공이 ‘최저점을 찾아야지’ 하고 생각하지 않아도 비탈을 따라 내려가는 것처럼요. 그래서 기억을 떠올리는 일을 ‘에너지 지형에서 내려가기’라는 최적화 문제로 볼 수 있어요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="cap">← 이전</button><span></span></div>
+</div>
+</main>
+
+<script>
+(function(){
+const DIGHEX=['00000000000000000000000000000000000000f000003fc00003fc000079e0000f0f0000e070000e070000e070001e078001e078000e070000e070000e070000f0f000079e00003fc00003fc00000f00000000000000000000000000000000000000','000000000000000000000000000000000000003000000f000001f000003f000003f000003700000070000007000000700000070000007000000700000070000007000000700000070000007000000300000000000000000000000000000000000000','00000000000000000000000000000000000000f000003fc00007fe0000f0f0000e070000e07000040f000000e000001e000003c000007800000f000001e000003c000007800000fff8000fff8000fff8000000000000000000000000000000000000','00000000000000000000000000000000000001f800007fc0000ffe0000f0f0000407000000f000001e00000fe00001fc00000fe000001f000000700000070000c070000e070000fff00007fe00003fc0000000000000000000000000000000000000','000000000000000000000000000000000000001c000003c000003c000007c00000fc00001fc00001dc00003dc000079c0000f1c0001fff8001fff8001fff800001c000001c000001c000001c000001c0000000000000000000000000000000000000','00000000000000000000000000000000000003fe00007ff00007ff00007000000700000076000007fc00007fe000079f000060700000070000007000000700000070000e0f0000ffe0000ffc00003f80000000000000000000000000000000000000','000000000000000000000000000000000000003e00000fe00001fe00003e000003c00000780000072000007fc0000ffe0000ffe0000f0f0000e070000e070000f0f00007fe00003fe00001fc00000000000000000000000000000000000000000000','0000000000000000000000000000000000000fff0001fff8001fff8000007000000f000000e000001e000001c000003c000003800000380000070000007000000e000000e000001e000001c000001c00000000000000000000000000000000000000','00000000000000000000000000000000000000f000003fc00007fe000079e000070e000070e000079e00007fe00003fc00007fe0000f0f0000e070000e070000e070000f0f00007fe00003fc00001f80000000000000000000000000000000000000','000000000000000000000000000000000000006000001f800003fc00007fe000070e0000f0f0000f0f000070f00007fe00003fe00001fe000007e000001e000001c000003c00000f800001f000001e00000000000000000000000000000000000000'];
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const PAD = 14;
+const $ = id => document.getElementById(id);
+const ON='#c4572b', OFF='#2f5d9e', POS='#6a4fb3', NEG='#c23b3b', INK='#1f2328', OK='#2f8f5b', BAD='#e07a1f';
+function fit(cv, ratio){
+  const w = cv.clientWidth || 600, h = Math.round(w * ratio);
+  cv.style.height = h + 'px';
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  const ctx = cv.getContext('2d'); ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {ctx, W:w, H:h};
+}
+const SUB='₀₁₂₃₄₅₆₇₈₉';
+const sub = n => String(n).split('').map(c=>SUB[+c]).join('');
+const sg = v => v>0 ? '+1' : '−1';
+const sgn = v => v>0 ? '1' : '−1';
+const num = v => String(Math.round(v*1000)/1000).replace('-','−');
+const par = v => v<0 ? '('+num(v)+')' : num(v);
+const sgd = v => v>0 ? '+'+num(v) : num(v);
+const pmChip = (v, tag, attrs) => `<${tag} class="pm ${v>0?'p':'n'}" ${attrs||''}>${v>0?'+1':'−1'}</${tag}>`;
+function dot(ctx,x,y,r,col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
+function ring(ctx,x,y,r,col,w){ ctx.strokeStyle=col; ctx.lineWidth=w||2; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.stroke(); }
+function arrow(ctx,x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w||2.6;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1), h=11;
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-0.42),y2-h*Math.sin(a-0.42)); ctx.lineTo(x2-h*Math.cos(a+0.42),y2-h*Math.sin(a+0.42)); ctx.closePath(); ctx.fill();
+}
+function label(ctx,x,y,txt,col,font){
+  ctx.font=font||'600 12px Noto Sans KR'; const tw=ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillRect(x-tw/2-4,y-9,tw+8,18);
+  ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,x,y); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+}
+function neuron(ctx,x,y,r,v,name,below){
+  dot(ctx,x,y,r,v>0?ON:OFF);
+  ctx.fillStyle='#fff'; ctx.font=`700 ${Math.round(r*0.62)}px Times New Roman`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(v>0?'+1':'−1',x,y+1);
+  if(name){ ctx.fillStyle='#5b6370'; ctx.font='500 12px Noto Sans KR'; ctx.fillText(name,x,below?y+r+13:y-r-12); }
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+}
+function edge(ctx,x1,y1,x2,y2,w,width,alpha){
+  ctx.globalAlpha=alpha==null?1:alpha;
+  ctx.strokeStyle=w>0?POS:w<0?NEG:'#b9b3a8'; ctx.lineWidth=width; ctx.setLineDash(w<0?[7,5]:[]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+}
+function matHTML(M, hl){
+  const n=M.length;
+  return `<div class="mat" style="grid-template-columns:repeat(${n},auto)">`+M.map((r,i)=>r.map((v,j)=>`<span class="${v>0?'pos':v<0?'neg':'zero'}${hl&&hl(i,j)?' hl':''}">${num(v)}</span>`).join('')).join('')+'</div>';
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function segBind(id, fn){ $(id).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!$(id).contains(b)) return; $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); fn(b.dataset.v); }); }
+const outerW = p => p.map((a,i)=>p.map((b,j)=>i===j?0:a*b));
+const hOf = (W,y,i) => { let s=0; for(let j=0;j<y.length;j++) if(j!==i) s+=W[i][j]*y[j]; return s; };
+const ruleV = h => h>0 ? 1 : -1;
+const pos1=(W,H)=>[[W/2,H*0.24],[W*0.2,H*0.76],[W*0.8,H*0.76]];
+const PAIRS=[[0,1],[0,2],[1,2]];
+
+// ================= TAB 1 =================
+const H1={y:[-1,1,-1], eta:1, acc:[[0,0,0],[0,0,0],[0,0,0]], log:[], last:null};
+const cHebb=$('cHebb');
+function drawHebb(){
+  const {ctx,W,H}=fit(cHebb,0.62), P=pos1(W,H), y=H1.y, A=H1.acc, r=Math.min(30,W*0.075);
+  for(const [i,j] of PAIRS){ const w=A[i][j]; edge(ctx,P[i][0],P[i][1],P[j][0],P[j][1],w,w===0?1.5:Math.min(12,2+2.4*Math.abs(w))); }
+  for(const [i,j] of PAIRS){ const w=A[i][j]; label(ctx,(P[i][0]+P[j][0])/2,(P[i][1]+P[j][1])/2,`w${sub(i+1)}${sub(j+1)} = ${num(w)}${w>0?' 친구':w<0?' 라이벌':''}`,w>0?POS:w<0?NEG:'#8a909a'); }
+  P.forEach((p,k)=>neuron(ctx,p[0],p[1],r,y[k],'신경세포 '+(k+1),k>0));
+  // calc
+  const eta=H1.eta, L=H1.last;
+  let rows;
+  if(L){
+    rows=[`<div class="row"><span class="txt">방금 경험한 패턴 (${L.y.map(sgn).join(', ')}), η = ${num(L.eta)}</span></div>`].concat(PAIRS.map(([i,j])=>{ const d=L.eta*L.y[i]*L.y[j];
+      return `<div class="row"><span class="lbl">${L.y[i]===L.y[j]?'함께 켜짐':'엇갈림'}</span>w${sub(i+1)}${sub(j+1)}<sup>new</sup> = ${num(L.old[i][j])} + ${num(L.eta)} · ${par(L.y[i])} · ${par(L.y[j])} = <span class="hi">${num(L.old[i][j]+d)}</span></div>`; }));
+  } else {
+    rows=[`<div class="row"><span class="txt">‘경험하기’를 누르면 이렇게 더해져요 (η = ${num(eta)})</span></div>`].concat(PAIRS.map(([i,j])=>{ const d=eta*y[i]*y[j];
+      return `<div class="row"><span class="lbl">${y[i]===y[j]?'함께 켜짐':'엇갈림'}</span>w${sub(i+1)}${sub(j+1)}<sup>new</sup> = ${num(A[i][j])} + ${num(eta)} · ${par(y[i])} · ${par(y[j])} = <span class="hi">${num(A[i][j]+d)}</span></div>`; }));
+  }
+  $('hebbCalc').innerHTML=rows.join('');
+  $('hebbLog').innerHTML='<span class="lab">경험한 패턴</span>'+(H1.log.length? H1.log.map(p=>`<span class="logp">${p.map(v=>pmChip(v,'span')).join('')}</span>`).join('') : '<span class="small">아직 없음</span>');
+  $('hebbMat').innerHTML=`<span class="m">W =</span>`+matHTML(A);
+  const st=$('sHebb'), k=H1.log.length;
+  const book = k===1 && H1.log[0].join()===[-1,1,-1].join() && H1.eta===1;
+  const allSame = k>1 && H1.log.every(p=>p.join()===H1.log[0].join()||p.map(v=>-v).join()===H1.log[0].join());
+  const hasZero = PAIRS.some(([i,j])=>A[i][j]===0);
+  st.className='status'+(book?' good':'');
+  if(!k) st.innerHTML='아직 아무것도 경험하지 않아 모든 연결이 0이에요. 위 계산처럼 더해질 거예요.';
+  else if(book) st.innerHTML='책 266쪽과 같은 행렬이에요. 1과 3은 둘 다 −1이라 <b>함께 켜짐</b> → <span class="m">w<sub>13</sub> = +1</span>(친구). 2는 혼자 달라서 2와 이어진 연결은 모두 −1(라이벌).';
+  else if(allSame) st.innerHTML=`같은 패턴(또는 전부 뒤집은 패턴)을 ${k}번 경험해서 연결이 <b>±${num(k*H1.eta)}</b>로 굵어졌어요. 자주 함께 켜진 쌍일수록 강하게 묶여요. 뒤집은 패턴도 <span class="m">x<sub>i</sub>x<sub>j</sub></span>가 같아서 똑같이 더해져요.`;
+  else if(hasZero) st.innerHTML='서로 다른 패턴이 섞여 어떤 쌍은 친구였다가 라이벌이 되어 <b>상쇄</b>됐어요(0인 칸). 기억 여러 개가 한 행렬에 겹쳐 저장되는 방식이에요(5탭, 6탭).';
+  else st.innerHTML=`${k}번 경험이 더해진 결과예요. 더 자주 함께 켜진 쌍일수록 숫자가 커요.`;
+}
+cHebb.addEventListener('pointerdown',e=>{
+  const r=cHebb.getBoundingClientRect(), P=pos1(cHebb.clientWidth,cHebb.clientHeight), px=e.clientX-r.left, py=e.clientY-r.top;
+  let best=-1,bd=48; P.forEach((p,k)=>{ const d=Math.hypot(p[0]-px,p[1]-py); if(d<bd){bd=d;best=k;} });
+  if(best>=0){ H1.y[best]*=-1; H1.last=null; drawHebb(); }
+});
+$('bHebbAdd').onclick=()=>{ const old=H1.acc.map(r=>r.slice()); for(const [i,j] of PAIRS){ const d=H1.eta*H1.y[i]*H1.y[j]; H1.acc[i][j]+=d; H1.acc[j][i]+=d; }
+  H1.log.push(H1.y.slice()); H1.last={y:H1.y.slice(), eta:H1.eta, old}; drawHebb(); };
+$('bHebbBook').onclick=()=>{ H1.y=[-1,1,-1]; H1.acc=[[0,0,0],[0,0,0],[0,0,0]]; H1.log=[]; H1.last=null; H1.eta=1;
+  $('etaSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v==='1')); $('bHebbAdd').onclick(); };
+$('bHebbClr').onclick=()=>{ H1.acc=[[0,0,0],[0,0,0],[0,0,0]]; H1.log=[]; H1.last=null; drawHebb(); };
+segBind('etaSeg', v=>{ H1.eta=+v; H1.last=null; drawHebb(); });
+
+// ================= TAB 2 =================
+const O={n:3, y:[-1,1,-1,1,1,-1], minusI:false, sel:[0,1]};
+function drawOuter(){
+  const n=O.n, y=O.y.slice(0,n);
+  $('lN2').textContent=n;
+  if(O.sel[0]>=n||O.sel[1]>=n) O.sel=[0,1];
+  $('oChips').innerHTML='<span class="lab">기억 y =</span>'+y.map((v,i)=>pmChip(v,'button',`data-i="${i}" aria-label="y${i+1} 바꾸기"`)).join('');
+  $('oHead').innerHTML = O.minusI ? `<span class="m">y<sup>T</sup>y − I = W</span> (대각선이 0이 됐어요)` : `외적 <span class="m">y<sup>T</sup>y</span>: 왼쪽 열 <span class="m">y<sub>i</sub></span> × 위쪽 행 <span class="m">y<sub>j</sub></span>`;
+  const [si,sj]=O.sel;
+  let h=`<div class="corner hd">×</div>`;
+  for(let j=0;j<n;j++) h+=`<div class="hd${j===sj?' on':''}">y${sub(j+1)}<b style="color:${y[j]>0?ON:OFF}">${sg(y[j])}</b></div>`;
+  for(let i=0;i<n;i++){
+    h+=`<div class="hd${i===si?' on':''}">y${sub(i+1)}<b style="color:${y[i]>0?ON:OFF}">${sg(y[i])}</b></div>`;
+    for(let j=0;j<n;j++){ let v=y[i]*y[j]; if(O.minusI&&i===j) v=0;
+      h+=`<div class="cell ${v>0?'pos':v<0?'neg':'zero'}${i===si&&j===sj?' on':''}" data-i="${i}" data-j="${j}">${O.minusI&&i===j?'<s style="opacity:.5;margin-right:4px">1</s>0':sgn(v)}</div>`; }
+  }
+  const T=$('oTable'); T.style.gridTemplateColumns=`repeat(${n+1},minmax(0,1fr))`; T.innerHTML=h;
+  const v=y[si]*y[sj];
+  let c=`<div class="row"><span class="lbl">(${si+1}, ${sj+1}) 칸</span>y${sub(si+1)} × y${sub(sj+1)} = ${par(y[si])} × ${par(y[sj])} = ${sgn(v)}`;
+  if(si===sj) c+= O.minusI ? ` → − 1 = <span class="hi">0</span></div><div class="row"><span class="lbl"></span>대각선은 y${sub(si+1)}² = 1에서 I의 1을 빼서 0</div>` : `</div><div class="row"><span class="lbl"></span><span class="warn">대각선 = y${sub(si+1)}² = 1</span>. 자기 자신과의 연결이 생겨 버렸어요 → − I</div>`;
+  else c+=` = <span class="hi">w${sub(si+1)}${sub(sj+1)}</span></div><div class="row"><span class="lbl">대칭 칸</span>(${sj+1}, ${si+1}) = y${sub(sj+1)} × y${sub(si+1)} = ${sgn(v)} (같아요)</div>`;
+  $('oCalc').innerHTML=c;
+  const nn=y.reduce((s,v)=>s+v*v,0);
+  $('oInner').innerHTML=`<div class="row"><span class="lbl">점곱 y yᵀ</span>${y.map(v=>par(v)+'²').join(' + ')} = <span class="hi">${nn}</span> &nbsp;(1×1, 숫자 하나)</div><div class="row"><span class="lbl">외적 yᵀ y</span>위의 ${n}×${n} 곱셈표 &nbsp;(${n}×${n} 행렬)</div>`;
+  $('bMinusI').textContent = O.minusI ? '− I 되돌리기' : '− I 빼기';
+  const st=$('sOuter'); st.className='status';
+  st.innerHTML=`칸을 눌러 보세요. ${n}×${n} = ${n*n}칸 중 대각선 ${n}칸은 0, 나머지는 대칭이라 실제로 정할 가중치는 <span class="frac"><span>${n} × ${n-1}</span><span>2</span></span> = <b>${n*(n-1)/2}개</b>.`;
+}
+$('oChips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; O.y[+b.dataset.i]*=-1; drawOuter(); });
+$('oTable').addEventListener('click',e=>{ const c=e.target.closest('.cell'); if(!c) return; O.sel=[+c.dataset.i,+c.dataset.j]; drawOuter(); });
+$('rN2').oninput=function(){ O.n=+this.value; drawOuter(); };
+$('bRand2').onclick=()=>{ O.y=O.y.map(()=>Math.random()<0.5?1:-1); drawOuter(); };
+$('bMinusI').onclick=()=>{ O.minusI=!O.minusI; if(O.minusI) O.sel=[0,0]; drawOuter(); };
+
+// ================= TAB 3 =================
+const S3={n:5, p:[1,-1,1,1,-1], y:null, sel:0, msg:''};
+S3.y=S3.p.slice();
+const cStab=$('cStab');
+function pos3(W,H){ const cx=W/2, cy=H/2+4, R=Math.min(W,H)*0.31; return S3.p.map((_,k)=>{ const a=-Math.PI/2+k*2*Math.PI/S3.n; return [cx+R*Math.cos(a), cy+R*Math.sin(a)]; }); }
+function W3(){ return outerW(S3.p); }
+function drawStab(){
+  const {ctx,W,H}=fit(cStab,0.74), P=pos3(W,H), Wm=W3(), y=S3.y, s=S3.sel, r=Math.min(24,W*0.06);
+  for(let i=0;i<S3.n;i++) for(let j=i+1;j<S3.n;j++) if(i!==s&&j!==s) edge(ctx,P[i][0],P[i][1],P[j][0],P[j][1],Wm[i][j],1.5,0.18);
+  for(let j=0;j<S3.n;j++) if(j!==s){ const c=Wm[s][j]*y[j];
+    ctx.strokeStyle=c>0?POS:NEG; ctx.lineWidth=3.2; ctx.beginPath(); ctx.moveTo(P[j][0],P[j][1]); ctx.lineTo(P[s][0],P[s][1]); ctx.stroke(); }
+  for(let j=0;j<S3.n;j++) if(j!==s){ const c=Wm[s][j]*y[j]; const t=0.45;
+    label(ctx,P[j][0]*(1-t)+P[s][0]*t,P[j][1]*(1-t)+P[s][1]*t,sg(c),c>0?POS:NEG,'700 12px Times New Roman'); }
+  P.forEach((p,k)=>{
+    if(k===s) ring(ctx,p[0],p[1],r+7,POS,3);
+    if(y[k]!==S3.p[k]) ring(ctx,p[0],p[1],r+3,NEG,2.5);
+    neuron(ctx,p[0],p[1],r,y[k],null);
+    const cx=W/2, cy=H/2+4, dx=p[0]-cx, dyy=p[1]-cy, dl=Math.hypot(dx,dyy)||1;
+    ctx.fillStyle='#5b6370'; ctx.font='700 13px Noto Sans KR'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(k+1), p[0]+dx/dl*(r+16), p[1]+dyy/dl*(r+16));
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  });
+  const h=hOf(Wm,y,s);
+  ctx.font='600 13px Noto Sans KR'; ctx.fillStyle=POS;
+  ctx.fillText(`h${sub(s+1)} = ${num(h)} → ${h>0?'+1':'−1'}`, PAD, H-PAD);
+  let rows='';
+  for(let i=0;i<S3.n;i++){ const hi=hOf(Wm,y,i), nv=ruleV(hi), fl=nv!==y[i];
+    rows+=`<tr class="${i===s?'sel':''}" data-i="${i}"><td>${i+1}</td><td>${pmChip(y[i],'span')}</td><td style="font-family:Times New Roman,serif">${num(hi)}</td><td>${pmChip(nv,'span')}</td><td style="color:${fl?NEG:'#1f5a38'};font-weight:500">${fl?'뒤집힘!':'그대로'}</td></tr>`; }
+  $('sTable').querySelector('tbody').innerHTML=rows;
+  $('sStored').innerHTML='<span class="lab">저장된 기억</span>'+S3.p.map(v=>pmChip(v,'span')).join('');
+  const isP=y.every((v,i)=>v===S3.p[i]), isN=y.every((v,i)=>v===-S3.p[i]);
+  const nflip=y.filter((v,i)=>ruleV(hOf(Wm,y,i))!==v).length;
+  const st=$('sStab');
+  let m=S3.msg?S3.msg+' ':'';
+  if(isP){ st.className='status good'; m+=`<b>저장된 패턴</b>: 모든 신경세포가 받은 표가 <b>만장일치</b>로 지금 값과 같아요(<span class="m">h<sub>i</sub></span> = ±4). 아무도 뒤집히지 않아요. 안정!`; }
+  else if(isN){ st.className='status good'; m+=`<b>저장된 패턴을 모두 뒤집은 상태</b>예요. 이것도 안정해요! 표 <span class="m">w<sub>ij</sub>y<sub>j</sub> = y<sub>i</sub></span>라는 계산은 부호를 다 바꿔도 그대로 성립하니까요.`; }
+  else { st.className='status'; m+=`지금은 신경세포 <b>${nflip}개</b>가 다수결과 맞지 않아 뒤집힐 차례예요. ‘무작위로 하나 갱신’을 눌러 보세요.`; }
+  st.innerHTML=m;
+}
+function stabStep(){
+  const Wm=W3(), y=S3.y;
+  const i=Math.floor(Math.random()*S3.n), h=hOf(Wm,y,i), nv=ruleV(h);
+  S3.sel=i;
+  if(nv!==y[i]){ y[i]=nv; S3.msg=`신경세포 ${i+1}: 표의 합 h = ${num(h)}이라 <b>${sg(nv)}로 뒤집혔어요</b>.`; return true; }
+  S3.msg=`신경세포 ${i+1}: 표의 합 h = ${num(h)}, 이미 다수결대로라 그대로.`; return false;
+}
+cStab.addEventListener('pointerdown',e=>{
+  const r=cStab.getBoundingClientRect(), P=pos3(cStab.clientWidth,cStab.clientHeight), px=e.clientX-r.left, py=e.clientY-r.top;
+  let best=-1,bd=40; P.forEach((p,k)=>{ const d=Math.hypot(p[0]-px,p[1]-py); if(d<bd){bd=d;best=k;} });
+  if(best>=0){ S3.y[best]*=-1; S3.sel=best; S3.msg=`신경세포 ${best+1}을 직접 뒤집었어요.`; drawStab(); }
+});
+$('sTable').addEventListener('click',e=>{ const tr=e.target.closest('tr[data-i]'); if(!tr) return; S3.sel=+tr.dataset.i; S3.msg=''; drawStab(); });
+$('bS3Step').onclick=()=>{ stabStep(); drawStab(); };
+$('bS3Run').onclick=()=>{
+  const Wm=W3(); let flips=[];
+  for(let sweeps=1;sweeps<=20;sweeps++){ let ch=0; for(const i of shuffle([...Array(S3.n).keys()])){ const nv=ruleV(hOf(Wm,S3.y,i)); if(nv!==S3.y[i]){ S3.y[i]=nv; ch++; flips.push(i+1); } } if(!ch) break; }
+  S3.msg = flips.length ? `신경세포 ${flips.join(' → ')} 순서로 뒤집힌 뒤 멈췄어요.` : '뒤집힐 신경세포가 없어요.';
+  drawStab();
+};
+$('bS3Shake').onclick=()=>{ const idx=shuffle([...Array(S3.n).keys()]).slice(0,2); S3.y=S3.p.slice(); idx.forEach(i=>S3.y[i]*=-1); S3.sel=idx[0]; S3.msg=`저장된 패턴에서 신경세포 ${idx[0]+1}, ${idx[1]+1}을 흔들었어요.`; drawStab(); };
+$('bS3Reset').onclick=()=>{ S3.y=S3.p.slice(); S3.msg=''; drawStab(); };
+$('bS3New').onclick=()=>{ S3.p=S3.p.map(()=>Math.random()<0.5?1:-1); S3.y=S3.p.slice(); S3.msg='새 패턴을 저장했어요(가중치가 바뀜).'; drawStab(); };
+
+// ================= TAB 4 =================
+const E4={p:[-1,1,-1], cur:[1,1,1], prev:null, hist:[], msg:'', sel:-1, step:null};
+const STATES=[]; for(let k=0;k<8;k++) STATES.push([k&4?1:-1,k&2?1:-1,k&1?1:-1]);
+const key=s=>s.map(v=>v>0?'+':'−').join('');
+function energy4(s){ const p=E4.p; let e=0; for(const [i,j] of PAIRS) e+=p[i]*p[j]*s[i]*s[j]; return -e; }
+const sat=(s,i,j)=>E4.p[i]*E4.p[j]*s[i]*s[j]>0;
+const badCount=s=>PAIRS.filter(([i,j])=>!sat(s,i,j)).length;
+const cRel=$('cRel'), cLand=$('cLand'), cEh=$('cEh');
+function drawRel(){
+  const {ctx,W,H}=fit(cRel,0.62), P=pos1(W,H), c=E4.cur, p=E4.p, r=Math.min(30,W*0.075);
+  for(const [i,j] of PAIRS){ const w=p[i]*p[j], ok=sat(c,i,j);
+    ctx.strokeStyle=ok?OK:BAD; ctx.lineWidth=4; ctx.setLineDash(w>0?[]:[9,6]);
+    ctx.beginPath(); ctx.moveTo(P[i][0],P[i][1]); ctx.lineTo(P[j][0],P[j][1]); ctx.stroke(); ctx.setLineDash([]); }
+  for(const [i,j] of PAIRS){ const w=p[i]*p[j], ok=sat(c,i,j);
+    label(ctx,(P[i][0]+P[j][0])/2,(P[i][1]+P[j][1])/2,`${w>0?'친구':'라이벌'} · ${ok?'만족':'불만'}`,ok?OK:BAD); }
+  P.forEach((q,k)=>{ if(k===E4.sel) ring(ctx,q[0],q[1],r+7,INK,3); neuron(ctx,q[0],q[1],r,c[k],'신경세포 '+(k+1),k>0); });
+}
+function layout4(W,H){
+  const levels=[...new Set(STATES.map(energy4))].sort((a,b)=>b-a);
+  const emin=Math.min(...levels), emax=Math.max(...levels);
+  const Y=e=> emax===emin ? H/2 : PAD+30+(emax-e)/(emax-emin)*(H-2*PAD-70);
+  const pos={};
+  const ham=s=>s.reduce((c,v,i)=>c+(v!==E4.p[i]),0);
+  for(const lv of levels){
+    const grp=STATES.filter(s=>energy4(s)===lv).sort((a,b)=>ham(a)-ham(b)||key(b).localeCompare(key(a)));
+    grp.forEach((s,k)=>{ pos[key(s)]=[56+(k+0.5)*(W-56-PAD)/grp.length, Y(lv)]; });
+  }
+  return {pos,levels,Y};
+}
+function drawLand(){
+  const {ctx,W,H}=fit(cLand,0.72), {pos,levels,Y}=layout4(W,H), r=Math.min(21,W*0.05);
+  ctx.strokeStyle='rgba(31,35,40,.3)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(40,PAD); ctx.lineTo(40,H-PAD); ctx.stroke();
+  arrow(ctx,40,H-PAD,40,PAD+2,'rgba(31,35,40,.35)',1.2);
+  ctx.font='600 12px Noto Sans KR'; ctx.fillStyle='#5b6370'; ctx.fillText('E',46,PAD+10);
+  for(const lv of levels){ ctx.strokeStyle='rgba(106,79,179,.15)'; ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(40,Y(lv)); ctx.lineTo(W-PAD,Y(lv)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=INK; ctx.font='700 13px Times New Roman'; ctx.textAlign='right'; ctx.fillText(num(lv),34,Y(lv)+4); ctx.textAlign='left'; }
+  for(let a=0;a<8;a++) for(let b=a+1;b<8;b++){ const A=STATES[a], B=STATES[b]; if(A.reduce((c,v,i)=>c+(v!==B[i]),0)!==1) continue;
+    const pa=pos[key(A)], pb=pos[key(B)]; ctx.strokeStyle='rgba(31,35,40,.16)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); }
+  if(E4.prev){ const pa=pos[key(E4.prev)], pb=pos[key(E4.cur)], d=Math.hypot(pb[0]-pa[0],pb[1]-pa[1]);
+    if(d>1) arrow(ctx,pa[0],pa[1],pb[0]-(pb[0]-pa[0])/d*(r+6),pb[1]-(pb[1]-pa[1])/d*(r+6),POS,3); }
+  const emin=Math.min(...levels), emax=Math.max(...levels);
+  for(const s of STATES){ const [x,y]=pos[key(s)], e=energy4(s), t=emax===emin?0:(e-emin)/(emax-emin);
+    dot(ctx,x,y,r,t<0.5?`rgba(106,79,179,${(0.9-0.4*t).toFixed(2)})`:'#e4dcf5'); ring(ctx,x,y,r,'rgba(106,79,179,.55)',1.2);
+    ctx.fillStyle=t<0.5?'#fff':'#4a3390'; ctx.font=`700 ${Math.round(r*0.62)}px Times New Roman`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(key(s),x,y+1);
+    ctx.textBaseline='alphabetic';
+    const isP=key(s)===key(E4.p), isN=key(s)===key(E4.p.map(v=>-v));
+    if(isP||isN){ ctx.fillStyle=POS; ctx.font='700 11px Noto Sans KR'; ctx.fillText(isP?'저장된 기억':'반전된 기억',x,y+r+15); }
+    ctx.textAlign='left';
+    if(key(s)===key(E4.cur)) ring(ctx,x,y,r+5,INK,3);
+  }
+}
+function drawEh(){
+  const {ctx,W,H}=fit(cEh,0.28), h=E4.hist, n=Math.max(h.length,6);
+  const lo=Math.min(...STATES.map(energy4)), hi=Math.max(...STATES.map(energy4));
+  const X=i=>PAD+30+i/(n-1)*(W-2*PAD-30), Y=e=>PAD+(hi-e)/((hi-lo)||1)*(H-2*PAD);
+  ctx.font='12px Times New Roman'; ctx.fillStyle='#5b6370';
+  for(const v of [lo,hi]){ ctx.fillText(num(v),PAD,Y(v)+4); ctx.strokeStyle='rgba(31,35,40,.1)'; ctx.beginPath(); ctx.moveTo(PAD+30,Y(v)); ctx.lineTo(W-PAD,Y(v)); ctx.stroke(); }
+  ctx.strokeStyle=POS; ctx.lineWidth=2.4; ctx.beginPath(); h.forEach((e,i)=>i?ctx.lineTo(X(i),Y(e)):ctx.moveTo(X(i),Y(e))); ctx.stroke();
+  h.forEach((e,i)=>dot(ctx,X(i),Y(e),3.5,POS));
+}
+function deltaHTML(st){
+  if(!st) return `<div class="row"><span class="txt">‘한 명 골라 다수결’을 누르거나 신경세포를 눌러 보세요. ΔE를 공식과 실제 차이로 함께 계산해 보여 줄게요.</span></div>`;
+  const k=st.k, K=sub(k+1), others=[0,1,2].filter(j=>j!==k);
+  const terms=others.map(j=>`w${K}${sub(j+1)}y${sub(j+1)}`).join(' + ');
+  const vals=others.map(j=>`${par(st.w[j])}·${par(st.old[j])}`).join(' + ');
+  const dE=2*st.old[k]*st.h;
+  let r=`<div class="row"><span class="lbl">① 고른 세포</span>k = ${k+1}, 뒤집기 전 y${K} = ${sgd(st.old[k])}</div>`+
+    `<div class="row"><span class="lbl">② 표의 합</span>h${K} = ${terms}</div><div class="row"><span class="lbl"></span>= ${vals} = <span class="hi">${num(st.h)}</span></div>`+
+    `<div class="row"><span class="lbl">③ 공식</span>ΔE = 2 · y${K} · h${K} = 2 · ${par(st.old[k])} · ${par(st.h)} = <span class="${dE<0?'ok':dE>0?'bad':'hi'}">${num(dE)}</span></div>`;
+  if(st.manual) r+=`<div class="row"><span class="lbl">④ 직접 뒤집음</span><span class="txt">다수결과 상관없이 뒤집었어요. ${dE>0?'ΔE가 양수 → 에너지가 <b class="bad">올라갔어요</b> (흐트러뜨리기)':dE<0?'ΔE가 음수 → 다수결이 했어도 뒤집었을 거예요':'ΔE = 0 → 에너지 그대로'}</span></div>`;
+  else r+=`<div class="row"><span class="lbl">④ 판단</span><span class="txt">${st.h===0?'동점 → 규칙상 −1':dE<0?'y와 h의 부호가 반대 → 뒤집으면 에너지 감소 → <b>뒤집기</b>':'y와 h의 부호가 같음 → 뒤집으면 에너지가 오름 → <b>그대로</b>'}${st.flipped?'':' (변화 없음)'}</span></div>`;
+  if(st.flipped) r+=`<div class="row"><span class="lbl">⑤ 확인</span>E: ${num(st.e0)} → ${num(st.e1)}, 차이 ${num(st.e1-st.e0)} ${st.e1-st.e0===dE?'= 공식 값 ✓':''}</div>`;
+  return r;
+}
+function drawE4(){
+  drawRel(); drawLand(); drawEh();
+  const p=E4.p, c=E4.cur;
+  const rows=PAIRS.map(([i,j])=>{ const w=p[i]*p[j], v=w*c[i]*c[j];
+    return `<div class="row"><span class="lbl">${i+1}–${j+1} ${w>0?'친구':'라이벌'}</span>w${sub(i+1)}${sub(j+1)}y${sub(i+1)}y${sub(j+1)} = ${par(w)} · ${par(c[i])} · ${par(c[j])} = ${v>0?'<span class="ok">+1 만족</span>':'<span class="bad">−1 불만</span>'}</div>`; });
+  const b=badCount(c), g=3-b;
+  rows.push(`<div class="row"><span class="lbl">에너지</span>E = −(${PAIRS.map(([i,j])=>par(p[i]*p[j]*c[i]*c[j])).join(' + ')}) = <span class="hi">${num(b-g)}</span></div><div class="row"><span class="lbl"></span>= (불만 ${b}개) − (만족 ${g}개)</div>`);
+  $('eCalc').innerHTML=rows.join('');
+  $('eDelta').innerHTML=deltaHTML(E4.step);
+  $('eStored').innerHTML='<span class="lab">저장된 기억 (눌러서 바꾸기)</span>'+E4.p.map((v,i)=>pmChip(v,'button',`data-i="${i}"`)).join('');
+  const st=$('sEnergy'), e=energy4(c), atMin = e===Math.min(...STATES.map(energy4));
+  st.className='status'+(atMin?' good':'');
+  st.innerHTML=(E4.msg?E4.msg+' ':'')+(atMin ? (key(c)===key(E4.p)?'<b>바닥 도착: 저장된 기억</b>. 세 관계가 모두 만족(E = −3).':'<b>바닥 도착: 반전된 기억</b>. 저장하지 않았는데도 모든 관계가 만족하는 똑같이 깊은 골짜기!') : `지금 불만 ${b}개, E = ${num(e)}. 불만을 품은 신경세포가 다수결을 따르면 줄어들어요.`);
+}
+function e4Step(){
+  const k=Math.floor(Math.random()*3), c=E4.cur, p=E4.p, old=c.slice();
+  const w=[0,1,2].map(j=>j===k?0:p[k]*p[j]);
+  const h=[0,1,2].reduce((a,j)=>a+w[j]*old[j],0), nv=ruleV(h), e0=energy4(old);
+  E4.sel=k;
+  if(nv!==c[k]){ c[k]=nv; E4.prev=old; } else E4.prev=null;
+  E4.step={k,old,w,h,flipped:nv!==old[k],e0,e1:energy4(c),manual:false};
+  E4.msg='';
+  E4.hist.push(energy4(c));
+}
+cRel.addEventListener('pointerdown',e=>{
+  const r=cRel.getBoundingClientRect(), P=pos1(cRel.clientWidth,cRel.clientHeight), px=e.clientX-r.left, py=e.clientY-r.top;
+  let best=-1,bd=48; P.forEach((q,k)=>{ const d=Math.hypot(q[0]-px,q[1]-py); if(d<bd){bd=d;best=k;} });
+  if(best<0) return;
+  const old=E4.cur.slice(), w=[0,1,2].map(j=>j===best?0:E4.p[best]*E4.p[j]), h=[0,1,2].reduce((a,j)=>a+w[j]*old[j],0), e0=energy4(old);
+  E4.cur[best]*=-1; E4.prev=old; E4.sel=best; E4.msg='';
+  E4.step={k:best,old,w,h,flipped:true,e0,e1:energy4(E4.cur),manual:true};
+  E4.hist.push(energy4(E4.cur)); drawE4();
+});
+cLand.addEventListener('pointerdown',e=>{
+  const r=cLand.getBoundingClientRect(), {pos}=layout4(cLand.clientWidth,cLand.clientHeight), px=e.clientX-r.left, py=e.clientY-r.top;
+  let best=null,bd=34; for(const s of STATES){ const q=pos[key(s)], d=Math.hypot(q[0]-px,q[1]-py); if(d<bd){bd=d;best=s;} }
+  if(best){ E4.cur=best.slice(); E4.prev=null; E4.sel=-1; E4.step=null; E4.hist=[energy4(E4.cur)]; E4.msg='출발점을 골랐어요.'; drawE4(); }
+});
+$('eStored').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; E4.p[+b.dataset.i]*=-1; E4.prev=null; E4.step=null; E4.hist=[energy4(E4.cur)]; E4.msg='저장된 기억(가중치)이 바뀌어 친구·라이벌 관계와 지형이 새로 정해졌어요.'; drawE4(); });
+$('bE4Step').onclick=()=>{ e4Step(); drawE4(); };
+$('bE4Run').onclick=()=>{ const Wm=outerW(E4.p); let n=0;
+  for(let k=0;k<40;k++){ const stable=[0,1,2].every(i=>ruleV(hOf(Wm,E4.cur,i))===E4.cur[i]); if(stable) break; e4Step(); n++; }
+  if(!n){ E4.msg='이미 바닥이라 더 내려갈 곳이 없어요.'; }
+  drawE4(); };
+
+// ================= TAB 5 (local vs global) =================
+const P9=[['ㅁ','### #.# ###'],['+','.#. ### .#.'],['T','### .#. .#.']].map(([name,str])=>({name,v:str.replace(/ /g,'').split('').map(c=>c==='#'?1:-1)}));
+const W9=[...Array(9)].map((_,i)=>[...Array(9)].map((_,j)=>i===j?0:P9.reduce((a,p)=>a+p.v[i]*p.v[j],0)));
+const h9=(s,i)=>{ let h=0; for(let j=0;j<9;j++) h+=W9[i][j]*s[j]; return h; };
+const E9=s=>{ let e=0; for(let i=0;i<9;i++) e+=s[i]*h9(s,i); return -e/2; };
+const k9=s=>s.join(',');
+const VALLEYS=[];
+for(let m=0;m<512;m++){ const s=[...Array(9)].map((_,i)=>(m>>(8-i))&1?1:-1);
+  if(s.every((v,i)=>ruleV(h9(s,i))===v)){
+    let kind='spur', name='가짜 기억';
+    for(const p of P9){ if(p.v.every((v,i)=>v===s[i])){ kind='mem'; name='기억 '+p.name; } else if(p.v.every((v,i)=>v===-s[i])){ kind='inv'; name=p.name+' 반전'; } }
+    VALLEYS.push({s,E:E9(s),kind,name,key:k9(s),g:0,a:0});
+  } }
+const KORD={mem:0,inv:1,spur:2};
+VALLEYS.sort((a,b)=>a.E-b.E||KORD[a.kind]-KORD[b.kind]);
+const EMIN9=Math.min(...VALLEYS.map(v=>v.E));
+const L5={s:null, mode:'greedy', running:false, timer:0, order:[], oi:9, sweepFlips:0, sweep:0, T:0, last:-1, step:null, hist:[], done:false, landed:null, ran:false};
+const cS9=$('cS9'), cH9=$('cH9');
+function l5Reset(s){ clearTimeout(L5.timer); L5.running=false; L5.s=s; L5.order=[]; L5.oi=9; L5.sweepFlips=0; L5.sweep=0; L5.T=0; L5.last=-1; L5.step=null; L5.hist=[E9(s)]; L5.done=false; L5.landed=null; }
+function randS(){ return [...Array(9)].map(()=>Math.random()<0.5?1:-1); }
+function drawMini(cv,s){ cv.width=3; cv.height=3; const ctx=cv.getContext('2d'), im=ctx.createImageData(3,3);
+  const c1=[196,87,43], c0=[47,93,158];
+  for(let i=0;i<9;i++){ const c=s[i]>0?c1:c0; im.data[i*4]=c[0]; im.data[i*4+1]=c[1]; im.data[i*4+2]=c[2]; im.data[i*4+3]=255; } ctx.putImageData(im,0,0); }
+function drawVmap(){
+  const cur=k9(L5.s), showCnt=VALLEYS.some(v=>v.g||v.a);
+  $('vmap').innerHTML=VALLEYS.map((v,idx)=>{ const d=Math.abs(v.E)/Math.abs(EMIN9)*100, col=v.kind==='spur'?BAD:POS;
+    const tag=v.E===EMIN9?'전역':'지역';
+    return `<div class="vrow${v.key===cur?' on':''}"><canvas data-v="${idx}"></canvas><div><div class="nm">${v.name}<small>${tag} 최솟값${showCnt?` · 내리막 ${v.g} · 담금질 ${v.a}`:''}</small></div><div class="depth"><i style="width:${d}%;background:${col}"></i></div></div><div class="e">${num(v.E)}</div></div>`; }).join('');
+  $('vmap').querySelectorAll('canvas').forEach(cv=>drawMini(cv,VALLEYS[+cv.dataset.v].s));
+}
+function drawS9(){
+  const {ctx,W}=fit(cS9,1), c=W/3, s=L5.s, g=4;
+  const stopped=!L5.running && L5.done;
+  for(let i=0;i<9;i++){ const r=Math.floor(i/3), q=i%3;
+    ctx.fillStyle=s[i]>0?ON:OFF; ctx.fillRect(q*c+g/2,r*c+g/2,c-g,c-g);
+    if(i===L5.last && L5.running){ ctx.strokeStyle='#f2b630'; ctx.lineWidth=4; ctx.strokeRect(q*c+3,r*c+3,c-6,c-6); }
+    if(stopped){ const dE=2*s[i]*h9(s,i);
+      ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font=`700 ${Math.round(c*0.22)}px Times New Roman`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText((dE>0?'+':'')+num(dE),q*c+c/2,r*c+c/2+1); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+  }
+}
+function drawH9(){
+  const {ctx,W,H}=fit(cH9,0.45), h=L5.hist, n=Math.max(h.length,12);
+  const hi=Math.max(8,...h), lo=EMIN9-2, L=PAD+26;
+  const X=i=>L+i/(n-1)*(W-L-PAD), Y=e=>PAD+(hi-e)/(hi-lo)*(H-2*PAD);
+  ctx.font='11px Times New Roman'; ctx.fillStyle='#5b6370';
+  for(const v of [...new Set(VALLEYS.map(x=>x.E))]){ ctx.strokeStyle=v===EMIN9?'rgba(106,79,179,.5)':'rgba(224,122,31,.45)'; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(L,Y(v)); ctx.lineTo(W-PAD,Y(v)); ctx.stroke(); ctx.setLineDash([]); ctx.textAlign='right'; ctx.fillText(num(v),L-4,Y(v)+4); ctx.textAlign='left'; }
+  ctx.strokeStyle=INK; ctx.lineWidth=2; ctx.beginPath(); h.forEach((e,i)=>i?ctx.lineTo(X(i),Y(e)):ctx.moveTo(X(i),Y(e))); ctx.stroke();
+  dot(ctx,X(h.length-1),Y(h[h.length-1]),4,INK);
+  ctx.font='11px Noto Sans KR'; ctx.fillText('에너지 기록 (점선: 골짜기 깊이)',L+4,H-4);
+}
+function l5Status(){
+  const st=$('sL5'), e=E9(L5.s);
+  if(L5.running){ st.className='status'; st.innerHTML= L5.mode==='anneal' && L5.T>0 ? `담금질 중 · 온도 T = ${num(Math.round(L5.T*100)/100)} · E = ${num(e)}. 지금은 가끔 오르막도 허용해요.` : `내려가는 중 · E = ${num(e)}`; return; }
+  if(!L5.done){ st.className='status'; st.innerHTML=`출발 에너지 E = ${num(e)}. <b>▶ 굴리기</b>를 누르세요.`; return; }
+  const v=L5.landed;
+  if(v && v.E===EMIN9){ st.className='status good'; st.innerHTML=`<b>전역 최솟값 도착: ${v.name}</b> (E = ${num(v.E)}). 칸의 숫자가 모두 양수라 어디로도 더 내려갈 수 없어요.`; }
+  else if(v){ st.className='status bad'; st.innerHTML=`<b>지역 최솟값에 갇혔어요: ${v.name}</b> (E = ${num(v.E)}). 칸의 ΔE가 모두 0 이상이라 다수결로는 못 나가요. 하지만 가장 낮은 골짜기(${num(EMIN9)})는 아니에요. ‘담금질’로 다시 해 보세요.`; }
+}
+function l5Calc(){
+  const st=L5.step, el=$('l5Calc');
+  if(!st){ el.innerHTML=`<div class="row"><span class="txt">한 단계마다 고른 칸 k의 ΔE = 2 · y<sub>k</sub> · h<sub>k</sub>를 계산해 보여 줘요.</span></div>`; return; }
+  const K=`(${Math.floor(st.k/3)+1}행 ${st.k%3+1}열)`;
+  let r=`<div class="row"><span class="lbl">칸 ${K}</span>y = ${sgd(st.y)}, h = ${num(st.h)} → ΔE = 2 · ${par(st.y)} · ${par(st.h)} = <span class="${st.dE<0?'ok':st.dE>0?'bad':'hi'}">${num(st.dE)}</span></div>`;
+  if(st.anneal && st.dE>0) r+=`<div class="row"><span class="lbl">T = ${num(Math.round(st.T*100)/100)}</span>오르막이지만 P = e<sup>−${num(st.dE)} ÷ ${num(Math.round(st.T*100)/100)}</sup> ≈ ${num(Math.round(st.P*100)/100)} → 주사위 ${num(Math.round(st.u*100)/100)} ${st.flipped?'&lt; P → <span class="bad">뒤집기 (오르막!)</span>':'≥ P → 그대로'}</div>`;
+  else r+=`<div class="row"><span class="lbl"></span><span class="txt">${st.dE<0?'ΔE &lt; 0 → 뒤집기 (내리막)':st.dE===0?(st.anneal?'ΔE = 0 → 평지라 자유롭게 뒤집기':st.flipped?'ΔE = 0 → 동점이라 −1로':'ΔE = 0 → 그대로'):'ΔE &gt; 0 → 그대로'}</span></div>`;
+  el.innerHTML=r;
+}
+function drawL5(){ drawS9(); drawH9(); drawVmap(); l5Calc(); l5Status();
+  $('bL5Run').textContent = L5.running ? '❚❚ 멈춤' : (L5.done ? '▶ 새로 출발해 굴리기' : '▶ 굴리기'); }
+const ANN={T0:4, sweeps:10};
+function l5Update(s,i,mode,T){
+  const h=h9(s,i), y=s[i], dE=2*y*h; let flipped=false, P=1, u=0;
+  if(mode==='anneal' && T>0){ if(dE<=0){ flipped=true; } else { P=Math.exp(-dE/T); u=Math.random(); flipped=u<P; } }
+  else { const nv=ruleV(h); flipped=nv!==y; }
+  if(flipped) s[i]=-y;
+  return {k:i,y,h,dE,flipped,P,u,T,anneal:mode==='anneal'&&T>0};
+}
+function l5Tick(){
+  if(!L5.running) return;
+  if(L5.oi>=9){
+    if(L5.order.length && L5.sweepFlips===0 && !(L5.mode==='anneal' && L5.T>0)){ L5.running=false; L5.done=true; L5.landed=VALLEYS.find(v=>v.key===k9(L5.s)); L5.last=-1; drawL5(); return; }
+    L5.order=shuffle([...Array(9).keys()]); L5.oi=0; L5.sweepFlips=0; L5.sweep++;
+    L5.T = L5.mode==='anneal' ? Math.max(0, ANN.T0*(1-(L5.sweep-1)/ANN.sweeps)) : 0;
+    if(L5.sweep>60){ L5.running=false; L5.done=true; L5.landed=VALLEYS.find(v=>v.key===k9(L5.s)); drawL5(); return; }
+  }
+  const i=L5.order[L5.oi++], st=l5Update(L5.s,i,L5.mode,L5.T);
+  if(st.flipped) L5.sweepFlips++;
+  L5.last=i; L5.step=st; L5.hist.push(E9(L5.s));
+  drawL5();
+  L5.timer=setTimeout(l5Tick, L5.mode==='anneal'&&L5.T>0 ? 110 : (st.flipped?420:140));
+}
+function runOnce(s0,mode){
+  const s=s0.slice();
+  if(mode==='anneal'){ for(let sw=0;sw<ANN.sweeps;sw++){ const T=ANN.T0*(1-sw/ANN.sweeps); for(const i of shuffle([...Array(9).keys()])) l5Update(s,i,'anneal',T); } }
+  for(let sw=0;sw<40;sw++){ let ch=0; for(const i of shuffle([...Array(9).keys()])){ if(l5Update(s,i,'greedy',0).flipped) ch++; } if(!ch) break; }
+  return VALLEYS.find(v=>v.key===k9(s));
+}
+cS9.addEventListener('pointerdown',e=>{ if(L5.running) return; const r=cS9.getBoundingClientRect(), c=r.width/3;
+  const q=Math.floor((e.clientX-r.left)/c), w=Math.floor((e.clientY-r.top)/c); if(q<0||q>2||w<0||w>2) return;
+  const s=L5.s.slice(); s[w*3+q]*=-1; l5Reset(s); drawL5(); });
+segBind('modeSeg', v=>{ L5.mode=v; if(L5.running){ clearTimeout(L5.timer); L5.running=false; } drawL5(); });
+$('bL5Rand').onclick=()=>{ l5Reset(randS()); drawL5(); };
+$('bL5Run').onclick=()=>{
+  if(L5.running){ clearTimeout(L5.timer); L5.running=false; drawL5(); return; }
+  if(L5.done) l5Reset(randS());
+  if(!L5.order.length){ L5.sweep=0; }
+  L5.running=true; drawL5(); l5Tick();
+};
+$('bL5Many').onclick=()=>{
+  VALLEYS.forEach(v=>{v.g=0;v.a=0;}); let gG=0,gA=0;
+  for(let t=0;t<100;t++){ const s0=randS(); const a=runOnce(s0,'greedy'), b=runOnce(s0,'anneal'); a.g++; b.a++; if(a.E===EMIN9) gG++; if(b.E===EMIN9) gA++; }
+  $('tally').innerHTML=`<div>내리막만<br><b>${gG}</b>번 전역 · ${100-gG}번 지역</div><div>담금질<br><b>${gA}</b>번 전역 · ${100-gA}번 지역</div>`;
+  const st=$('sTally'); st.className='status good';
+  st.innerHTML=`내리막만 가면 100번 중 ${100-gG}번 가짜 골짜기에 갇혔고, 담금질은 ${100-gA}번만 갇혔어요. 골짜기 지도에 어느 골짜기로 몇 번 갔는지 표시했어요. 무작위라 누를 때마다 조금씩 달라요.`;
+  drawVmap();
+};
+
+// ================= TAB 6 =================
+const N=28, NN=N*N;
+const DIG=DIGHEX.map(hx=>{ const a=new Int8Array(NN); for(let r=0;r<N;r++){ const v=parseInt(hx.substr(r*7,7),16); for(let c=0;c<N;c++) a[r*N+c]=(v>>(N-1-c))&1?1:-1; } return a; });
+const LB={store:[5,8], W:new Float32Array(NN*NN), s:new Int8Array(NN), mode:'noise', base:8, noise:0.25, speed:12,
+  running:false, done:false, order:null, oi:0, sweepFlips:0, sweeps:0, updates:0, flips:0, E:0, hist:[], last:-1, flipAt:new Int32Array(NN).fill(-1e6), Estore:{}};
+const cGrid=$('cGrid'), cEn=$('cEn');
+function buildW(){
+  const W=LB.W; W.fill(0); const p=LB.store.length; if(!p) return;
+  for(const k of LB.store){ const x=DIG[k]; for(let i=0;i<NN;i++){ const xi=x[i]/p, row=i*NN; for(let j=0;j<NN;j++) W[row+j]+=xi*x[j]; } }
+  for(let i=0;i<NN;i++) W[i*NN+i]=0;
+  LB.Estore={}; for(const k of LB.store) LB.Estore[k]=energyOf(DIG[k]);
+}
+function hAt(s,i){ const W=LB.W, row=i*NN; let h=0; for(let j=0;j<NN;j++) h+=W[row+j]*s[j]; return h; }
+function energyOf(s){ let e=0; for(let i=0;i<NN;i++) e+=s[i]*hAt(s,i); return -e/2; }
+function resetRun(){ LB.running=false; LB.done=false; LB.order=null; LB.oi=0; LB.sweeps=0; LB.updates=0; LB.flips=0; LB.last=-1; LB.flipAt.fill(-1e6); LB.E=energyOf(LB.s); LB.hist=[LB.E]; $('bRun').textContent='▶ 인출 시작'; }
+function newStart(){
+  const s=LB.s;
+  if(LB.mode==='noise'){ const b=DIG[LB.base]; for(let i=0;i<NN;i++) s[i]= Math.random()<LB.noise ? -b[i] : b[i]; }
+  else if(LB.mode==='rand'){ for(let i=0;i<NN;i++) s[i]=Math.random()<0.5?1:-1; }
+  else s.fill(-1);
+  resetRun();
+}
+function labStep(){
+  if(!LB.order||LB.oi>=NN){ LB.order=shuffle([...Array(NN).keys()]); LB.oi=0; LB.sweepFlips=0; }
+  const i=LB.order[LB.oi++], s=LB.s, h=hAt(s,i), nv=h>0?1:-1;
+  if(nv!==s[i]){ LB.E+=-(nv-s[i])*h; s[i]=nv; LB.sweepFlips++; LB.flips++; LB.flipAt[i]=LB.updates; }
+  LB.updates++; LB.last=i; LB.hist.push(LB.E);
+  if(LB.oi>=NN){ LB.sweeps++; if(LB.sweepFlips===0 || LB.sweeps>=40){ LB.done=true; LB.running=false; } }
+}
+function drawGrid(){
+  const {ctx,W}=fit(cGrid,1), c=W/N;
+  for(let i=0;i<NN;i++){ const r=Math.floor(i/N), q=i%N;
+    ctx.fillStyle = LB.s[i]>0 ? '#f6f2ea' : '#1f2328'; ctx.fillRect(q*c,r*c,Math.ceil(c),Math.ceil(c));
+    const age=LB.updates-LB.flipAt[i];
+    if(age<150){ ctx.fillStyle=`rgba(106,79,179,${(0.75*(1-age/150)).toFixed(3)})`; ctx.fillRect(q*c,r*c,Math.ceil(c),Math.ceil(c)); }
+  }
+  if(LB.running && LB.last>=0){ const r=Math.floor(LB.last/N), q=LB.last%N; ctx.strokeStyle='#d99a1e'; ctx.lineWidth=2.5; ctx.strokeRect(q*c-1,r*c-1,c+2,c+2); }
+}
+function drawEn(){
+  const {ctx,W,H}=fit(cEn,0.34), h=LB.hist, n=Math.max(h.length,NN);
+  const ref=Object.values(LB.Estore);
+  let lo=Math.min(...h,...ref), hi=Math.max(...h,...ref); if(hi-lo<1){ hi+=1; lo-=1; }
+  const L=PAD+8, X=i=>L+i/(n-1)*(W-L-PAD), Y=e=>PAD+(hi-e)/(hi-lo)*(H-2*PAD-12);
+  ctx.strokeStyle='rgba(31,35,40,.12)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(L,PAD); ctx.lineTo(L,H-PAD-12); ctx.lineTo(W-PAD,H-PAD-12); ctx.stroke();
+  const groups={}; for(const k of LB.store){ const e=Math.round(LB.Estore[k]); (groups[e]=groups[e]||[]).push(k); }
+  for(const ek of Object.keys(groups)){ const e=+ek, ks=groups[ek].join(', '); ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(106,79,179,.5)'; ctx.beginPath(); ctx.moveTo(L,Y(e)); ctx.lineTo(W-PAD,Y(e)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=POS; ctx.font='600 11px Noto Sans KR'; ctx.textAlign='right'; ctx.fillText(`${ks}의 에너지 ${e}`, W-PAD-2, Y(e)-4); ctx.textAlign='left'; }
+  ctx.strokeStyle=ON; ctx.lineWidth=2.2; ctx.beginPath();
+  const step=Math.max(1,Math.floor(h.length/600));
+  for(let i=0;i<h.length;i+=step){ i?ctx.lineTo(X(i),Y(h[i])):ctx.moveTo(X(i),Y(h[i])); }
+  ctx.lineTo(X(h.length-1),Y(h[h.length-1])); ctx.stroke();
+  ctx.fillStyle='#5b6370'; ctx.font='11px Noto Sans KR';
+  ctx.fillText('업데이트 횟수 →',L+4,H-6); ctx.textAlign='right'; ctx.fillText(n.toLocaleString('ko-KR'),W-PAD,H-6); ctx.textAlign='left';
+}
+function overlaps(){ return [...Array(10).keys()].map(k=>{ let m=0; const x=DIG[k]; for(let i=0;i<NN;i++) m+=LB.s[i]*x[i]; return {k,m:m/NN}; }); }
+function labStatus(){
+  const ov=overlaps(), st=$('sLab');
+  const shown=ov.filter(o=>LB.store.includes(o.k)||(LB.mode==='noise'&&o.k===LB.base));
+  $('overl').innerHTML='<div class="small">지금 이미지와 각 숫자의 닮음 (+1 = 똑같음, −1 = 흑백 반전)</div>'+shown.map(o=>{ const w=Math.abs(o.m)*50, left=o.m>=0?50:50-w;
+    return `<div class="r"><span>${o.k}${LB.store.includes(o.k)?'':' <span class="small">(미저장)</span>'}</span><span class="bar"><i style="left:${left}%;width:${w}%;background:${o.m>=0?POS:NEG}"></i></span><span class="val">${num(Math.round(o.m*100)/100)}</span></div>`; }).join('');
+  if(!LB.store.length){ st.className='status bad'; st.innerHTML='저장된 기억이 없어요. ①에서 숫자를 하나 이상 골라 주세요.'; return; }
+  const run=`업데이트 ${LB.updates.toLocaleString('ko-KR')}번 · 뒤집힘 ${LB.flips}번 · 에너지 ${Math.round(LB.E)}`;
+  if(LB.running){ st.className='status'; st.innerHTML=run+'<br>무작위로 고른 신경세포(노란 테두리)가 하나씩 다수결을 따라요. 보라로 번쩍이는 건 방금 뒤집힌 픽셀.'; return; }
+  if(!LB.done){ st.className='status'; st.innerHTML=`출발 이미지 에너지 ${Math.round(LB.E)}. <b>▶ 인출 시작</b>을 누르세요.`; return; }
+  const best=ov.filter(o=>LB.store.includes(o.k)).sort((a,b)=>Math.abs(b.m)-Math.abs(a.m))[0];
+  const tail=` (${LB.sweeps}바퀴, ${run})`;
+  if(best.m>0.97){ st.className='status good'; st.innerHTML=`<b>숫자 ${best.k}${'을을를을를를을을을를'[best.k]} 인출했어요!</b> 에너지가 ${best.k}의 골짜기 바닥에 닿았어요.`+tail; }
+  else if(best.m<-0.97){ st.className='status good'; st.innerHTML=`<b>흑백이 뒤집힌 ${best.k}</b>${'이이가이가가이이이가'[best.k]} 나왔어요. 책 275쪽의 ‘반전된 8’처럼, <span class="m">−<b class="v">y</b></span>도 같은 깊이의 골짜기라서예요(8탭 Q1).`+tail; }
+  else { st.className='status bad'; st.innerHTML=`<b>가짜 기억 = 지역 최솟값</b>: 저장된 어느 숫자와도 같지 않은 골짜기에 갇혔어요. 에너지 선이 점선(기억의 에너지)보다 위에서 멈췄는지 보세요(5탭).`+tail; }
+}
+function drawLab(){ drawGrid(); drawEn(); labStatus(); }
+function drawMem(){
+  $('memRow').innerHTML=[...Array(10).keys()].map(k=>`<button data-k="${k}" class="${LB.store.includes(k)?'on':''}"><canvas data-k="${k}"></canvas>${LB.store.includes(k)?'저장됨':'숫자 '+k}</button>`).join('');
+  $('memRow').querySelectorAll('canvas').forEach(cv=>{ const k=+cv.dataset.k; cv.width=N; cv.height=N; const ctx=cv.getContext('2d'), im=ctx.createImageData(N,N);
+    for(let i=0;i<NN;i++){ const v=DIG[k][i]>0; im.data[i*4]=v?246:31; im.data[i*4+1]=v?242:35; im.data[i*4+2]=v?234:40; im.data[i*4+3]=255; } ctx.putImageData(im,0,0); cv.style.imageRendering='pixelated'; });
+  $('baseSeg').innerHTML=[...Array(10).keys()].map(k=>`<button data-v="${k}" class="${k===LB.base?'on':''}${LB.store.includes(k)?' st':''}">${k}</button>`).join('');
+}
+function drawWmap(){
+  if(!$('wDetails').open) return;
+  const cv=$('cW'), {ctx,W}=fit(cv,1);
+  const off=document.createElement('canvas'); off.width=NN; off.height=NN; const o=off.getContext('2d'), im=o.createImageData(NN,NN), Wm=LB.W;
+  for(let i=0;i<NN*NN;i++){ const v=Wm[i], a=Math.min(1,Math.abs(v)); let r=251,g=250,b=247;
+    if(v>0){ r=251-a*(251-106); g=250-a*(250-79); b=247-a*(247-179); } else if(v<0){ r=251-a*(251-194); g=250-a*(250-59); b=247-a*(247-59); }
+    im.data[i*4]=r; im.data[i*4+1]=g; im.data[i*4+2]=b; im.data[i*4+3]=255; }
+  o.putImageData(im,0,0); ctx.imageSmoothingEnabled=true; ctx.drawImage(off,0,0,W,W);
+  let pos=0,neg=0; for(let i=0;i<NN*NN;i++){ if(Wm[i]>0) pos++; else if(Wm[i]<0) neg++; }
+  $('wInfo').textContent=`784 × 784 = 614,656칸 · 양수 ${pos.toLocaleString('ko-KR')}칸, 음수 ${neg.toLocaleString('ko-KR')}칸, 0인 칸 ${(NN*NN-pos-neg).toLocaleString('ko-KR')}칸 (대각선 포함). 화면 크기 때문에 여러 칸이 한 점으로 합쳐져 보여요.`;
+}
+let raf=0;
+function loop(){
+  if(!LB.running){ raf=0; $('bRun').textContent = LB.done ? '▶ 새 이미지로 다시' : '▶ 이어서'; drawLab(); return; }
+  for(let k=0;k<LB.speed && LB.running;k++) labStep();
+  drawLab();
+  raf=requestAnimationFrame(loop);
+}
+$('bRun').onclick=()=>{
+  if(!LB.store.length){ labStatus(); return; }
+  if(LB.running){ LB.running=false; $('bRun').textContent='▶ 이어서'; return; }
+  if(LB.done) newStart();
+  LB.running=true; $('bRun').textContent='❚❚ 멈춤';
+  if(!raf) raf=requestAnimationFrame(loop);
+};
+$('bNew').onclick=()=>{ LB.running=false; newStart(); drawLab(); };
+$('memRow').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const k=+b.dataset.k;
+  LB.store = LB.store.includes(k) ? LB.store.filter(x=>x!==k) : [...LB.store,k].sort((a,b)=>a-b);
+  LB.running=false; buildW(); resetRun(); drawMem(); drawLab(); drawWmap(); });
+segBind('startSeg', v=>{ LB.mode=v; $('noiseBox').style.display=v==='noise'?'block':'none'; LB.running=false; newStart(); drawLab(); });
+$('baseSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; LB.base=+b.dataset.v; drawMem(); LB.running=false; newStart(); drawLab(); });
+$('rNoise').oninput=function(){ LB.noise=+this.value; $('lNoise').textContent=Math.round(LB.noise*100)+'% ('+Math.round(LB.noise*NN)+'픽셀)'; LB.running=false; newStart(); drawLab(); };
+segBind('speedSeg', v=>{ LB.speed=+v; });
+$('wDetails').addEventListener('toggle',drawWmap);
+{ let paint=null;
+  const cellAt=e=>{ const r=cGrid.getBoundingClientRect(), c=r.width/N; const q=Math.floor((e.clientX-r.left)/c), w=Math.floor((e.clientY-r.top)/c); return (q<0||q>=N||w<0||w>=N)?-1:w*N+q; };
+  cGrid.addEventListener('pointerdown',e=>{ if(LB.running) return; const i=cellAt(e); if(i<0) return; paint=-LB.s[i]; LB.s[i]=paint; try{cGrid.setPointerCapture(e.pointerId);}catch(_){} resetRun(); drawLab(); });
+  cGrid.addEventListener('pointermove',e=>{ if(paint==null) return; const i=cellAt(e); if(i<0||LB.s[i]===paint) return; LB.s[i]=paint; resetRun(); drawLab(); });
+  const end=()=>{ paint=null; }; cGrid.addEventListener('pointerup',end); cGrid.addEventListener('pointercancel',end);
+}
+
+// ================= TAB 7 =================
+const C6={n:100, pts:[], running:false, plist:[], k:0};
+const cCap=$('cCap');
+function capPoint(n,p){
+  const R=Math.random, X=[]; for(let k=0;k<p;k++){ const a=new Int8Array(n); for(let i=0;i<n;i++) a[i]=R()<0.5?1:-1; X.push(a); }
+  const W=new Float32Array(n*n);
+  for(const x of X) for(let i=0;i<n;i++){ const xi=x[i], row=i*n; for(let j=0;j<n;j++) W[row+j]+=xi*x[j]; }
+  for(let i=0;i<n;i++) W[i*n+i]=0;
+  let ok=0, errSum=0; const idx=[...Array(n).keys()];
+  for(const x of X){
+    const s=new Int8Array(x); for(let i=0;i<n;i++) if(R()<0.1) s[i]=-s[i];
+    for(let sw=0;sw<8;sw++){ let ch=0; shuffle(idx);
+      for(const i of idx){ const row=i*n; let h=0; for(let j=0;j<n;j++) h+=W[row+j]*s[j]; const v=h>0?1:-1; if(v!==s[i]){ s[i]=v; ch++; } }
+      if(!ch) break; }
+    let err=0; for(let i=0;i<n;i++) if(s[i]!==x[i]) err++;
+    err/=n; errSum+=err; if(err<=0.02) ok++;
+  }
+  return {p, r:p/n, ok:ok/p, err:errSum/p};
+}
+function drawCap(){
+  const {ctx,W,H}=fit(cCap,0.62), L=PAD+34, B=H-PAD-22, T=PAD+8, R=W-PAD-6, xmax=0.3;
+  const X=r=>L+r/xmax*(R-L), Y=v=>B-v*(B-T);
+  ctx.strokeStyle='rgba(31,35,40,.12)'; ctx.lineWidth=1; ctx.font='11px Noto Sans KR'; ctx.fillStyle='#5b6370';
+  for(const v of [0,0.25,0.5,0.75,1]){ ctx.beginPath(); ctx.moveTo(L,Y(v)); ctx.lineTo(R,Y(v)); ctx.stroke(); ctx.textAlign='right'; ctx.fillText(Math.round(v*100)+'%',L-5,Y(v)+4); }
+  ctx.textAlign='center';
+  for(const r of [0,0.1,0.2,0.3]){ ctx.fillText(Math.round(r*C6.n)+'개',X(r),B+15); }
+  ctx.fillText('저장한 기억 수',(L+R)/2,H-4); ctx.textAlign='left';
+  ctx.setLineDash([6,4]); ctx.strokeStyle=INK; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(X(0.14),T); ctx.lineTo(X(0.14),B); ctx.stroke(); ctx.setLineDash([]);
+  label(ctx,X(0.14)-46,Y(0.5),`0.14n = ${Math.round(0.14*C6.n)}개`,INK,'700 12px Noto Sans KR');
+  const line=(f,col)=>{ ctx.strokeStyle=col; ctx.lineWidth=2.6; ctx.beginPath(); C6.pts.forEach((q,i)=>i?ctx.lineTo(X(q.r),Y(f(q))):ctx.moveTo(X(q.r),Y(f(q)))); ctx.stroke(); C6.pts.forEach(q=>dot(ctx,X(q.r),Y(f(q)),3,col)); };
+  line(q=>q.ok,POS); line(q=>q.err,ON);
+  if(!C6.pts.length){ ctx.fillStyle='#8a909a'; ctx.font='13px Noto Sans KR'; ctx.textAlign='center'; ctx.fillText('▶ 실험 시작을 눌러 보세요',(L+R)/2,(T+B)/2); ctx.textAlign='left'; }
+}
+function capStatus(){
+  const st=$('sCap'), n=C6.n;
+  if(C6.running){ st.className='status'; st.innerHTML=`실험 중… 기억 ${C6.pts.length?C6.pts[C6.pts.length-1].p:0}개까지 했어요.`; return; }
+  if(!C6.pts.length){ st.className='status'; st.innerHTML=`n = ${n}이면 0.14n = ${Math.round(0.14*n)}개 근처에서 무너질 거예요.`; return; }
+  const fall=C6.pts.find(q=>q.ok<0.5);
+  st.className='status good';
+  st.innerHTML = fall ? `기억이 <b>${fall.p}개</b>(≈ ${num(Math.round(fall.r*100)/100)}n)일 때 처음으로 절반 이상을 못 되살렸어요. 이론값 0.14n = ${Math.round(0.14*n)}개와 비슷하죠? 여러 번 돌리면 조금씩 달라져요(무작위 실험).`
+    : '모든 경우에 대부분 되살렸어요. 다시 돌려 보세요.';
+}
+function capTick(){
+  if(!C6.running) return;
+  if(C6.k>=C6.plist.length){ C6.running=false; $('bCap').disabled=false; capStatus(); return; }
+  C6.pts.push(capPoint(C6.n,C6.plist[C6.k++]));
+  drawCap(); capStatus();
+  setTimeout(capTick,16);
+}
+$('bCap').onclick=()=>{ const n=C6.n, st=Math.max(1,Math.round(n/50)); C6.plist=[]; for(let p=1;p<=Math.round(0.3*n);p+=st) C6.plist.push(p);
+  C6.pts=[]; C6.k=0; C6.running=true; $('bCap').disabled=true; capTick(); };
+segBind('capSeg', v=>{ if(C6.running) return; C6.n=+v; C6.pts=[]; drawCap(); capStatus(); });
+
+// ================= Tabs =================
+const DRAW={hebb:drawHebb, outer:drawOuter, stable:drawStab, energy:drawE4, local:drawL5, lab:()=>{ drawLab(); drawWmap(); }, cap:()=>{ drawCap(); capStatus(); }, summary:()=>{}};
+let curTab='hebb';
+function show(t, scroll){
+  if(!DRAW[t]) t='hebb';
+  if(t!=='lab') LB.running=false;
+  if(t!=='local' && L5.running){ clearTimeout(L5.timer); L5.running=false; }
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('on', el.id==='t-'+t));
+  document.querySelectorAll('#tabbar button').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); if(on) b.scrollIntoView({block:'nearest',inline:'center'}); });
+  if(location.hash!=='#'+t){ try{ history.replaceState(null,'','#'+t); }catch(_){ location.hash=t; } }
+  DRAW[t]();
+  if(scroll) window.scrollTo({top:0,behavior:'smooth'});
+}
+$('tabbar').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.t,false); });
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go,true)));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1),false));
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>DRAW[curTab](),80); });
+
+// init
+E4.hist=[energy4(E4.cur)];
+l5Reset(randS());
+buildW(); drawMem(); newStart();
+$('lNoise').textContent=Math.round(LB.noise*100)+'% ('+Math.round(LB.noise*NN)+'픽셀)';
+show(location.hash.slice(1)||'hebb',false);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>DRAW[curTab]());
+})();
+</script>
+</body>
+</html>
