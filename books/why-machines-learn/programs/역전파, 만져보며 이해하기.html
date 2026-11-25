@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>역전파, 만져보며 이해하기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 홉필드 망 자료와 같은 학습 노트 톤
+   IDEA: 책 옆에 펼쳐 두는 실험 노트
+   PICTURE: 탭마다 직접 움직이는 그림 하나
+   COLOUR/TYPE: 기존 자료와 동일 (보라 강조, Noto Sans/Serif KR)
+   LAYOUT: 720px 한 단, 상단 탭 */
+:root{--bg:#f7f4ee;--card:#fff;--ink:#1f2328;--muted:#5b6370;--line:#e4ded3;--on:#c4572b;--off:#2f5d9e;--pos:#6a4fb3;--neg:#c23b3b;--accent:#6a4fb3;--ok:#2f8f5b;--bad:#e07a1f}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.75;font-size:16px;word-break:keep-all;overflow-x:clip}
+header{max-width:720px;margin:0 auto;padding:24px 16px 6px}
+.eyebrow{color:var(--accent);font-weight:700;font-size:.85rem}
+h1{font-family:'Noto Serif KR',serif;font-size:1.45rem;line-height:1.4;margin:.15em 0 .2em}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.tabs{position:sticky;top:0;z-index:5;background:rgba(247,244,238,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.tabs .in{max-width:720px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
+.tabs .in::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border-radius:999px;padding:6px 13px;font-size:.88rem;background:#fff}
+.tabs button .n{color:var(--accent);font-weight:700;margin-right:4px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabs button.on .n{color:#cdbcf5}
+main{max-width:720px;margin:0 auto;padding:6px 16px 80px}
+.tab{display:none}.tab.on{display:block}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 16px;margin:14px 0}
+h2{font-family:'Noto Serif KR',serif;font-size:1.22rem;line-height:1.45;margin:0 0 .5em}
+h3{font-size:1.02rem;margin:1.4em 0 .3em;color:var(--accent)}
+p{margin:.55em 0}
+ul,ol{padding-left:1.2em;margin:.35em 0}
+canvas{width:100%;display:block;border-radius:12px;background:#fbfaf7;border:1px solid var(--line);touch-action:none;margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:#f3efe7;color:var(--ink);padding:7px 12px;border-radius:10px;cursor:pointer;min-height:40px}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
+.seg button{flex:1;border:0;border-radius:0;background:#f3efe7;font-size:.85rem;padding:8px 4px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:#fff}
+.seglabel{font-size:.85rem;color:var(--muted);margin:12px 0 0}
+.slider{margin:10px 0 2px}
+.slider label{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);gap:8px}
+.slider label b{color:var(--ink);font-weight:500;white-space:nowrap;font-family:'Times New Roman',serif;font-size:1.05rem}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.status{font-size:.93rem;padding:10px 12px;border-radius:10px;background:#f3efe7;margin-top:10px;line-height:1.7}
+.status.good{background:#e6f2ea;color:#1f5a38}
+.status.bad{background:#f8e5e3;color:#8e2a2a}
+.key{background:#f1ecfa;border-left:4px solid var(--accent);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0 4px}
+.note{background:#eef3f9;border-radius:10px;padding:8px 12px;font-size:.88rem;color:#2c4a6e;margin:10px 0}
+.m{font-family:'Times New Roman',Times,serif;font-style:italic;white-space:nowrap;font-size:1.06em}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .12em;font-size:.9em;font-style:normal}
+.frac>span:first-child{border-bottom:1.3px solid currentColor;padding:0 .25em}
+.eq{display:block;text-align:center;margin:.7em 0;font-family:'Times New Roman',Times,serif;font-size:1.15rem;overflow-x:auto;padding:2px 0}
+.ss{display:inline-flex;flex-direction:column;vertical-align:middle;line-height:1;font-size:.68em;margin-left:1px}
+.ss sup,.ss sub{position:static;font-size:1em;vertical-align:baseline}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.83rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px}
+.sw.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);height:2px}
+.dotk{display:inline-block;width:12px;height:12px;border-radius:50%}
+.tri{display:inline-block;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid var(--off)}
+details{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fdfcf9}
+summary{cursor:pointer;font-weight:500;font-size:.95rem}
+details.think{border-color:#efd8ad;background:#fff8ea}
+details.think summary{color:#8a5a12}
+details.think summary b{color:#b5731b;margin-right:4px}
+.small{font-size:.86rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.6em 0}
+th,td{border:1px solid var(--line);padding:6px 6px;text-align:center}
+th{background:#f3efe7;font-weight:500}
+td.l{text-align:left}
+.navrow{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+.navrow button{background:#fff}
+.flow{display:flex;flex-direction:column;gap:6px;margin:.6em 0}
+.flow div{background:#f3efe7;border-radius:10px;padding:8px 12px;font-size:.93rem}
+.flow div b{color:var(--accent)}
+.chain{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:.8em 0}
+.chain .node{background:#fff;border:1.5px solid var(--accent);border-radius:12px;padding:8px 12px;font-size:.92rem}
+.chain .node b{color:var(--accent)}
+.chain .arr{text-align:center;color:var(--muted);font-size:.82rem;padding:3px 0;line-height:1.4}
+.gear{display:flex;align-items:stretch;gap:0;margin:10px 0;overflow-x:auto}
+.gear .g{flex:1 1 0;background:#f1ecfa;border-radius:12px;padding:8px 6px;text-align:center;font-family:'Times New Roman',serif;font-size:1.02rem;line-height:1.5}
+.gear .g small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:.74rem;color:var(--muted)}
+.gear .r{flex:0 0 auto;align-self:center;padding:0 4px;text-align:center;font-family:'Times New Roman',serif;font-size:.92rem;color:var(--on);line-height:1.3}
+.gear .r small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:.7rem;color:var(--muted)}
+.calc{background:#fbfaf7;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;font-family:'Times New Roman',Times,serif;font-size:1.02rem;line-height:2.1;overflow-x:auto}
+.calc .row{white-space:nowrap}
+.calc .row.new{background:#fff4d6;border-radius:6px;margin:0 -6px;padding:0 6px}
+.calc .row.sep{border-top:1px dashed var(--line);margin-top:4px;padding-top:4px}
+.calc .lbl{display:inline-block;min-width:5.6em;color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:.8rem}
+.calc .hi{color:var(--accent);font-weight:700}
+.calc .warn{color:var(--neg);font-weight:700}
+.calc .okc{color:var(--ok);font-weight:700}
+.calc .bk{color:var(--on);font-weight:700}
+.calc .txt{font-family:'Noto Sans KR',sans-serif;font-size:.86rem;white-space:normal}
+.timeline{border-left:3px solid #ddd2f3;margin:10px 0 4px 6px;padding-left:14px}
+.timeline div{margin:8px 0;font-size:.93rem}
+.timeline b{color:var(--accent)}
+.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.pgrid label{display:flex;flex-direction:column;font-size:.8rem;color:var(--muted);gap:2px}
+.pgrid input{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;font-family:'Times New Roman',serif}
+.params{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.params div{background:#f3efe7;border-radius:8px;padding:4px 8px;font-family:'Times New Roman',serif;font-size:.98rem;display:flex;justify-content:space-between;gap:4px}
+.params div i{font-style:italic}
+.params div b{font-weight:500;font-variant-numeric:tabular-nums}
+.tally{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tally div{background:#f3efe7;border-radius:10px;padding:8px 10px;font-size:.88rem}
+.tally b{font-size:1.15rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two .cap{font-size:.82rem;color:var(--muted);margin-top:4px;text-align:center}
+@media(max-width:520px){.two{grid-template-columns:1fr}}
+.stepper{display:flex;gap:8px;align-items:center;margin-top:10px}
+.stepper .bar{flex:1;height:8px;background:#f3efe7;border-radius:4px;overflow:hidden;position:relative}
+.stepper .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--pos);transition:width .2s}
+.stepper .bar i.b{background:var(--on)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">오래된 신화를 깨뜨린 알고리즘 · 320–343쪽</div>
+  <h1>역전파, 만져보며 이해하기</h1>
+  <p class="sub">선형 회귀 → 손실 함수 → 연쇄 규칙 → 경사 하강법 → XOR와 시그모이드 → 역전파</p>
+</header>
+
+<nav class="tabs"><div class="in" id="tabbar">
+  <button data-t="line"><span class="n">1</span>직선과 손실</button>
+  <button data-t="chain"><span class="n">2</span>연쇄 규칙</button>
+  <button data-t="gd"><span class="n">3</span>경사 하강법</button>
+  <button data-t="xor"><span class="n">4</span>XOR와 시그모이드</button>
+  <button data-t="bp"><span class="n">5</span>역전파 한 걸음씩</button>
+  <button data-t="lab"><span class="n">6</span>XOR 실험실</button>
+  <button data-t="summary"><span class="n">7</span>정리</button>
+</div></nav>
+
+<main>
+<!-- ============ TAB 1 ============ -->
+<div class="tab" id="t-line">
+<section>
+  <h2>신경세포 하나 = 직선 하나</h2>
+  <p>가장 단순한 신경세포는 입력 <span class="m">x</span>에 가중치 <span class="m">w</span>를 곱하고 편향 <span class="m">b</span>를 더해 출력을 냅니다(320쪽).</p>
+  <span class="eq">ŷ = wx + b</span>
+  <table>
+    <thead><tr><th>기호</th><th>신경세포에서</th><th>직선에서</th></tr></thead>
+    <tbody>
+      <tr><td class="m">w</td><td>가중치</td><td>기울기</td></tr>
+      <tr><td class="m">b</td><td>편향</td><td><span class="m">y</span>절편 (책의 ‘이격’)</td></tr>
+      <tr><td class="m">ŷ</td><td>출력 (예측값, 책의 yhat)</td><td>직선 위의 높이</td></tr>
+    </tbody>
+  </table>
+  <p>점 10개를 가장 잘 지나는 직선을 찾는 일 = <b>선형 회귀</b> = 이 신경세포의 <span class="m">w</span>와 <span class="m">b</span>를 찾는 일. 그런데 ‘가장 잘’을 숫자로 정해야 찾을 수 있어요.</p>
+  <span class="eq">오류 e = y − ŷ, &nbsp;&nbsp; 손실 L = e<sup>2</sup> = (y − wx − b)<sup>2</sup></span>
+  <div class="note">책 321쪽은 “<span class="m">y</span>는 예측값”이라고 적었지만, <span class="m">y</span>는 데이터가 준 <b>정답</b>(목표값)이고 예측값은 <span class="m">ŷ</span>(yhat)예요.</div>
+  <p class="small">슬라이더로 직선을 움직여 보세요. 주황 정사각형의 넓이가 각 점의 손실 <span class="m">e<sup>2</sup></span>이에요. 점을 누르면 그 점의 계산을 보여 줘요.</p>
+  <canvas id="cFit1"></canvas>
+  <div class="slider"><label><span>가중치 w (기울기)</span><b id="lW1"></b></label><input type="range" id="rW1" min="-1" max="2.6" step="0.05" value="0"></div>
+  <div class="slider"><label><span>편향 b (y절편)</span><b id="lB1"></b></label><input type="range" id="rB1" min="-2.5" max="4.5" step="0.05" value="0"></div>
+  <div class="controls">
+    <button id="bBook1">책처럼 w = 0, b = 0</button>
+    <button id="bOpt1">가장 좋은 직선 보기</button>
+  </div>
+  <div class="calc" id="calc1"></div>
+  <div class="status" id="s1"></div>
+</section>
+
+<section>
+  <h2>손실은 w와 b의 함수: 그릇 모양</h2>
+  <p>점 10개의 손실을 평균한 <b>평균 제곱 오차(MSE)</b>를 <span class="m">w</span>, <span class="m">b</span>의 모든 조합에 대해 계산해 높이로 세우면 책 322쪽의 그릇이 돼요. 아래는 그 그릇을 <b>위에서 내려다본 등고선 지도</b>예요. 진할수록 낮아요.</p>
+  <span class="eq">MSE(w, b) = <span class="F">1|10</span>(e<sub>1</sub><sup>2</sup> + e<sub>2</sub><sup>2</sup> + ⋯ + e<sub>10</sub><sup>2</sup>)</span>
+  <canvas id="cMap1"></canvas>
+  <div class="legend"><span><span class="dotk" style="background:var(--on)"></span>지금 (w, b)</span><span>★ 그릇의 바닥</span></div>
+  <p class="small">지도를 눌러도 직선이 바뀌어요. 위의 직선 그림과 함께 보세요.</p>
+  <div class="key"><b>핵심</b>: 데이터(점 10개)는 고정이고, 움직이는 건 <span class="m">w</span>와 <span class="m">b</span>예요. 그래서 학습 = <b>그릇에서 가장 낮은 곳 찾기</b>. 데이터가 바뀌면 그릇의 정확한 모양도 바뀌어요(322쪽).</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>오류 <span class="m">e</span>를 그냥 더하면 안 될까? 왜 제곱할까?</summary>
+    <p>점 두 개의 오류가 +3, −3이면 더해서 0. 엉터리 직선도 ‘완벽’해 보여요. 그래서 부호를 없애야 하는데, 절댓값 <span class="m">|e|</span>는 <span class="m">e = 0</span>에서 뾰족해 미분할 수 없어요. 제곱은 부호도 없애고 어디서나 매끄러워서 <b>기울기를 계산할 수 있는 그릇</b>을 만들어요. 큰 오류를 더 무겁게 벌주는 효과도 있고요(오류 2는 손실 4, 오류 4는 손실 16).</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>무작위로 시작하면 왜 ‘비탈 어딘가’에 놓일 가능성이 클까?</summary>
+    <p>지도에서 바닥 근처의 진한 영역은 아주 좁아요. 아무 데나 찍으면 대부분 밝은 비탈이죠(322쪽). 그래서 비탈을 내려가는 방법, 즉 <b>기울기</b>가 필요해요.</p>
+  </details>
+</section>
+<div class="navrow"><span></span><button data-go="chain">다음: 연쇄 규칙 →</button></div>
+</div>
+
+<!-- ============ TAB 2 ============ -->
+<div class="tab" id="t-chain">
+<section>
+  <h2>미분 = 민감도</h2>
+  <p>기울기 <span class="F">dy|dx</span>는 “<span class="m">x</span>를 아주 조금 움직이면 <span class="m">y</span>는 <b>몇 배</b> 움직이나?”예요. 책이 쓰는 규칙은 둘뿐이에요(323–324쪽).</p>
+  <table>
+    <thead><tr><th>규칙</th><th>식</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>멱 규칙</td><td class="m">y = x<sup>n</sup> ⇒ <span class="F">dy|dx</span> = nx<sup>n−1</sup></td><td class="m">x<sup>3</sup> → 3x<sup>2</sup></td></tr>
+      <tr><td>연쇄 규칙</td><td class="m">y = f(z), z = g(x) ⇒ <span class="F">dy|dx</span> = <span class="F">dy|dz</span> · <span class="F">dz|dx</span></td><td>아래</td></tr>
+    </tbody>
+  </table>
+  <h3>톱니바퀴로 보는 연쇄 규칙</h3>
+  <p>톱니바퀴 세 개가 맞물려 있다고 해요. 첫째가 1만큼 돌면 둘째는 2배, 둘째가 1만큼 돌면 셋째는 3배 돈다면, 첫째를 1만큼 돌릴 때 셋째는 <b>2 × 3 = 6배</b>. 단계별 배율을 <b>곱하면</b> 돼요. 책의 예 <span class="m">y = sin(x<sup>2</sup>)</span>로 확인해 봐요.</p>
+  <div class="slider"><label><span>x</span><b id="lX2"></b></label><input type="range" id="rX2" min="-2" max="2" step="0.05" value="1.2"></div>
+  <div class="gear" id="gear2"></div>
+  <div class="calc" id="calc2a"></div>
+  <div class="status" id="s2a"></div>
+</section>
+
+<section>
+  <h2>손실에 연쇄 규칙 쓰기</h2>
+  <p>손실 <span class="m">L</span>은 <span class="m">w</span>에 직접 매달려 있지 않고 오류 <span class="m">e</span>를 거쳐 매달려 있어요(325쪽).</p>
+  <span class="eq">w &nbsp;→&nbsp; e = y − wx − b &nbsp;→&nbsp; L = e<sup>2</sup></span>
+  <span class="eq"><span class="F">∂L|∂w</span> = <span class="F">∂L|∂e</span> · <span class="F">∂e|∂w</span> = 2e · (−x) = −2xe</span>
+  <span class="eq"><span class="F">∂L|∂b</span> = <span class="F">∂L|∂e</span> · <span class="F">∂e|∂b</span> = 2e · (−1) = −2e</span>
+  <p><span class="m">d</span>가 꼬불꼬불한 <span class="m">∂</span>로 바뀐 건 <b>편미분</b>이라는 뜻이에요. 변수가 여럿일 때 하나만 움직이고 나머지는 상수로 둬요. <span class="m">∂e/∂w</span>를 구할 때 <span class="m">y</span>, <span class="m">x</span>, <span class="m">b</span>는 그냥 숫자 취급.</p>
+  <p class="small">점 하나 <span class="m">(x, y) = (2, 3)</span>으로 확인해요. <span class="m">w</span>나 <span class="m">b</span>를 0.01만 늘려서 실제 손실 변화와 공식의 예측을 비교해 보세요.</p>
+  <div class="slider"><label><span>w</span><b id="lW2"></b></label><input type="range" id="rW2" min="-1" max="3" step="0.1" value="0"></div>
+  <div class="slider"><label><span>b</span><b id="lB2"></b></label><input type="range" id="rB2" min="-2" max="3" step="0.1" value="0"></div>
+  <div class="gear" id="gear2b"></div>
+  <div class="controls"><button class="primary" id="bNudgeW">w를 0.01 늘려 보기</button><button class="primary" id="bNudgeB">b를 0.01 늘려 보기</button></div>
+  <div class="calc" id="calc2b"></div>
+  <div class="key"><b>기울기 벡터</b>: 두 편미분을 세워 놓은 것 <span class="m">[<span class="F">∂L|∂w</span>, <span class="F">∂L|∂b</span>]</span> = <span class="m">[−2xe, −2e]</span>는 그릇 위에서 <b>가장 가파른 오르막</b>을 가리켜요(322–326쪽). 내려가려면 반대로 가면 돼요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b><span class="F">∂L|∂b</span>에는 왜 <span class="m">x</span>가 없을까?</summary>
+    <p><span class="m">b</span>는 직선을 위아래로 통째로 옮겨요. <span class="m">b</span>가 0.01 늘면 모든 점에서 <span class="m">ŷ</span>가 똑같이 0.01 늘죠(배율 1). 반면 <span class="m">w</span>가 0.01 늘면 <span class="m">ŷ</span>는 <span class="m">0.01x</span>만큼 늘어요. <span class="m">x</span>가 큰 점일수록 직선이 크게 움직이니 배율에 <span class="m">x</span>가 붙어요. 그래서 <span class="m">x</span>가 큰 점일수록 <span class="m">w</span>의 기울기에 큰 목소리를 내요.</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>연쇄 규칙 없이 직접 전개해도 같을까?</summary>
+    <p><span class="m">L = (y − wx − b)<sup>2</sup> = y<sup>2</sup> + w<sup>2</sup>x<sup>2</sup> + b<sup>2</sup> − 2wxy − 2by + 2wxb</span>를 <span class="m">w</span>로 미분하면 <span class="m">2wx<sup>2</sup> − 2xy + 2xb = −2x(y − wx − b)</span>. 같아요. 그런데 층이 깊어지면 전개는 금세 괴물이 되고(329쪽), 연쇄 규칙은 배율을 하나씩 곱하기만 하면 돼요. 이게 역전파의 씨앗이에요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="line">← 이전</button><button data-go="gd">다음: 경사 하강법 →</button></div>
+</div>
+
+<!-- ============ TAB 3 ============ -->
+<div class="tab" id="t-gd">
+<section>
+  <h2>비탈을 조금씩 내려가기</h2>
+  <p>기울기는 오르막 방향이니 <b>반대 방향으로 작은 걸음</b>을 내딛어요. 걸음 크기를 정하는 작은 수가 <b>학습률 <span class="m">α</span></b>예요(326–327쪽).</p>
+  <span class="eq">Δw = −α<span class="F">∂L|∂w</span>, &nbsp; w ← w + Δw</span>
+  <span class="eq">Δb = −α<span class="F">∂L|∂b</span>, &nbsp; b ← b + Δb</span>
+  <p>점이 10개이니 점마다 기울기를 구해 <b>평균</b>을 내요(326쪽). 이게 책의 <b>델타 규칙</b>, 위드로–호프의 LMS 알고리즘과 같은 생각이에요.</p>
+  <p class="seglabel">학습률 α</p>
+  <div class="seg" id="alphaSeg">
+    <button data-v="0.01">0.01 (책)</button>
+    <button data-v="0.05" class="on">0.05</button>
+    <button data-v="0.11">0.11</button>
+    <button data-v="0.13">0.13</button>
+  </div>
+  <canvas id="cMap3"></canvas>
+  <div class="legend"><span><span class="dotk" style="background:var(--on)"></span>지금 위치</span><span style="color:var(--on)"><span class="sw" style="background:var(--on)"></span>지나온 길</span><span>★ 바닥</span></div>
+  <div class="controls">
+    <button class="primary" id="bStep3">한 걸음</button>
+    <button class="primary" id="bRun3">▶ 계속 내려가기</button>
+    <button id="bReset3">(0, 0)에서 다시</button>
+  </div>
+  <p class="small">지도를 누르면 그 자리에서 출발해요.</p>
+  <div class="calc" id="calc3"></div>
+  <div class="two">
+    <div><canvas id="cFit3"></canvas><div class="cap">지금의 직선</div></div>
+    <div><canvas id="cLoss3"></canvas><div class="cap">손실 기록 (로그 눈금)</div></div>
+  </div>
+  <div class="status" id="s3"></div>
+  <div class="key"><b>학습률에 따라</b>
+    <ul>
+      <li><b>너무 작으면</b>(0.01): 안전하지만 느려요. 특히 <span class="m">b</span> 방향이 굼떠요.</li>
+      <li><b>적당하면</b>(0.05): 부드럽게 바닥으로.</li>
+      <li><b>조금 크면</b>(0.11): <span class="m">w</span> 방향으로 골짜기 양쪽 벽을 오가며 <b>지그재그</b>.</li>
+      <li><b>너무 크면</b>(0.13): 한 걸음마다 반대편 벽의 더 높은 곳에 떨어져 <b>발산</b>.</li>
+    </ul>
+  </div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>0.11은 되고 0.13은 왜 안 될까? 경계는 어디일까?</summary>
+    <p><span class="m">b</span>를 고정하고 <span class="m">w</span>만 보면 MSE는 이차함수이고, 그 이계도함수는 <span class="m">2 · (x<sup>2</sup>의 평균) = 2 × 8.5 = 17</span>이에요. 그래서 기울기는 <span class="m">17(w − w*)</span>, 한 걸음 뒤 바닥까지 거리는</p>
+    <span class="eq">w − w* &nbsp;→&nbsp; (1 − 17α)(w − w*)</span>
+    <p>배율 <span class="m">1 − 17α</span>의 크기가 1보다 작아야 줄어들어요. α = 0.05면 0.15배(빠르게 수렴), α = 0.11이면 −0.87배(부호가 바뀌며 지그재그), α = 0.13이면 −1.21배(점점 커져 발산). 경계는 <span class="m">α = <span class="F">2|17</span> ≈ 0.118</span>. <span class="m">b</span>와 얽힌 부분까지 따지면 약 0.117이에요.</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>왜 그릇이 옆으로 길쭉할까?</summary>
+    <p><span class="F">∂L|∂w</span>에는 <span class="m">x</span>가 곱해져서(2탭) <span class="m">w</span> 방향은 가파르고, <span class="m">b</span> 방향은 완만해요. 이계도함수로 보면 <span class="m">w</span> 방향 17, <span class="m">b</span> 방향 2. 그래서 학습률 하나로 두 방향을 모두 만족시키기 어려워요. 이 문제를 줄이려고 실제로는 입력을 표준화하거나, 방향마다 걸음을 조절하는 방법(모멘텀, Adam 등)을 써요.</p>
+  </details>
+</section>
+
+<section>
+  <h2>입력이 2개라면</h2>
+  <p>입력이 <span class="m">x<sub>1</sub>, x<sub>2</sub></span> 두 개여도 방법은 그대로예요(328–330쪽).</p>
+  <span class="eq">ŷ = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub> + b, &nbsp;&nbsp; e = y − ŷ</span>
+  <table>
+    <thead><tr><th>매개변수</th><th>연쇄 규칙</th><th>기울기</th></tr></thead>
+    <tbody>
+      <tr><td class="m">w<sub>1</sub></td><td class="m">2e · (−x<sub>1</sub>)</td><td class="m">−2x<sub>1</sub>e</td></tr>
+      <tr><td class="m">w<sub>2</sub></td><td class="m">2e · (−x<sub>2</sub>)</td><td class="m">−2x<sub>2</sub>e</td></tr>
+      <tr><td class="m">b</td><td class="m">2e · (−1)</td><td class="m">−2e</td></tr>
+    </tbody>
+  </table>
+  <p>패턴이 보이죠. <b>가중치의 기울기 = −2e × (그 가중치에 들어오는 입력)</b>. 매개변수가 3개라 손실 그래프는 4차원이라 그릴 수 없지만, 계산은 똑같아요. 100픽셀 고양이·개 이미지라면 가중치 100개와 편향 1개, 기울기 성분 101개(331쪽).</p>
+</section>
+<div class="navrow"><button data-go="chain">← 이전</button><button data-go="xor">다음: XOR와 시그모이드 →</button></div>
+</div>
+
+<!-- ============ TAB 4 ============ -->
+<div class="tab" id="t-xor">
+<section>
+  <h2>직선 하나로는 안 되는 문제: XOR</h2>
+  <p>동그라미(목표 1)와 세모(목표 0)가 엇갈려 놓였어요(331–332쪽). 신경세포 하나는 <span class="m">w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub> + b = 0</span>인 <b>직선 하나</b>로 평면을 나눠요. 직선 위쪽(값이 양수)을 동그라미로 판정한다고 할 때, 20개를 다 맞혀 보세요.</p>
+  <canvas id="cXor4"></canvas>
+  <div class="legend"><span><span class="dotk" style="background:var(--on)"></span>동그라미 (목표 1)</span><span><span class="tri"></span>세모 (목표 0)</span></div>
+  <div class="slider"><label><span>w₁</span><b id="lA4"></b></label><input type="range" id="rA4" min="-3" max="3" step="0.1" value="1"></div>
+  <div class="slider"><label><span>w₂</span><b id="lB4"></b></label><input type="range" id="rB4" min="-3" max="3" step="0.1" value="1"></div>
+  <div class="slider"><label><span>b</span><b id="lC4"></b></label><input type="range" id="rC4" min="-3" max="3" step="0.1" value="0"></div>
+  <div class="controls"><button id="bTwo4">직선 두 개로 나눠 보기</button></div>
+  <div class="status" id="s4"></div>
+  <div class="key"><b>한 층에 신경세포를 더해도</b> 직선이 늘어날 뿐이에요(332쪽). 필요한 건 두 직선을 받아 ‘두 직선 <b>사이</b>는 동그라미, 바깥은 세모’로 <b>결합하는 둘째 층</b>. 그래서 층이 여러 개 필요해요.</div>
+</section>
+
+<section>
+  <h2>계단을 매끄럽게: 시그모이드</h2>
+  <p>신경세포를 <span class="m">z</span>(가중합)와 <span class="m">a</span>(활성화) 두 단계로 나눠요(333쪽).</p>
+  <span class="eq">z = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub> + b, &nbsp;&nbsp; a = a(z)</span>
+  <p>퍼셉트론의 계단 함수(<span class="m">z &gt; 0</span>이면 1, 아니면 0)는 기울기가 거의 어디서나 0이고 <span class="m">z = 0</span>에서는 미분이 안 돼요. 경사 하강법에 쓸 수 없죠. 그래서 계단을 매끄럽게 다듬은 <b>시그모이드</b>를 써요(334쪽).</p>
+  <span class="eq">σ(z) = <span class="F">1|1 + e<sup>−z</sup></span>, &nbsp;&nbsp; <span class="F">dσ|dz</span> = σ(z)(1 − σ(z))</span>
+  <canvas id="cSig"></canvas>
+  <div class="legend"><span><span class="sw dash" style="color:#8a909a"></span>계단 함수</span><span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>σ(z)</span><span style="color:var(--on)"><span class="sw" style="background:var(--on)"></span>기울기 σ′(z)</span></div>
+  <div class="slider"><label><span>z</span><b id="lZ4"></b></label><input type="range" id="rZ4" min="-6" max="6" step="0.1" value="1"></div>
+  <div class="calc" id="calc4"></div>
+  <div class="key"><b>가장 중요한 성질</b>(335쪽): 도함수가 <b>함수값 자신</b>으로 표현돼요. 순전파 때 <span class="m">σ(z)</span>를 이미 계산했으니, 역전파 때는 <span class="m">σ(1 − σ)</span>로 곱셈 한 번이면 끝. 그리고 기울기는 <span class="m">z = 0</span>에서 최대 <b>0.25</b>예요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>왜 <span class="m">σ′ = σ(1 − σ)</span>일까?</summary>
+    <p><span class="m">σ = (1 + e<sup>−z</sup>)<sup>−1</sup></span>. 연쇄 규칙으로 바깥 <span class="m">u<sup>−1</sup></span>, 안쪽 <span class="m">u = 1 + e<sup>−z</sup></span>:</p>
+    <div class="calc">
+      <div class="row"><span class="lbl">① 바깥</span><span class="F">d(u<sup>−1</sup>)|du</span> = −u<sup>−2</sup></div>
+      <div class="row"><span class="lbl">② 안쪽</span><span class="F">du|dz</span> = −e<sup>−z</sup></div>
+      <div class="row"><span class="lbl">③ 곱</span>σ′ = <span class="F">e<sup>−z</sup>|(1 + e<sup>−z</sup>)<sup>2</sup></span> = <span class="F">1|1 + e<sup>−z</sup></span> · <span class="F">e<sup>−z</sup>|1 + e<sup>−z</sup></span></div>
+      <div class="row"><span class="lbl">④ 알아보기</span>앞 인수 = σ, 뒤 인수 = <span class="F">(1 + e<sup>−z</sup>) − 1|1 + e<sup>−z</sup></span> = 1 − σ</div>
+    </div>
+  </details>
+</section>
+<div class="navrow"><button data-go="gd">← 이전</button><button data-go="bp">다음: 역전파 한 걸음씩 →</button></div>
+</div>
+
+<!-- ============ TAB 5 ============ -->
+<div class="tab" id="t-bp">
+<section>
+  <h2>가장 단순한 2층 신경망</h2>
+  <p>책 338쪽처럼 은닉 신경세포 하나, 출력 신경세포 하나. 매개변수는 <span class="m">w<sub>1</sub>, b<sub>1</sub>, w<sub>2</sub>, b<sub>2</sub></span> 네 개예요.</p>
+  <span class="eq">z<sub>1</sub> = w<sub>1</sub>x + b<sub>1</sub> → a<sub>1</sub> = σ(z<sub>1</sub>) → z<sub>2</sub> = w<sub>2</sub>a<sub>1</sub> + b<sub>2</sub> → ŷ = σ(z<sub>2</sub>) → L = (y − ŷ)<sup>2</sup></span>
+  <p class="small">값을 바꾸고 ‘다음’을 눌러 순전파(보라, 왼쪽→오른쪽)와 역전파(주황, 오른쪽→왼쪽)를 한 단계씩 따라가 보세요.</p>
+  <div class="pgrid">
+    <label>입력 x<input type="number" id="pX" step="0.1" value="1"></label>
+    <label>정답 y<input type="number" id="pY" step="0.1" value="1"></label>
+    <label>학습률 α<input type="number" id="pA" step="0.1" value="1"></label>
+    <label>w₁<input type="number" id="pW1" step="0.1" value="0.5"></label>
+    <label>b₁<input type="number" id="pB1" step="0.1" value="0"></label>
+    <label>w₂<input type="number" id="pW2" step="0.1" value="0.5"></label>
+    <label>b₂<input type="number" id="pB2" step="0.1" value="0"></label>
+  </div>
+  <canvas id="cNet"></canvas>
+  <div class="stepper"><button id="bPrev5">← 이전</button><div class="bar"><i id="barF"></i></div><button class="primary" id="bNext5">다음 →</button></div>
+  <div class="controls"><button id="bAll5">끝까지 한 번에</button><button id="bUpd5">갱신하고 다시</button><button id="bRand5">무작위 값</button></div>
+  <div class="calc" id="calc5"></div>
+  <div class="status" id="s5"></div>
+</section>
+
+<section>
+  <h2>왜 ‘역’전파일까?</h2>
+  <p>책 341쪽의 긴 식을 그대로 쓰면</p>
+  <span class="eq"><span class="F">∂L|∂w<sub>1</sub></span> = <span class="F">∂L|∂e</span> <span class="F">∂e|∂ŷ</span> <span class="F">∂ŷ|∂z<sub>2</sub></span> <span class="F">∂z<sub>2</sub>|∂a<sub>1</sub></span> <span class="F">∂a<sub>1</sub>|∂z<sub>1</sub></span> <span class="F">∂z<sub>1</sub>|∂w<sub>1</sub></span></span>
+  <span class="eq">= 2e · (−1) · ŷ(1 − ŷ) · w<sub>2</sub> · a<sub>1</sub>(1 − a<sub>1</sub>) · x</span>
+  <p>그런데 앞의 세 배율은 <span class="F">∂L|∂w<sub>2</sub></span>를 구할 때 이미 곱했어요. 그 곱을 <span class="m">δ<sub>2</sub></span>(출력층의 ‘오류 신호’)라고 부르면</p>
+  <div class="flow">
+    <div><b>출력층</b> <span class="m">δ<sub>2</sub> = <span class="F">∂L|∂z<sub>2</sub></span> = −2e · ŷ(1 − ŷ)</span> → <span class="m"><span class="F">∂L|∂w<sub>2</sub></span> = δ<sub>2</sub> · a<sub>1</sub></span>, <span class="m"><span class="F">∂L|∂b<sub>2</sub></span> = δ<sub>2</sub></span></div>
+    <div><b>한 층 뒤로</b> <span class="m">δ<sub>1</sub> = δ<sub>2</sub> · w<sub>2</sub> · a<sub>1</sub>(1 − a<sub>1</sub>)</span> → <span class="m"><span class="F">∂L|∂w<sub>1</sub></span> = δ<sub>1</sub> · x</span>, <span class="m"><span class="F">∂L|∂b<sub>1</sub></span> = δ<sub>1</sub></span></div>
+  </div>
+  <div class="key"><b>역전파의 세 문장</b>
+    <ol>
+      <li><b>가중치의 기울기 = (그 층의 δ) × (그 가중치로 들어온 입력)</b>. 3탭의 −2e × 입력과 같은 모양이에요.</li>
+      <li>앞 층의 δ = (뒤 층의 δ) × (연결 가중치) × (활성화의 기울기). 오류 신호가 <b>가중치를 거꾸로 타고</b> 흘러가요.</li>
+      <li>필요한 재료(<span class="m">x, a<sub>1</sub>, ŷ, w<sub>2</sub></span>)는 모두 순전파 때 이미 계산됐어요. 역전파는 그 수들을 따라가며 <b>곱셈만</b> 해요(340쪽).</li>
+    </ol>
+  </div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>w₂를 먼저 갱신해 버리면 무엇이 틀어질까?</summary>
+    <p><span class="m">δ<sub>1</sub></span>을 구할 때 <span class="m">w<sub>2</sub></span>가 곱해져요. 이 <span class="m">w<sub>2</sub></span>는 순전파 때 <span class="m">ŷ</span>를 만든 바로 그 값, 즉 <b>옛 값</b>이어야 해요(341–342쪽). 새 값을 쓰면 실제로 손실을 만든 신경망이 아닌 다른 신경망의 기울기가 돼요. 그래서 모든 기울기를 먼저 구하고 갱신은 한꺼번에 해요. 위에서 ‘끝까지’ 후 ‘갱신하고 다시’를 눌러 보세요. 계산에 쓴 <span class="m">w<sub>2</sub></span>가 무엇인지 표시돼요.</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>분모와 분자를 지우면 왼쪽이 남는데, 그럼 그냥 약분인가?</summary>
+    <p>아니에요(339쪽). <span class="m">∂z<sub>2</sub></span>를 분수의 분모·분자처럼 지우는 건 연쇄의 순서가 맞는지 <b>확인하는 장치</b>일 뿐, 실제 나눗셈이 아니에요. 진짜 계산은 각 배율(국소 도함수)을 구해 곱하는 것. 아래 ‘수치 미분과 비교’로 결과가 맞는지 확인할 수 있어요.</p>
+  </details>
+  <details><summary>수치 미분과 비교 (기울기 검산)</summary>
+    <p class="small">매개변수 <span class="m">p</span>를 아주 조금(<span class="m">h = 0.0001</span>) 앞뒤로 움직여 실제 손실 변화로 기울기를 어림해요.</p>
+    <table id="chk5"></table>
+  </details>
+</section>
+<div class="navrow"><button data-go="xor">← 이전</button><button data-go="lab">다음: XOR 실험실 →</button></div>
+</div>
+
+<!-- ============ TAB 6 ============ -->
+<div class="tab" id="t-lab">
+<section>
+  <h2>은닉 신경세포 2개로 XOR 풀기</h2>
+  <p>책 336쪽의 신경망: 입력층(<span class="m">x<sub>1</sub>, x<sub>2</sub></span>) → 은닉층(신경세포 2개) → 출력층(1개). 매개변수 9개를 역전파로 학습해요. 매 단계 20개 점의 기울기를 평균해 한 번 갱신해요(한 단계 = 1세대).</p>
+  <div class="two">
+    <div><canvas id="cIn6"></canvas><div class="cap">입력 공간: 배경 = 출력 ŷ, 점선 = 은닉 신경세포의 직선</div></div>
+    <div><canvas id="cHid6"></canvas><div class="cap">은닉층이 본 세상 (a¹, a²), 실선 = 출력 신경세포의 직선</div></div>
+  </div>
+  <div class="legend"><span><span class="dotk" style="background:var(--on)"></span>동그라미 (1)</span><span><span class="tri"></span>세모 (0)</span><span style="color:var(--pos)"><span class="sw dash"></span>은닉 1</span><span style="color:var(--ok)"><span class="sw dash"></span>은닉 2</span></div>
+  <p class="seglabel">은닉층 활성화 함수</p>
+  <div class="seg" id="actSeg"><button data-v="sig" class="on">시그모이드</button><button data-v="lin">선형 a = z</button></div>
+  <p class="seglabel">학습률 α</p>
+  <div class="seg" id="lrSeg"><button data-v="0.5">0.5</button><button data-v="3" class="on">3</button><button data-v="10">10</button></div>
+  <div class="controls">
+    <button class="primary" id="bRun6">▶ 학습</button>
+    <button id="bStep6">100세대</button>
+    <button id="bInit6">무작위로 다시 시작</button>
+  </div>
+  <canvas id="cLoss6"></canvas>
+  <div class="status" id="s6"></div>
+  <div class="params" id="par6"></div>
+  <h3>20번 실험: 매번 풀릴까?</h3>
+  <p>무작위 출발점 20개에서 각각 8,000세대씩 학습해요(지금 고른 활성화 함수와 학습률로).</p>
+  <div class="controls"><button class="primary" id="bMany6">▶ 20번 돌리기</button></div>
+  <div class="tally" id="tally6"></div>
+  <div class="status" id="sMany6"></div>
+  <div class="key"><b>은닉층이 하는 일</b>: ‘은닉층이 본 세상’ 그림을 보세요. 은닉 신경세포 두 개가 각자 직선 하나씩 긋고(왼쪽 점선), 그 결과 <span class="m">(a<sup>1</sup>, a<sup>2</sup>)</span>로 점들을 옮기면 동그라미와 세모가 <b>직선 하나로 나뉘는</b> 배치가 돼요. 은닉층은 문제를 출력 신경세포가 풀 수 있는 모양으로 <b>바꿔 주는</b> 층이에요.</div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>‘선형 a = z’로 바꾸면 왜 절대 못 풀까?</summary>
+    <p>은닉층이 선형이면 <span class="m">z<sub>2</sub> = w<sup>11</sup><sub>2</sub>(…x<sub>1</sub> + …x<sub>2</sub> + …) + w<sup>21</sup><sub>2</sub>(…) + b</span>가 다시 <span class="m">x<sub>1</sub>, x<sub>2</sub></span>의 1차식으로 합쳐져요. 층을 몇 개 쌓아도 <b>직선 하나</b>짜리 신경세포와 같아서 최대 15개(세 무리)밖에 못 맞혀요. 시그모이드의 <b>휘어짐(비선형성)</b>이 층을 쌓는 의미를 만들어요.</p>
+  </details>
+  <details class="think"><summary><b>먼저 생각해 보기</b>가끔 손실이 0.25 근처에서 멈춰 안 내려가는 건?</summary>
+    <p>경사 하강법은 ‘내리막만’ 가니까, 그릇이 아니라 울퉁불퉁한 지형에서는 <b>지역 최솟값</b>이나 아주 평평한 곳(기울기가 거의 0인 고원)에 멈출 수 있어요. 홉필드 망 5탭에서 다수결이 가짜 기억에 갇히던 것과 같은 문제예요. 시그모이드의 기울기가 양 끝에서 0에 가까워지는 것도 원인이에요. 무작위로 다시 시작하면 대개 풀려요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="bp">← 이전</button><button data-go="summary">다음: 정리 →</button></div>
+</div>
+
+<!-- ============ TAB 7 ============ -->
+<div class="tab" id="t-summary">
+<section>
+  <h2>개념이 이어지는 길</h2>
+  <div class="chain">
+    <div class="node"><b>선형 신경세포</b> · <span class="m">ŷ = wx + b</span><br><span class="small">점들을 지나는 직선 찾기 = 선형 회귀</span></div>
+    <div class="arr">↓ ‘잘 맞음’을 숫자로</div>
+    <div class="node"><b>손실 함수</b> · <span class="m">L = (y − ŷ)<sup>2</sup></span>, 평균하면 MSE<br><span class="small">w와 b의 함수 = 그릇. 학습 = 바닥 찾기</span></div>
+    <div class="arr">↓ 바닥으로 가는 방향은</div>
+    <div class="node"><b>편미분과 연쇄 규칙</b> · <span class="m"><span class="F">∂L|∂w</span> = <span class="F">∂L|∂e</span><span class="F">∂e|∂w</span> = −2xe</span><br><span class="small">단계별 배율을 곱한다</span></div>
+    <div class="arr">↓ 반대 방향으로 작게</div>
+    <div class="node"><b>경사 하강법 (델타 규칙)</b> · <span class="m">w ← w − α<span class="F">∂L|∂w</span></span><br><span class="small">α가 크면 지그재그·발산, 작으면 느림</span></div>
+    <div class="arr">↓ 직선 하나로 안 되는 XOR</div>
+    <div class="node"><b>다층 + 시그모이드</b> · <span class="m">σ′ = σ(1 − σ)</span><br><span class="small">계단 대신 미분 가능한 휘어짐. 은닉층이 공간을 바꿈</span></div>
+    <div class="arr">↓ 층이 깊어도 기울기를 구하려면</div>
+    <div class="node"><b>역전파</b> · <span class="m">δ<sub>앞</sub> = δ<sub>뒤</sub> · w · σ′</span>, 기울기 = δ × 입력<br><span class="small">순전파 값을 기억해 두고, 오류 신호를 거꾸로 곱해 나감</span></div>
+  </div>
+  <h3>한 줄씩 정리</h3>
+  <div class="flow">
+    <div><b>1.</b> 신경세포 <span class="m">ŷ = wx + b</span>의 학습은 손실 그릇에서 가장 낮은 <span class="m">(w, b)</span>를 찾는 일.</div>
+    <div><b>2.</b> 기울기 <span class="m">[−2xe, −2e]</span>는 오르막 방향. 반대로 <span class="m">α</span>만큼 걷는다. 데이터가 여럿이면 평균.</div>
+    <div><b>3.</b> 가중치의 기울기는 언제나 <b>(오류 신호) × (들어온 입력)</b>.</div>
+    <div><b>4.</b> XOR처럼 선형 분리가 안 되면 층이 둘 이상 필요하고, 그 층들이 의미 있으려면 활성화 함수가 <b>비선형</b>이어야 한다.</div>
+    <div><b>5.</b> 계단 함수는 미분이 안 되니 시그모이드. 도함수가 자기 자신으로 표현되어 계산이 싸다.</div>
+    <div><b>6.</b> 역전파 = 연쇄 규칙을 출력에서 입력 쪽으로 차례로 적용. 앞서 곱한 값(δ)을 재사용하므로 층·신경세포가 몇 개든 같은 방식(342쪽).</div>
+    <div><b>7.</b> 갱신은 모든 기울기를 구한 뒤 한꺼번에. 역전파에는 옛 가중치가 필요하다.</div>
+  </div>
+  <h3>앞에서 배운 것과의 연결</h3>
+  <table>
+    <thead><tr><th></th><th>홉필드 망</th><th>역전파 신경망</th></tr></thead>
+    <tbody>
+      <tr><td>내려가는 지형</td><td>에너지 <span class="m">E</span></td><td>손실 <span class="m">L</span></td></tr>
+      <tr><td>무엇이 움직이나</td><td>신경세포 상태 (±1)</td><td>가중치·편향</td></tr>
+      <tr><td>어떻게</td><td>다수결로 하나씩 뒤집기</td><td>기울기 반대로 조금씩</td></tr>
+      <tr><td>갇히는 곳</td><td>가짜 기억 (지역 최솟값)</td><td>지역 최솟값·고원</td></tr>
+      <tr><td>784개</td><td>28×28 픽셀 = 신경세포</td><td>28×28 픽셀 = 입력층 (343쪽)</td></tr>
+    </tbody>
+  </table>
+  <h3>이 장의 이야기</h3>
+  <div class="timeline">
+    <div><b>1960</b> · 위드로와 호프의 LMS 알고리즘. 신경세포 하나를 오류 제곱의 기울기로 학습.</div>
+    <div><b>1969</b> · 민스키와 패퍼트의 『퍼셉트론』. 단층 퍼셉트론은 XOR를 못 푼다는 증명이 ‘신경망은 안 된다’는 신화로 번짐.</div>
+    <div><b>1970년대</b> · 여러 연구자가 다층망의 편도함수를 구하는 방법을 찾음(베르보스의 1974년 박사학위 논문 등).</div>
+    <div><b>1986</b> · 러멜하트, 힌턴, 윌리엄스가 연쇄 규칙을 이용한 역전파를 『네이처』에 발표하며 널리 퍼짐. 오래된 신화가 깨짐.</div>
+  </div>
+  <h3>생각해 볼 질문</h3>
+  <details class="think"><summary><b>Q1</b>은닉층을 아주 많이 쌓으면 기울기는 어떻게 될까?</summary>
+    <p>층 하나를 지날 때마다 <span class="m">σ′</span>가 곱해지는데 그 값은 최대 0.25예요. 10층이면 많아야 <span class="m">0.25<sup>10</sup> ≈ 0.000001</span>배. 입력 쪽 가중치는 거의 배우지 못해요. 이것이 <b>기울기 소실</b> 문제이고, 그래서 요즘은 기울기가 1인 구간이 있는 ReLU 같은 활성화 함수를 주로 써요.</p>
+  </details>
+  <details class="think"><summary><b>Q2</b>343쪽 그림처럼 입력 784개, 은닉층 100개짜리 두 층, 출력 10개라면 매개변수는 몇 개?</summary>
+    <div class="calc">
+      <div class="row"><span class="lbl">입력 → 은닉1</span>784 × 100 + 100 = 78,500</div>
+      <div class="row"><span class="lbl">은닉1 → 은닉2</span>100 × 100 + 100 = 10,100</div>
+      <div class="row"><span class="lbl">은닉2 → 출력</span>100 × 10 + 10 = 1,010</div>
+      <div class="row"><span class="lbl">합</span><span class="hi">89,610개</span></div>
+    </div>
+    <p>이 9만 개 각각의 편도함수를 따로 손으로 유도한다면 불가능하겠지만, 역전파는 순전파 한 번 + 역전파 한 번으로 전부 구해요.</p>
+  </details>
+  <details class="think"><summary><b>Q3</b>뇌도 역전파를 할까?</summary>
+    <p>책은 생물학적으로 가능성이 희박하다고 봐요(342쪽). 역전파는 순전파 때의 모든 값과 옛 가중치를 기억하고, 오류를 같은 연결을 따라 <b>거꾸로</b> 보내야 하는데, 실제 신경세포의 연결은 한 방향이에요. 뇌는 다른 학습 규칙을 쓰고 있을 가능성이 커요. 2탭의 헤브 학습처럼 이웃 정보만 쓰는 ‘지역 규칙’이 후보 중 하나예요.</p>
+  </details>
+  <details class="think"><summary><b>Q4</b>손실 함수를 꼭 오류 제곱으로 해야 할까?</summary>
+    <p>아니요(339쪽). 손실은 우리가 고르는 거예요. 분류 문제에는 교차 엔트로피 손실을 많이 써요. 역전파는 손실이 미분 가능하기만 하면 <span class="F">∂L|∂ŷ</span> 한 칸만 바꿔서 그대로 쓸 수 있어요. 그게 이 알고리즘의 유연함이에요(342쪽).</p>
+  </details>
+  <details class="think"><summary><b>Q5</b>고등학교 미적분과 어디서 만날까?</summary>
+    <p>합성함수의 미분(연쇄 규칙), 다항함수의 미분(멱 규칙), 지수함수의 미분(시그모이드), 함수의 최솟값(이차함수의 꼭짓점 = 3탭의 1 − 17α 분석). 편미분만 빼면 모두 교과서 안에 있어요. 편미분도 ‘다른 문자는 상수로 보고 미분’이라 학생들이 바로 따라 할 수 있어요.</p>
+  </details>
+</section>
+<div class="navrow"><button data-go="lab">← 이전</button><span></span></div>
+</div>
+</main>
+
+<script>
+(function(){
+// 분수 표기 변환: <span class="F">위|아래</span>
+document.querySelectorAll('.F').forEach(el=>{ const [a,b]=el.innerHTML.split('|'); el.className='frac'; el.innerHTML=`<span>${a}</span><span>${b}</span>`; });
+const DPR=Math.min(window.devicePixelRatio||1,2), PAD=14;
+const $=id=>document.getElementById(id);
+const ON='#c4572b', OFF='#2f5d9e', POS='#6a4fb3', NEG='#c23b3b', INK='#1f2328', OK='#2f8f5b';
+function fit(cv,ratio){ const w=cv.clientWidth||600, h=Math.round(w*ratio); cv.style.height=h+'px'; cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR); const ctx=cv.getContext('2d'); ctx.setTransform(DPR,0,0,DPR,0,0); return {ctx,W:w,H:h}; }
+const f=(v,d=2)=>{ if(!isFinite(v)) return '∞'; if(Math.abs(v)<0.5*Math.pow(10,-d)) v=0; return v.toFixed(d).replace('-','−'); };
+const pr=(v,d=2)=>v<0?'('+f(v,d)+')':f(v,d);
+const FR=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const PD=(a,b)=>FR('∂'+a,'∂'+b);
+const sig=z=>1/(1+Math.exp(-z));
+function dot(ctx,x,y,r,col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
+function ring(ctx,x,y,r,col,w){ ctx.strokeStyle=col; ctx.lineWidth=w||2; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.stroke(); }
+function arrow(ctx,x1,y1,x2,y2,col,w){ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w||2.4; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); const a=Math.atan2(y2-y1,x2-x1), h=9; ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-h*Math.cos(a-0.45),y2-h*Math.sin(a-0.45)); ctx.lineTo(x2-h*Math.cos(a+0.45),y2-h*Math.sin(a+0.45)); ctx.closePath(); ctx.fill(); }
+function label(ctx,x,y,txt,col,font,bg){ ctx.font=font||'600 12px Noto Sans KR'; const tw=ctx.measureText(txt).width; ctx.fillStyle=bg||'rgba(255,255,255,.92)'; ctx.fillRect(x-tw/2-4,y-9,tw+8,18); ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,x,y); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+function txt(ctx,x,y,s,col,font,align){ ctx.font=font||'12px Noto Sans KR'; ctx.fillStyle=col; ctx.textAlign=align||'left'; ctx.textBaseline='middle'; ctx.fillText(s,x,y); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+function segBind(id,fn){ $(id).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!$(id).contains(b)) return; $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); fn(b.dataset.v); }); }
+function tri(ctx,x,y,r,col){ ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(x,y-r); ctx.lineTo(x+r*0.95,y+r*0.75); ctx.lineTo(x-r*0.95,y+r*0.75); ctx.closePath(); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.2; ctx.stroke(); }
+function circ(ctx,x,y,r,col){ dot(ctx,x,y,r,col); ring(ctx,x,y,r,'#fff',1.2); }
+function lineInBox(ctx,a,b,c,M,dom,col,dash,w){ // a*u + b*v + c = 0
+  const [lo,hi]=dom; let p1,p2;
+  if(Math.abs(b)>=Math.abs(a)){ if(Math.abs(b)<1e-9) return; p1=[lo,-(a*lo+c)/b]; p2=[hi,-(a*hi+c)/b]; }
+  else { p1=[-(b*lo+c)/a,lo]; p2=[-(b*hi+c)/a,hi]; }
+  ctx.strokeStyle=col; ctx.lineWidth=w||2.2; ctx.setLineDash(dash?[7,5]:[]); ctx.beginPath(); ctx.moveTo(M.x(p1[0]),M.y(p1[1])); ctx.lineTo(M.x(p2[0]),M.y(p2[1])); ctx.stroke(); ctx.setLineDash([]);
+}
+
+// ================= 데이터 1: 점 10개 =================
+const X=[-4,-3,-2,-1,0,1,2,3,4,5], NZ=[0.4,-0.5,0.3,-0.2,0.5,-0.4,0.2,0.4,-0.3,0.1];
+const Y=X.map((x,i)=>Math.round((0.8*x+1+NZ[i])*100)/100);
+const N1=X.length, mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+const mxx=mean(X), myy=mean(Y);
+const WOPT=X.reduce((s,x,i)=>s+(x-mxx)*(Y[i]-myy),0)/X.reduce((s,x)=>s+(x-mxx)**2,0), BOPT=myy-WOPT*mxx;
+const mse=(w,b)=>mean(X.map((x,i)=>(Y[i]-w*x-b)**2));
+const grad=(w,b)=>{ let gw=0,gb=0; for(let i=0;i<N1;i++){ const e=Y[i]-w*X[i]-b; gw+=-2*X[i]*e; gb+=-2*e; } return [gw/N1,gb/N1]; };
+const LMIN=mse(WOPT,BOPT);
+
+// 직선 그림
+const FX=[-5.5,6], FY0=-3, FR_=0.85, FY1=FY0+11.5*FR_;
+function drawFit(cv,w,b,o){
+  o=o||{}; const {ctx,W,H}=fit(cv,FR_);
+  const sx=x=>(x-FX[0])/(FX[1]-FX[0])*W, sy=y=>(FY1-y)/(FY1-FY0)*H, u=W/(FX[1]-FX[0]);
+  ctx.strokeStyle='rgba(31,35,40,.06)'; ctx.lineWidth=1;
+  for(let k=-5;k<=6;k++){ ctx.beginPath(); ctx.moveTo(sx(k),0); ctx.lineTo(sx(k),H); ctx.stroke(); }
+  for(let k=-3;k<=7;k++){ ctx.beginPath(); ctx.moveTo(0,sy(k)); ctx.lineTo(W,sy(k)); ctx.stroke(); }
+  ctx.strokeStyle='rgba(31,35,40,.35)'; ctx.beginPath(); ctx.moveTo(0,sy(0)); ctx.lineTo(W,sy(0)); ctx.moveTo(sx(0),0); ctx.lineTo(sx(0),H); ctx.stroke();
+  if(o.sq){ for(let i=0;i<N1;i++){ const yh=w*X[i]+b, e=Y[i]-yh, s=Math.abs(e)*u, dir=X[i]>3?-1:1;
+    const top=Math.min(sy(Y[i]),sy(yh)); ctx.fillStyle=i===o.sel?'rgba(196,87,43,.28)':'rgba(196,87,43,.12)'; ctx.strokeStyle='rgba(196,87,43,.55)'; ctx.lineWidth=1;
+    const x0=dir>0?sx(X[i]):sx(X[i])-s; ctx.fillRect(x0,top,s,s); ctx.strokeRect(x0,top,s,s); } }
+  ctx.strokeStyle=POS; ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(sx(FX[0]),sy(w*FX[0]+b)); ctx.lineTo(sx(FX[1]),sy(w*FX[1]+b)); ctx.stroke();
+  for(let i=0;i<N1;i++){ const yh=w*X[i]+b; ctx.strokeStyle=ON; ctx.lineWidth=i===o.sel?2.5:1.4; ctx.beginPath(); ctx.moveTo(sx(X[i]),sy(Y[i])); ctx.lineTo(sx(X[i]),sy(yh)); ctx.stroke(); }
+  for(let i=0;i<N1;i++){ if(i===o.sel) ring(ctx,sx(X[i]),sy(Y[i]),9,INK,2.5); dot(ctx,sx(X[i]),sy(Y[i]),5,INK); }
+  txt(ctx,W-PAD,sy(0)-10,'x',INK,'italic 14px Times New Roman','right'); txt(ctx,sx(0)+8,PAD,'y',INK,'italic 14px Times New Roman');
+  return {sx,sy};
+}
+
+// 손실 지도
+const WR=[-1,2.6], BR=[-2.5,4.5], MR=0.75;
+let mapImg=null;
+function makeMap(){
+  const cw=180, ch=135, off=document.createElement('canvas'); off.width=cw; off.height=ch;
+  const o=off.getContext('2d'), im=o.createImageData(cw,ch), band=new Int16Array(cw*ch);
+  const lo=Math.log(LMIN); let hi=-1e9; const vals=new Float64Array(cw*ch);
+  for(let py=0;py<ch;py++) for(let px=0;px<cw;px++){ const w=WR[0]+(px+.5)/cw*(WR[1]-WR[0]), b=BR[1]-(py+.5)/ch*(BR[1]-BR[0]); const v=Math.log(mse(w,b)); vals[py*cw+px]=v; if(v>hi) hi=v; }
+  for(let i=0;i<cw*ch;i++) band[i]=Math.min(13,Math.floor((vals[i]-lo)/(hi-lo)*14));
+  for(let py=0;py<ch;py++) for(let px=0;px<cw;px++){ const i=py*cw+px, t=band[i]/13;
+    let r=106+(250-106)*t, g=79+(247-79)*t, bb=179+(243-179)*t;
+    const edge=(px<cw-1&&band[i+1]!==band[i])||(py<ch-1&&band[i+cw]!==band[i]);
+    if(edge){ r*=.82; g*=.82; bb*=.86; }
+    im.data[i*4]=r; im.data[i*4+1]=g; im.data[i*4+2]=bb; im.data[i*4+3]=255; }
+  o.putImageData(im,0,0); mapImg=off;
+}
+function drawMap(cv,cur,path){
+  if(!mapImg) makeMap();
+  const {ctx,W,H}=fit(cv,MR);
+  const mx=w=>(w-WR[0])/(WR[1]-WR[0])*W, my=b=>(BR[1]-b)/(BR[1]-BR[0])*H;
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(mapImg,0,0,W,H);
+  ctx.strokeStyle='rgba(31,35,40,.35)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(mx(0),0); ctx.lineTo(mx(0),H); ctx.moveTo(0,my(0)); ctx.lineTo(W,my(0)); ctx.stroke();
+  txt(ctx,W-PAD,my(0)+12,'w (가중치)',INK,'600 12px Noto Sans KR','right'); txt(ctx,mx(0)+6,PAD,'b (편향)',INK,'600 12px Noto Sans KR');
+  for(const k of [-1,1,2]){ txt(ctx,mx(k),my(0)+11,String(k).replace('-','−'),'#5b6370','11px Times New Roman','center'); }
+  for(const k of [-2,2,4]){ txt(ctx,mx(0)-4,my(k),String(k).replace('-','−'),'#5b6370','11px Times New Roman','right'); }
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
+  if(path&&path.length>1){ ctx.strokeStyle=ON; ctx.lineWidth=2; ctx.beginPath(); path.forEach((p,i)=>i?ctx.lineTo(mx(p[0]),my(p[1])):ctx.moveTo(mx(p[0]),my(p[1]))); ctx.stroke();
+    path.forEach(p=>dot(ctx,mx(p[0]),my(p[1]),2.2,ON)); }
+  ctx.restore();
+  ctx.fillStyle='#fff'; ctx.font='20px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('★',mx(WOPT),my(BOPT)); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const cx=Math.max(6,Math.min(W-6,mx(cur[0]))), cy=Math.max(6,Math.min(H-6,my(cur[1])));
+  dot(ctx,cx,cy,7,ON); ring(ctx,cx,cy,7,'#fff',2);
+  return {mx,my};
+}
+function mapPick(cv,e){ const r=cv.getBoundingClientRect(); const w=WR[0]+(e.clientX-r.left)/r.width*(WR[1]-WR[0]), b=BR[1]-(e.clientY-r.top)/r.height*(BR[1]-BR[0]); return [Math.round(w*20)/20,Math.round(b*20)/20]; }
+
+// ================= TAB 1 =================
+const T1={w:0,b:0,sel:6};
+function drawT1(){
+  $('rW1').value=T1.w; $('rB1').value=T1.b; $('lW1').textContent=f(T1.w); $('lB1').textContent=f(T1.b);
+  const S=drawFit($('cFit1'),T1.w,T1.b,{sq:true,sel:T1.sel}); T1.S=S;
+  drawMap($('cMap1'),[T1.w,T1.b]);
+  const i=T1.sel, x=X[i], y=Y[i], yh=T1.w*x+T1.b, e=y-yh, es=X.map((xx,k)=>(Y[k]-T1.w*xx-T1.b)**2), sum=es.reduce((s,v)=>s+v,0);
+  $('calc1').innerHTML=
+    `<div class="row"><span class="lbl">고른 점</span>(x, y) = (${f(x,0)}, ${f(y)})</div>`+
+    `<div class="row"><span class="lbl">① 예측</span>ŷ = wx + b = ${pr(T1.w)} · ${pr(x,0)} + ${pr(T1.b)} = ${f(yh)}</div>`+
+    `<div class="row"><span class="lbl">② 오류</span>e = y − ŷ = ${f(y)} − ${pr(yh)} = <span class="${Math.abs(e)<0.5?'okc':'warn'}">${f(e)}</span></div>`+
+    `<div class="row"><span class="lbl">③ 손실</span>e<sup>2</sup> = ${pr(e)}<sup>2</sup> = ${f(e*e)} <span class="txt">(진한 정사각형의 넓이)</span></div>`+
+    `<div class="row sep"><span class="lbl">④ 10개 평균</span>MSE = ${FR('e₁² + ⋯ + e₁₀²','10')} = ${FR(f(sum),'10')} = <span class="hi">${f(sum/N1,3)}</span></div>`;
+  const L=sum/N1, st=$('s1'), near=L<LMIN+0.02;
+  st.className='status'+(near?' good':'');
+  st.innerHTML= near ? `<b>바닥 근처!</b> 가장 좋은 직선은 w ≈ ${f(WOPT)}, b ≈ ${f(BOPT)}이고 그때 MSE = ${f(LMIN,3)}. 정사각형들의 넓이 합이 가장 작아요. 0이 되지 않는 건 점들이 정확히 한 직선 위에 있지 않기 때문.`
+    : `지금 MSE = ${f(L,3)}. 가장 작게 만들 수 있는 값은 ${f(LMIN,3)}이에요. 주황 정사각형들을 작게 만들어 보세요.`;
+}
+$('rW1').oninput=function(){ T1.w=+this.value; drawT1(); };
+$('rB1').oninput=function(){ T1.b=+this.value; drawT1(); };
+$('bBook1').onclick=()=>{ T1.w=0; T1.b=0; drawT1(); };
+$('bOpt1').onclick=()=>{ T1.w=Math.round(WOPT*100)/100; T1.b=Math.round(BOPT*100)/100; drawT1(); };
+$('cFit1').addEventListener('pointerdown',e=>{ const r=$('cFit1').getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top; let best=-1,bd=30;
+  X.forEach((x,i)=>{ const d=Math.hypot(T1.S.sx(x)-px,T1.S.sy(Y[i])-py); if(d<bd){bd=d;best=i;} }); if(best>=0){ T1.sel=best; drawT1(); } });
+$('cMap1').addEventListener('pointerdown',e=>{ [T1.w,T1.b]=mapPick($('cMap1'),e); drawT1(); });
+
+// ================= TAB 2 =================
+const T2={x:1.2,w:0,b:0,nudge:null};
+function gear(id,nodes,rates){ let h=''; nodes.forEach((n,i)=>{ h+=`<div class="g">${n[0]}<small>${n[1]}</small></div>`; if(i<rates.length) h+=`<div class="r">×${rates[i][0]}<small>${rates[i][1]}</small></div>`; }); $(id).innerHTML=h; }
+function drawT2(){
+  const x=T2.x, z=x*x, y=Math.sin(z), r1=2*x, r2=Math.cos(z), h=0.001, num=(Math.sin((x+h)**2)-y)/h;
+  $('lX2').textContent=f(x);
+  gear('gear2',[[`x = ${f(x)}`,'첫째 바퀴'],[`z = ${f(z,3)}`,'z = x²'],[`y = ${f(y,3)}`,'y = sin z']],[[f(r1,2),'2x'],[f(r2,3),'cos z']]);
+  $('calc2a').innerHTML=
+    `<div class="row"><span class="lbl">① 안쪽 배율</span>${FR('dz','dx')} = 2x = 2 · ${pr(x)} = ${f(r1,3)}</div>`+
+    `<div class="row"><span class="lbl">② 바깥 배율</span>${FR('dy','dz')} = cos z = cos(${f(z,3)}) = ${f(r2,4)}</div>`+
+    `<div class="row"><span class="lbl">③ 곱하기</span>${FR('dy','dx')} = ${pr(r2,4)} × ${pr(r1,3)} = <span class="hi">${f(r1*r2,4)}</span> &nbsp;= 2x cos(x²)</div>`+
+    `<div class="row sep"><span class="lbl">④ 검산</span>${FR('sin((x + 0.001)²) − sin(x²)','0.001')} ≈ <span class="okc">${f(num,4)}</span></div>`;
+  const st=$('s2a'); st.className='status';
+  st.innerHTML= Math.abs(r1*r2)<0.05 ? `지금은 배율의 곱이 거의 0이에요. x를 조금 움직여도 y는 꿈쩍 안 해요. ${Math.abs(r2)<0.1?'cos z ≈ 0, 즉 sin이 꼭대기나 바닥에 있어서예요.':'x ≈ 0이라 x²가 거의 변하지 않아서예요.'}` : `x를 아주 조금(Δx) 움직이면 y는 약 ${f(r1*r2,3)} × Δx만큼 변해요. 배율 두 개를 곱한 값과 실제 변화(④)가 거의 같죠.`;
+  // 손실
+  const px=2, py=3, w=T2.w, b=T2.b, e=py-w*px-b, L=e*e, gw=-2*px*e, gb=-2*e;
+  $('lW2').textContent=f(w,1); $('lB2').textContent=f(b,1);
+  gear('gear2b',[[`w = ${f(w,1)}`,'가중치'],[`e = ${f(e)}`,'e = y − wx − b'],[`L = ${f(L,3)}`,'L = e²']],[[pr(-px,0),'∂e∂w = −x'],[f(2*e),'∂L∂e = 2e']]);
+  $('gear2b').querySelectorAll('.r small').forEach((s,k)=>{ s.innerHTML=k?`${FR('∂L','∂e')} = 2e`:`${FR('∂e','∂w')} = −x`; });
+  let c=`<div class="row"><span class="lbl">점 (2, 3)</span>e = 3 − ${pr(w,1)} · 2 − ${pr(b,1)} = ${f(e)}, &nbsp;L = ${f(L,4)}</div>`+
+    `<div class="row"><span class="lbl">w의 기울기</span>${PD('L','w')} = −2xe = −2 · 2 · ${pr(e)} = <span class="hi">${f(gw,3)}</span></div>`+
+    `<div class="row"><span class="lbl">b의 기울기</span>${PD('L','b')} = −2e = −2 · ${pr(e)} = <span class="hi">${f(gb,3)}</span></div>`;
+  if(T2.nudge){ const k=T2.nudge, w2=w+(k==='w'?0.01:0), b2=b+(k==='b'?0.01:0), L2=(py-w2*px-b2)**2, g=k==='w'?gw:gb;
+    c+=`<div class="row sep new"><span class="lbl">${k}를 0.01 ↑</span>예측 ΔL ≈ ${PD('L',k)} × 0.01 = ${f(g*0.01,5)}</div>`+
+       `<div class="row new"><span class="lbl">실제</span>ΔL = ${f(L2,5)} − ${f(L,5)} = <span class="okc">${f(L2-L,5)}</span></div>`+
+       `<div class="row new"><span class="txt">${g<0?'기울기가 음수 → 늘리면 손실이 <b>줄어요</b>. 그러니 이 방향으로 가면 돼요.':g>0?'기울기가 양수 → 늘리면 손실이 <b>늘어요</b>. 반대로 줄여야 해요.':'기울기 0 → 이 점에서는 이미 바닥.'}${k==='w'?' 아주 작은 차이는 무시한 2차 항 때문이에요.':''}</span></div>`; }
+  $('calc2b').innerHTML=c;
+}
+$('rX2').oninput=function(){ T2.x=+this.value; drawT2(); };
+$('rW2').oninput=function(){ T2.w=+this.value; T2.nudge=null; drawT2(); };
+$('rB2').oninput=function(){ T2.b=+this.value; T2.nudge=null; drawT2(); };
+$('bNudgeW').onclick=()=>{ T2.nudge='w'; drawT2(); };
+$('bNudgeB').onclick=()=>{ T2.nudge='b'; drawT2(); };
+
+// ================= TAB 3 =================
+const G={w:0,b:0,alpha:0.05,path:[[0,0]],hist:[mse(0,0)],running:false,timer:0,steps:0,div:false};
+function g3Reset(w,b){ clearTimeout(G.timer); G.running=false; G.w=w; G.b=b; G.path=[[w,b]]; G.hist=[mse(w,b)]; G.steps=0; G.div=false; }
+function g3Step(){ const [gw,gb]=grad(G.w,G.b); G.w-=G.alpha*gw; G.b-=G.alpha*gb; G.steps++; G.path.push([G.w,G.b]); const L=mse(G.w,G.b); G.hist.push(L); if(!isFinite(L)||L>1e6){ G.div=true; G.running=false; } }
+function drawT3(){
+  drawMap($('cMap3'),[G.w,G.b],G.path);
+  const fw=isFinite(G.w)&&Math.abs(G.w)<1e3?G.w:0, fb=isFinite(G.b)&&Math.abs(G.b)<1e3?G.b:0; drawFit($('cFit3'),fw,fb,{});
+  // 손실 기록
+  { const {ctx,W,H}=fit($('cLoss3'),FR_), h=G.hist.map(v=>Math.log10(Math.max(v,1e-6))), n=Math.max(h.length,30);
+    const lo=Math.log10(LMIN)-0.1, hi=Math.max(Math.log10(G.hist[0])+0.2, lo+1), top=Math.min(hi+2,Math.max(hi,...h));
+    const xx=i=>PAD+i/(n-1)*(W-2*PAD), yy=v=>PAD+(top-Math.min(top,v))/(top-lo)*(H-2*PAD);
+    ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(106,79,179,.6)'; ctx.beginPath(); ctx.moveTo(PAD,yy(Math.log10(LMIN))); ctx.lineTo(W-PAD,yy(Math.log10(LMIN))); ctx.stroke(); ctx.setLineDash([]);
+    txt(ctx,W-PAD,yy(Math.log10(LMIN))-9,'최솟값 '+f(LMIN,3),POS,'11px Noto Sans KR','right');
+    ctx.strokeStyle=ON; ctx.lineWidth=2; ctx.beginPath(); h.forEach((v,i)=>i?ctx.lineTo(xx(i),yy(v)):ctx.moveTo(xx(i),yy(v))); ctx.stroke();
+    txt(ctx,PAD,H-8,`${G.steps}걸음`,'#5b6370','11px Noto Sans KR'); }
+  const [gw,gb]=grad(G.w,G.b), a=G.alpha, dw=-a*gw, db=-a*gb, L0=mse(G.w,G.b), L1=mse(G.w+dw,G.b+db);
+  $('calc3').innerHTML= G.div ? `<div class="row"><span class="txt warn">값이 폭발했어요. ‘(0, 0)에서 다시’를 눌러 주세요.</span></div>` :
+    `<div class="row"><span class="lbl">지금</span>w = ${f(G.w,3)}, b = ${f(G.b,3)}, MSE = ${f(L0,3)}</div>`+
+    `<div class="row"><span class="lbl">① 기울기</span>${PD('L','w')} = 평균(−2xe) = ${f(gw,3)}, &nbsp;${PD('L','b')} = 평균(−2e) = ${f(gb,3)}</div>`+
+    `<div class="row"><span class="lbl">② 걸음</span>Δw = −${f(a)} × ${pr(gw,3)} = ${f(dw,4)}, &nbsp;Δb = −${f(a)} × ${pr(gb,3)} = ${f(db,4)}</div>`+
+    `<div class="row"><span class="lbl">③ 다음 위치</span>w = ${f(G.w+dw,3)}, b = ${f(G.b+db,3)} → MSE = <span class="${L1<L0?'okc':'warn'}">${f(L1,3)}</span></div>`;
+  const st=$('s3'), atMin=Math.abs(G.w-WOPT)<0.01&&Math.abs(G.b-BOPT)<0.01;
+  if(G.div){ st.className='status bad'; st.innerHTML=`<b>발산!</b> α = ${f(a)}는 너무 커요. 한 걸음마다 골짜기 반대편의 더 높은 곳에 떨어지며 점점 멀어졌어요(${G.steps}걸음).`; }
+  else if(atMin){ st.className='status good'; st.innerHTML=`<b>${G.steps}걸음 만에 바닥 도착</b> (α = ${f(a)}). w = ${f(G.w,3)}, b = ${f(G.b,3)}. 1탭의 ‘가장 좋은 직선’과 같아요.`; }
+  else if(G.steps===0){ st.className='status'; st.innerHTML=`출발점 (${f(G.w)}, ${f(G.b)})에서 MSE = ${f(L0,3)}. 위 계산이 다음 한 걸음이에요.`; }
+  else { st.className='status'; const zig=G.path.length>3&&(G.path[G.path.length-1][0]-G.path[G.path.length-2][0])*(G.path[G.path.length-2][0]-G.path[G.path.length-3][0])<0;
+    st.innerHTML=`${G.steps}걸음째, MSE = ${f(L0,3)}. ${zig?'w가 왔다 갔다 하는 <b>지그재그</b>가 보여요.':a<=0.01?'b 쪽(세로)으로는 아주 느리게 움직이고 있어요.':'바닥을 향해 내려가는 중.'}`; }
+  $('bRun3').textContent=G.running?'❚❚ 멈춤':'▶ 계속 내려가기';
+}
+function g3Tick(){ if(!G.running) return; for(let k=0;k<(G.alpha<=0.01?4:1);k++){ g3Step(); if(!G.running) break; }
+  const done=Math.abs(G.w-WOPT)<0.001&&Math.abs(G.b-BOPT)<0.001; if(done||G.steps>3000) G.running=false;
+  drawT3(); if(G.running) G.timer=setTimeout(g3Tick,G.steps<30?160:40); }
+segBind('alphaSeg',v=>{ G.alpha=+v; g3Reset(0,0); drawT3(); });
+$('bStep3').onclick=()=>{ if(G.div) return; G.running=false; clearTimeout(G.timer); g3Step(); drawT3(); };
+$('bRun3').onclick=()=>{ if(G.div) g3Reset(0,0); if(G.running){ G.running=false; clearTimeout(G.timer); drawT3(); return; } G.running=true; g3Tick(); };
+$('bReset3').onclick=()=>{ g3Reset(0,0); drawT3(); };
+$('cMap3').addEventListener('pointerdown',e=>{ const [w,b]=mapPick($('cMap3'),e); g3Reset(w,b); drawT3(); });
+
+// ================= 데이터 2: XOR =================
+const C2=[[-1,1,1],[1,-1,1],[1,1,0],[-1,-1,0]], OF=[[0,0],[0.28,0.12],[-0.22,0.26],[0.18,-0.3],[-0.3,-0.16]];
+const D2=[]; C2.forEach(([cx,cy,t],k)=>OF.forEach(([dx,dy])=>{ const r=k%2?[-dy,dx]:[dx,dy]; D2.push({x1:cx+r[0],x2:cy+r[1],t}); }));
+const DOM=[-2.2,2.2];
+function boxMap(W,H,dom){ return {x:u=>(u-dom[0])/(dom[1]-dom[0])*W, y:v=>(dom[1]-v)/(dom[1]-dom[0])*H}; }
+function drawAxes(ctx,M,W,H){ ctx.strokeStyle='rgba(31,35,40,.3)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(M.x(0),0); ctx.lineTo(M.x(0),H); ctx.moveTo(0,M.y(0)); ctx.lineTo(W,M.y(0)); ctx.stroke();
+  txt(ctx,W-6,M.y(0)-10,'x₁',INK,'italic 13px Times New Roman','right'); txt(ctx,M.x(0)+6,10,'x₂',INK,'italic 13px Times New Roman'); }
+function drawPts(ctx,pts,M,r){ pts.forEach(p=>p.t?circ(ctx,M.x(p.u),M.y(p.v),r,ON):tri(ctx,M.x(p.u),M.y(p.v),r+1,OFF)); }
+function heat(ctx,W,H,fn,res){ const off=document.createElement('canvas'); off.width=res; off.height=res; const o=off.getContext('2d'), im=o.createImageData(res,res);
+  for(let j=0;j<res;j++) for(let i=0;i<res;i++){ const t=fn((i+.5)/res,1-(j+.5)/res), k=(j*res+i)*4;
+    im.data[k]=219+(248-219)*t; im.data[k+1]=229+(220-229)*t; im.data[k+2]=245+(204-245)*t; im.data[k+3]=255; }
+  o.putImageData(im,0,0); ctx.imageSmoothingEnabled=true; ctx.drawImage(off,0,0,W,H); }
+
+// ================= TAB 4 =================
+const T4={a:1,b:1,c:0,two:false,z:1};
+function drawT4(){
+  $('rA4').value=T4.a; $('rB4').value=T4.b; $('rC4').value=T4.c; $('lA4').textContent=f(T4.a,1); $('lB4').textContent=f(T4.b,1); $('lC4').textContent=f(T4.c,1);
+  const cv=$('cXor4'), {ctx,W,H}=fit(cv,0.8), M=boxMap(W,H,[DOM[0],DOM[1]]);
+  const M2={x:u=>(u-DOM[0])/(DOM[1]-DOM[0])*W, y:v=>H/2-(v)*(W/(DOM[1]-DOM[0]))};
+  const pred=T4.two?(u,v)=>Math.abs(u+v)<1?1:0:(u,v)=>T4.a*u+T4.b*v+T4.c>0?1:0;
+  const vr=(H/2)/(W/(DOM[1]-DOM[0]));
+  heat(ctx,W,H,(s,t)=>pred(DOM[0]+s*(DOM[1]-DOM[0]),-vr+t*2*vr)?0.85:0.1,90);
+  drawAxes(ctx,M2,W,H);
+  if(T4.two){ lineInBox(ctx,1,1,-1,M2,[-3,3],POS,false,2.4); lineInBox(ctx,1,1,1,M2,[-3,3],OK,false,2.4); }
+  else lineInBox(ctx,T4.a,T4.b,T4.c,M2,[-3,3],INK,false,2.4);
+  let ok=0; D2.forEach(p=>{ if(pred(p.x1,p.x2)===p.t) ok++; });
+  drawPts(ctx,D2.map(p=>({u:p.x1,v:p.x2,t:p.t})),M2,6);
+  D2.forEach(p=>{ if(pred(p.x1,p.x2)!==p.t) ring(ctx,M2.x(p.x1),M2.y(p.x2),10,NEG,2); });
+  const st=$('s4');
+  if(T4.two){ st.className='status good'; st.innerHTML=`<b>20개 중 20개 정답</b>. 두 직선 <span class="m">x<sub>1</sub> + x<sub>2</sub> = 1</span>과 <span class="m">x<sub>1</sub> + x<sub>2</sub> = −1</span> <b>사이</b>를 동그라미로 판정했어요(332쪽 아래 그림). 신경세포 하나로는 이런 ‘띠’를 만들 수 없어요.`; }
+  else { st.className='status'+(ok>=15?' good':''); st.innerHTML=`20개 중 <b>${ok}개</b> 정답 (빨간 고리 = 틀림). ${ok>=15?'15개가 직선 하나의 한계예요. 네 무리 중 셋까지만 바르게 나눌 수 있어요.':'직선을 돌리고 옮겨 최대한 맞혀 보세요. 최고 기록은 몇 개일까요?'}`; }
+  $('bTwo4').textContent=T4.two?'직선 하나로 돌아가기':'직선 두 개로 나눠 보기';
+  // 시그모이드
+  { const cv2=$('cSig'), {ctx,W,H}=fit(cv2,0.55), zx=z=>PAD+(z+6)/12*(W-2*PAD), yy=v=>PAD+(1.1-v)/1.2*(H-2*PAD);
+    ctx.strokeStyle='rgba(31,35,40,.3)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD,yy(0)); ctx.lineTo(W-PAD,yy(0)); ctx.moveTo(zx(0),PAD); ctx.lineTo(zx(0),H-PAD); ctx.stroke();
+    ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(PAD,yy(1)); ctx.lineTo(W-PAD,yy(1)); ctx.stroke(); ctx.setLineDash([]);
+    txt(ctx,zx(0)-4,yy(1),'1','#5b6370','11px Times New Roman','right'); txt(ctx,zx(0)-4,yy(0.25),'0.25','#5b6370','11px Times New Roman','right');
+    ctx.strokeStyle='#8a909a'; ctx.lineWidth=1.6; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(zx(-6),yy(0)); ctx.lineTo(zx(0),yy(0)); ctx.lineTo(zx(0),yy(1)); ctx.lineTo(zx(6),yy(1)); ctx.stroke(); ctx.setLineDash([]);
+    const plot=(fn,col)=>{ ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.beginPath(); for(let k=0;k<=240;k++){ const z=-6+k*0.05, v=fn(z); k?ctx.lineTo(zx(z),yy(v)):ctx.moveTo(zx(z),yy(v)); } ctx.stroke(); };
+    plot(sig,POS); plot(z=>sig(z)*(1-sig(z)),ON);
+    const z=T4.z, s=sig(z), d=s*(1-s);
+    ctx.strokeStyle='rgba(31,35,40,.25)'; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(zx(z),yy(0)); ctx.lineTo(zx(z),yy(s)); ctx.stroke(); ctx.setLineDash([]);
+    // 접선
+    ctx.strokeStyle='rgba(106,79,179,.55)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(zx(z-1.2),yy(s-1.2*d)); ctx.lineTo(zx(z+1.2),yy(s+1.2*d)); ctx.stroke();
+    dot(ctx,zx(z),yy(s),5,POS); dot(ctx,zx(z),yy(d),5,ON);
+    txt(ctx,W-PAD,yy(0)+11,'z',INK,'italic 13px Times New Roman','right');
+    const h=0.0001, num=(sig(z+h)-sig(z-h))/(2*h);
+    $('lZ4').textContent=f(z,1);
+    $('calc4').innerHTML=`<div class="row"><span class="lbl">① 함수값</span>σ(${f(z,1)}) = ${FR('1','1 + e<sup>'+(z>=0?'−':'')+f(Math.abs(z),1)+'</sup>')} = ${FR('1',f(1+Math.exp(-z),4))} = <span class="hi">${f(s,4)}</span></div>`+
+      `<div class="row"><span class="lbl">② 기울기</span>σ(1 − σ) = ${f(s,4)} × ${f(1-s,4)} = <span class="bk">${f(d,4)}</span></div>`+
+      `<div class="row"><span class="lbl">③ 검산</span>${FR('σ(z + h) − σ(z − h)','2h')} ≈ <span class="okc">${f(num,4)}</span></div>`+
+      `<div class="row"><span class="txt">${Math.abs(z)>4?'z가 크면 σ가 0이나 1에 붙어 기울기가 거의 0. 이 구간에서는 학습이 아주 느려져요(6탭).':Math.abs(z)<0.3?'z ≈ 0에서 기울기가 가장 커요. 최댓값 0.5 × 0.5 = 0.25.':'접선(옅은 보라)의 기울기가 주황 점의 높이예요.'}</span></div>`; }
+}
+['A4','B4','C4'].forEach((k,i)=>$('r'+k).oninput=function(){ T4[['a','b','c'][i]]=+this.value; T4.two=false; drawT4(); });
+$('rZ4').oninput=function(){ T4.z=+this.value; drawT4(); };
+$('bTwo4').onclick=()=>{ T4.two=!T4.two; drawT4(); };
+
+// ================= TAB 5 =================
+const B={stage:0, used:null, prevL:null};
+const NST=13;
+function rd(id){ const v=parseFloat($(id).value); return isFinite(v)?v:0; }
+function P5(){ return {x:rd('pX'),y:rd('pY'),al:rd('pA'),w1:rd('pW1'),b1:rd('pB1'),w2:rd('pW2'),b2:rd('pB2')}; }
+function fwd5(p){ const z1=p.w1*p.x+p.b1, a1=sig(z1), z2=p.w2*a1+p.b2, yh=sig(z2), e=p.y-yh; return {z1,a1,z2,yh,e,L:e*e}; }
+function bwd5(p,F){ const dLe=2*F.e, dLy=-dLe, d2=dLy*F.yh*(1-F.yh), gw2=d2*F.a1, gb2=d2, da1=d2*p.w2, d1=da1*F.a1*(1-F.a1), gw1=d1*p.x, gb1=d1; return {dLe,dLy,d2,gw2,gb2,da1,d1,gw1,gb1}; }
+function drawNet(p,F,G5,s){
+  const {ctx,W,H}=fit($('cNet'),0.56), cy=H*0.5, r=Math.min(30,W*0.075);
+  const xs=[W*0.09,W*0.37,W*0.64,W*0.9];
+  const fc=POS, bc=ON;
+  // 화살표(순전파)
+  arrow(ctx,xs[0]+r,cy,xs[1]-r-2,cy,s>=1?fc:'#cfc8bb',2.4); arrow(ctx,xs[1]+r,cy,xs[2]-r-2,cy,s>=3?fc:'#cfc8bb',2.4); arrow(ctx,xs[2]+r,cy,xs[3]-r*0.8-2,cy,s>=5?fc:'#cfc8bb',2.4);
+  label(ctx,(xs[0]+xs[1])/2,cy-12,'w₁',INK,'italic 600 13px Times New Roman','rgba(251,250,247,.95)');
+  label(ctx,(xs[1]+xs[2])/2,cy-12,'w₂',INK,'italic 600 13px Times New Roman','rgba(251,250,247,.95)');
+  // 역전파 화살표
+  const by=cy+r+16;
+  if(s>=6) arrow(ctx,xs[3]-6,by+8,xs[2]+r*0.6,by+8,bc,2.6);
+  if(s>=10) arrow(ctx,xs[2]-r*0.6,by+8,xs[1]+r*0.6,by+8,bc,2.6);
+  // 노드
+  dot(ctx,xs[0],cy,r,'#fff'); ring(ctx,xs[0],cy,r,INK,1.8); txt(ctx,xs[0],cy,'x',INK,'italic 16px Times New Roman','center');
+  [1,2].forEach(k=>{ const x0=xs[k]; dot(ctx,x0,cy,r,'#fff'); ring(ctx,x0,cy,r,INK,1.8); ctx.beginPath(); ctx.moveTo(x0,cy-r); ctx.lineTo(x0,cy+r); ctx.stroke();
+    txt(ctx,x0-r*0.45,cy,'z',INK,'italic 14px Times New Roman','center'); txt(ctx,x0+r*0.45,cy,'a',INK,'italic 14px Times New Roman','center'); });
+  ctx.strokeStyle=INK; ctx.lineWidth=1.8; ctx.fillStyle='#fff'; const lw=r*1.3; ctx.beginPath(); ctx.roundRect?ctx.roundRect(xs[3]-lw/2,cy-r*0.8,lw,r*1.6,8):ctx.rect(xs[3]-lw/2,cy-r*0.8,lw,r*1.6); ctx.fill(); ctx.stroke();
+  txt(ctx,xs[3],cy,'L',INK,'italic 16px Times New Roman','center');
+  // 순전파 값 (위)
+  const up=(x,l1,l2,on1,on2)=>{ if(on1) txt(ctx,x,cy-r-26,l1,fc,'600 11px Noto Sans KR','center'); if(on2) txt(ctx,x,cy-r-11,l2,fc,'600 11px Noto Sans KR','center'); };
+  up(xs[0],'y = '+f(p.y),'x = '+f(p.x),true,true);
+  up(xs[1],'z₁ = '+f(F.z1,3),'a₁ = '+f(F.a1,3),s>=1,s>=2);
+  up(xs[2],'z₂ = '+f(F.z2,3),'ŷ = '+f(F.yh,3),s>=3,s>=4);
+  up(xs[3],'e = '+f(F.e,3),'L = '+f(F.L,4),s>=5,s>=5);
+  // 역전파 값 (아래)
+  const dn=(x,l,on,row)=>{ if(on) txt(ctx,x,by+24+row*15,l,bc,'600 11px Noto Sans KR','center'); };
+  dn(xs[3],'2e = '+f(G5.dLe,3),s>=6,0);
+  dn(xs[2],'δ₂ = '+f(G5.d2,4),s>=8,0); dn(xs[2],'w₂ 기울기 '+f(G5.gw2,4),s>=9,1);
+  dn(xs[1],'δ₁ = '+f(G5.d1,4),s>=11,0); dn(xs[1],'w₁ 기울기 '+f(G5.gw1,4),s>=12,1);
+  if(s>=6&&s<8) txt(ctx,(xs[2]+xs[3])/2,by+40,'오류 신호',bc,'11px Noto Sans KR','center');
+}
+const ST5=[
+ ['준비','값을 정하고 ‘다음’을 누르세요.'],
+ ['순전파 ①',(p,F)=>`z₁ = w₁x + b₁ = ${pr(p.w1)} · ${pr(p.x)} + ${pr(p.b1)} = <span class="hi">${f(F.z1,4)}</span>`],
+ ['순전파 ②',(p,F)=>`a₁ = σ(z₁) = σ(${f(F.z1,4)}) = <span class="hi">${f(F.a1,4)}</span>`],
+ ['순전파 ③',(p,F)=>`z₂ = w₂a₁ + b₂ = ${pr(p.w2)} · ${f(F.a1,4)} + ${pr(p.b2)} = <span class="hi">${f(F.z2,4)}</span>`],
+ ['순전파 ④',(p,F)=>`ŷ = σ(z₂) = σ(${f(F.z2,4)}) = <span class="hi">${f(F.yh,4)}</span>`],
+ ['순전파 ⑤',(p,F)=>`e = y − ŷ = ${f(p.y)} − ${f(F.yh,4)} = ${f(F.e,4)}, &nbsp;L = e² = <span class="hi">${f(F.L,4)}</span>`],
+ ['역전파 ①',(p,F,G)=>`${PD('L','e')} = 2e = 2 · ${pr(F.e,4)} = <span class="bk">${f(G.dLe,4)}</span>`],
+ ['역전파 ②',(p,F,G)=>`${PD('L','ŷ')} = ${PD('L','e')} · ${PD('e','ŷ')} = ${pr(G.dLe,4)} · (−1) = <span class="bk">${f(G.dLy,4)}</span>`],
+ ['역전파 ③',(p,F,G)=>`δ₂ = ${PD('L','z₂')} = ${PD('L','ŷ')} · ŷ(1 − ŷ) = ${pr(G.dLy,4)} · ${f(F.yh,4)} · ${f(1-F.yh,4)} = <span class="bk">${f(G.d2,4)}</span>`],
+ ['역전파 ④',(p,F,G)=>`${PD('L','w₂')} = δ₂ · ${PD('z₂','w₂')} = δ₂ · a₁ = ${pr(G.d2,4)} · ${f(F.a1,4)} = <span class="bk">${f(G.gw2,4)}</span>, &nbsp;${PD('L','b₂')} = δ₂ · 1 = <span class="bk">${f(G.gb2,4)}</span>`],
+ ['역전파 ⑤',(p,F,G)=>`${PD('L','a₁')} = δ₂ · ${PD('z₂','a₁')} = δ₂ · w₂ = ${pr(G.d2,4)} · ${pr(p.w2)} = <span class="bk">${f(G.da1,4)}</span> <span class="txt">(옛 w₂ = ${f(p.w2)})</span>`],
+ ['역전파 ⑥',(p,F,G)=>`δ₁ = ${PD('L','z₁')} = ${PD('L','a₁')} · a₁(1 − a₁) = ${pr(G.da1,4)} · ${f(F.a1,4)} · ${f(1-F.a1,4)} = <span class="bk">${f(G.d1,4)}</span>`],
+ ['역전파 ⑦',(p,F,G)=>`${PD('L','w₁')} = δ₁ · x = ${pr(G.d1,4)} · ${pr(p.x)} = <span class="bk">${f(G.gw1,4)}</span>, &nbsp;${PD('L','b₁')} = δ₁ = <span class="bk">${f(G.gb1,4)}</span>`],
+ ['갱신 준비',(p,F,G)=>{ const n=k=>p[k]-p.al*G['g'+k]; const q={...p,w1:n('w1'),b1:n('b1'),w2:n('w2'),b2:n('b2')};
+   return `w₁ ← ${f(p.w1,3)} − ${f(p.al)} · ${pr(G.gw1,4)} = ${f(q.w1,4)}, &nbsp;b₁ ← ${f(q.b1,4)}<br>w₂ ← ${f(p.w2,3)} − ${f(p.al)} · ${pr(G.gw2,4)} = ${f(q.w2,4)}, &nbsp;b₂ ← ${f(q.b2,4)}<br><span class="txt">갱신 후 손실 L = ${f(F.L,4)} → <b>${f(fwd5(q).L,4)}</b></span>`; }]
+];
+function drawT5(){
+  const p=P5(), F=fwd5(p), G5=bwd5(p,F), s=B.stage;
+  drawNet(p,F,G5,s);
+  $('barF').style.width=(s/NST*100)+'%'; $('barF').className=s>=6?'b':'';
+  let h='';
+  for(let k=1;k<=s;k++){ const [lb,fn]=ST5[k]; h+=`<div class="row${k===s?' new':''}${k===6||k===13?' sep':''}${k===13?' w':''}"><span class="lbl">${lb}</span>${fn(p,F,G5)}</div>`; }
+  $('calc5').innerHTML=h||`<div class="row"><span class="txt">${ST5[0][1]}</span></div>`;
+  $('bPrev5').disabled=s===0; $('bNext5').disabled=s===NST;
+  const st=$('s5'); st.className='status';
+  const msgs={0:'입력 x와 정답 y, 네 매개변수가 정해져 있어요. 먼저 순전파로 예측값을 구해요.',5:`순전파 끝. 예측 ŷ = ${f(F.yh,3)}, 정답 y = ${f(p.y)}. 이제 손실 L에서 출발해 <b>거꾸로</b> 배율을 곱해 나가요.`,
+    8:'δ₂는 “z₂를 조금 바꾸면 손실이 몇 배로 변하나”. 이 값을 출력층의 가중치·편향 기울기와 은닉층 쪽 계산에 모두 재사용해요.',
+    10:`여기서 곱한 w₂ = ${f(p.w2)}는 순전파 때 쓴 <b>옛 값</b>이에요. 아직 갱신하지 않았어요.`,
+    12:'모든 기울기 완성. 은닉층의 기울기도 결국 “δ × 들어온 입력”(δ₁ × x) 꼴이에요.',
+    13:`α = ${f(p.al)}로 한꺼번에 갱신하면 손실이 줄어요. ‘갱신하고 다시’를 누르면 새 값으로 처음부터 반복해요.`};
+  st.innerHTML=(B.prevL!=null&&s===0?`갱신 전 손실 ${f(B.prevL,4)} → 지금 ${f(F.L,4)}. `:'')+(msgs[s]||(s<5?'순전파: 입력에서 출력 쪽으로 값을 계산하며 <b>모두 기억</b>해 둬요.':'역전파: 바로 앞 결과에 국소 배율 하나를 곱해요.'));
+  if(B.prevL!=null&&s===0) st.className='status good';
+  // 검산 표
+  const h0=1e-4, keys=[['w1','w₁','gw1'],['b1','b₁','gb1'],['w2','w₂','gw2'],['b2','b₂','gb2']];
+  $('chk5').innerHTML=`<thead><tr><th>p</th><th>역전파</th><th>${FR('L(p + h) − L(p − h)','2h')}</th></tr></thead><tbody>`+keys.map(([k,n,g])=>{ const a={...p},b={...p}; a[k]+=h0; b[k]-=h0; const num=(fwd5(a).L-fwd5(b).L)/(2*h0);
+    return `<tr><td class="m">${n}</td><td style="font-family:Times New Roman,serif">${f(G5[g],6)}</td><td style="font-family:Times New Roman,serif;color:var(--ok)">${f(num,6)}</td></tr>`; }).join('')+'</tbody>';
+}
+$('bNext5').onclick=()=>{ if(B.stage<NST){ B.stage++; drawT5(); } };
+$('bPrev5').onclick=()=>{ if(B.stage>0){ B.stage--; drawT5(); } };
+$('bAll5').onclick=()=>{ B.stage=NST; drawT5(); };
+$('bUpd5').onclick=()=>{ const p=P5(), F=fwd5(p), G5=bwd5(p,F); B.prevL=F.L;
+  [['pW1','w1','gw1'],['pB1','b1','gb1'],['pW2','w2','gw2'],['pB2','b2','gb2']].forEach(([id,k,g])=>{ $(id).value=Math.round((p[k]-p.al*G5[g])*10000)/10000; });
+  B.stage=0; drawT5(); };
+$('bRand5').onclick=()=>{ ['pW1','pB1','pW2','pB2'].forEach(id=>$(id).value=(Math.round((Math.random()*4-2)*10)/10)); $('pX').value=(Math.round((Math.random()*4-2)*10)/10); $('pY').value=Math.random()<0.5?0:1; B.stage=0; B.prevL=null; drawT5(); };
+['pX','pY','pA','pW1','pB1','pW2','pB2'].forEach(id=>$(id).addEventListener('input',()=>{ B.stage=Math.min(B.stage,NST); B.prevL=null; drawT5(); }));
+
+// ================= TAB 6 =================
+const NET={act:'sig',lr:3,ep:0,hist:[],running:false,raf:0};
+const rnd=()=>Math.random()*2-1;
+function initNet(){ NET.W1=[[rnd(),rnd()],[rnd(),rnd()]]; NET.b1=[rnd(),rnd()]; NET.W2=[rnd(),rnd()]; NET.b2=rnd(); NET.ep=0; NET.hist=[lossNet(NET)]; }
+function fwdN(n,x1,x2){ const z=[0,1].map(j=>n.W1[0][j]*x1+n.W1[1][j]*x2+n.b1[j]); const a=z.map(v=>NET.act==='sig'?sig(v):v); const z2=n.W2[0]*a[0]+n.W2[1]*a[1]+n.b2; return {z,a,z2,yh:sig(z2)}; }
+function lossNet(n){ let s=0; for(const p of D2){ const e=p.t-fwdN(n,p.x1,p.x2).yh; s+=e*e; } return s/D2.length; }
+function accNet(n){ let c=0; for(const p of D2){ if((fwdN(n,p.x1,p.x2).yh>0.5?1:0)===p.t) c++; } return c; }
+function epoch(n,lr){ const gW1=[[0,0],[0,0]], gb1=[0,0], gW2=[0,0]; let gb2=0; const lin=NET.act!=='sig';
+  for(const p of D2){ const F=fwdN(n,p.x1,p.x2), e=p.t-F.yh, d2=-2*e*F.yh*(1-F.yh);
+    gW2[0]+=d2*F.a[0]; gW2[1]+=d2*F.a[1]; gb2+=d2;
+    for(let j=0;j<2;j++){ const d1=d2*n.W2[j]*(lin?1:F.a[j]*(1-F.a[j])); gW1[0][j]+=d1*p.x1; gW1[1][j]+=d1*p.x2; gb1[j]+=d1; } }
+  const m=lr/D2.length;
+  for(let i=0;i<2;i++) for(let j=0;j<2;j++) n.W1[i][j]-=m*gW1[i][j];
+  for(let j=0;j<2;j++){ n.b1[j]-=m*gb1[j]; n.W2[j]-=m*gW2[j]; } n.b2-=m*gb2; }
+const MAXEP=8000;
+const ss=(l,s)=>`<span class="ss"><sup>${s}</sup><sub>${l}</sub></span>`;
+function drawT6(){
+  // 입력 공간
+  { const {ctx,W,H}=fit($('cIn6'),1), M=boxMap(W,H,DOM);
+    heat(ctx,W,H,(s,t)=>fwdN(NET,DOM[0]+s*(DOM[1]-DOM[0]),DOM[0]+t*(DOM[1]-DOM[0])).yh,70);
+    drawAxes(ctx,M,W,H);
+    [POS,OK].forEach((col,j)=>lineInBox(ctx,NET.W1[0][j],NET.W1[1][j],NET.b1[j],M,DOM,col,true,2));
+    drawPts(ctx,D2.map(p=>({u:p.x1,v:p.x2,t:p.t})),M,5);
+    D2.forEach(p=>{ if((fwdN(NET,p.x1,p.x2).yh>0.5?1:0)!==p.t) ring(ctx,M.x(p.x1),M.y(p.x2),9,NEG,2); }); }
+  // 은닉 공간
+  { const {ctx,W,H}=fit($('cHid6'),1); const A=D2.map(p=>({...fwdN(NET,p.x1,p.x2),t:p.t}));
+    let dom; if(NET.act==='sig') dom=[-0.08,1.08]; else { let lo=Infinity,hi=-Infinity; A.forEach(q=>q.a.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);})); const pad=(hi-lo)*0.15+0.2; dom=[lo-pad,hi+pad]; }
+    const M=boxMap(W,H,dom);
+    heat(ctx,W,H,(s,t)=>sig(NET.W2[0]*(dom[0]+s*(dom[1]-dom[0]))+NET.W2[1]*(dom[0]+t*(dom[1]-dom[0]))+NET.b2),60);
+    if(NET.act==='sig'){ ctx.strokeStyle='rgba(31,35,40,.25)'; ctx.lineWidth=1; ctx.strokeRect(M.x(0),M.y(1),M.x(1)-M.x(0),M.y(0)-M.y(1)); txt(ctx,M.x(1),M.y(0)+9,'1','#5b6370','11px Times New Roman','center'); txt(ctx,M.x(0)-6,M.y(1),'1','#5b6370','11px Times New Roman','right'); }
+    lineInBox(ctx,NET.W2[0],NET.W2[1],NET.b2,M,[dom[0]-5,dom[1]+5],INK,false,2.2);
+    txt(ctx,W-6,H-10,'a¹',POS,'italic 600 13px Times New Roman','right'); txt(ctx,8,12,'a²',OK,'italic 600 13px Times New Roman');
+    drawPts(ctx,A.map(q=>({u:q.a[0],v:q.a[1],t:q.t})),M,5); }
+  // 손실
+  { const {ctx,W,H}=fit($('cLoss6'),0.3), h=NET.hist, n=Math.max(h.length,MAXEP/20+1), top=Math.max(0.3,...h);
+    const xx=i=>PAD+24+i/(n-1)*(W-2*PAD-24), yy=v=>PAD+(top-v)/top*(H-2*PAD-10);
+    ctx.setLineDash([3,4]); ctx.strokeStyle='rgba(224,122,31,.5)'; ctx.beginPath(); ctx.moveTo(PAD+24,yy(0.25)); ctx.lineTo(W-PAD,yy(0.25)); ctx.stroke(); ctx.setLineDash([]);
+    txt(ctx,PAD+20,yy(0.25),'0.25','#5b6370','11px Times New Roman','right'); txt(ctx,PAD+20,yy(0),'0','#5b6370','11px Times New Roman','right');
+    ctx.strokeStyle=ON; ctx.lineWidth=2; ctx.beginPath(); h.forEach((v,i)=>i?ctx.lineTo(xx(i),yy(v)):ctx.moveTo(xx(i),yy(v))); ctx.stroke();
+    txt(ctx,W-PAD,H-6,'세대 →  '+MAXEP.toLocaleString('ko-KR'),'#5b6370','11px Noto Sans KR','right'); }
+  const L=lossNet(NET), acc=accNet(NET), st=$('s6');
+  const P=[[`w${ss(1,11)}`,NET.W1[0][0]],[`w${ss(1,21)}`,NET.W1[1][0]],[`b${ss(1,1)}`,NET.b1[0]],[`w${ss(1,12)}`,NET.W1[0][1]],[`w${ss(1,22)}`,NET.W1[1][1]],[`b${ss(1,2)}`,NET.b1[1]],[`w${ss(2,11)}`,NET.W2[0]],[`w${ss(2,21)}`,NET.W2[1]],[`b${ss(2,1)}`,NET.b2]];
+  $('par6').innerHTML=P.map(([n,v])=>`<div><i>${n}</i><b>${f(v,2)}</b></div>`).join('');
+  const base=`${NET.ep.toLocaleString('ko-KR')}세대 · 손실 ${f(L,4)} · 정답 ${acc}개 (20개 중)`;
+  if(acc===20&&L<0.05){ st.className='status good'; st.innerHTML=`<b>XOR 해결!</b> ${base}. ‘은닉층이 본 세상’에서 동그라미와 세모가 직선 하나로 나뉘는지 보세요.`; }
+  else if(NET.act!=='sig'&&NET.ep>=1500){ st.className='status bad'; st.innerHTML=`${base}. 은닉층이 선형이면 신경망 전체가 직선 하나와 같아서 15개를 넘을 수 없어요. 입력 공간의 경계도 항상 직선이에요.`; }
+  else if(NET.ep>=MAXEP){ st.className='status bad'; st.innerHTML=`${base}. <b>갇혔어요.</b> 기울기가 거의 0인 곳(지역 최솟값이나 평평한 고원)에 멈췄어요. ‘무작위로 다시 시작’을 눌러 보세요.`; }
+  else { st.className='status'; st.innerHTML=base+(NET.running?' · 학습 중':'. ▶ 학습을 누르세요.'); }
+  $('bRun6').textContent=NET.running?'❚❚ 멈춤':'▶ 학습';
+}
+function loop6(){ if(!NET.running){ NET.raf=0; drawT6(); return; }
+  for(let k=0;k<20&&NET.ep<MAXEP;k++){ epoch(NET,NET.lr); NET.ep++; if(NET.ep%20===0) NET.hist.push(lossNet(NET)); }
+  if(NET.ep>=MAXEP||lossNet(NET)<0.01) NET.running=false;
+  drawT6(); NET.raf=requestAnimationFrame(loop6); }
+$('bRun6').onclick=()=>{ if(NET.running){ NET.running=false; return; } if(NET.ep>=MAXEP) initNet(); NET.running=true; if(!NET.raf) NET.raf=requestAnimationFrame(loop6); };
+$('bStep6').onclick=()=>{ NET.running=false; for(let k=0;k<100;k++){ epoch(NET,NET.lr); NET.ep++; if(NET.ep%20===0) NET.hist.push(lossNet(NET)); } drawT6(); };
+$('bInit6').onclick=()=>{ NET.running=false; initNet(); drawT6(); };
+segBind('actSeg',v=>{ NET.act=v; NET.running=false; initNet(); $('tally6').innerHTML=''; $('sMany6').innerHTML=''; $('sMany6').className=''; drawT6(); });
+segBind('lrSeg',v=>{ NET.lr=+v; });
+$('bMany6').onclick=()=>{ let okc=0, stuck=0; const eps=[];
+  for(let r=0;r<20;r++){ const n={W1:[[rnd(),rnd()],[rnd(),rnd()]],b1:[rnd(),rnd()],W2:[rnd(),rnd()],b2:rnd()}; let ep=0;
+    for(;ep<MAXEP;ep++){ epoch(n,NET.lr); if(ep%50===0&&accNet(n)===20&&lossNet(n)<0.05) break; }
+    if(accNet(n)===20){ okc++; eps.push(ep); } else stuck++; }
+  const avg=eps.length?Math.round(eps.reduce((s,v)=>s+v,0)/eps.length):0;
+  $('tally6').innerHTML=`<div>풀림<br><b>${okc}</b>번${okc?` · 평균 ${avg.toLocaleString('ko-KR')}세대`:''}</div><div>갇힘<br><b>${stuck}</b>번</div>`;
+  const st=$('sMany6'); st.className='status'+(okc>=stuck?' good':' bad');
+  st.innerHTML= NET.act!=='sig' ? '선형 은닉층은 20번 모두 실패해요. 비선형성이 없으면 층을 쌓아도 소용없어요.' :
+    `시그모이드 · α = ${f(NET.lr,1)}: 20번 중 ${okc}번 풀고 ${stuck}번 갇혔어요. 같은 알고리즘이라도 <b>출발점</b>에 따라 결과가 달라요. 경사 하강법이 그릇이 아닌 울퉁불퉁한 지형을 내려가고 있다는 증거예요. 무작위라 누를 때마다 조금씩 달라요.`;
+};
+
+// ================= 탭 =================
+const DRAW={line:drawT1,chain:drawT2,gd:drawT3,xor:drawT4,bp:drawT5,lab:drawT6,summary:()=>{}};
+let cur='line';
+function show(t,scroll){
+  if(!DRAW[t]) t='line';
+  if(t!=='gd'&&G.running){ G.running=false; clearTimeout(G.timer); }
+  if(t!=='lab') NET.running=false;
+  cur=t;
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('on',el.id==='t-'+t));
+  document.querySelectorAll('#tabbar button').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); if(on) b.scrollIntoView({block:'nearest',inline:'center'}); });
+  if(location.hash!=='#'+t){ try{ history.replaceState(null,'','#'+t); }catch(_){ } }
+  DRAW[t]();
+  if(scroll) window.scrollTo({top:0,behavior:'smooth'});
+}
+$('tabbar').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.t,false); });
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go,true)));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1),false));
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>DRAW[cur](),80); });
+initNet();
+show(location.hash.slice(1)||'line',false);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>DRAW[cur]());
+})();
+</script>
+</body>
+</html>

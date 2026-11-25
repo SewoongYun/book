@@ -353,7 +353,18 @@ window.BOOKS = [
           }
         ]
       },
-      { no: 10, title: "오래된 신화를 깨뜨린 알고리즘", page: 310, programs: [] },
+      {
+        no: 10, title: "오래된 신화를 깨뜨린 알고리즘", page: 310,
+        programs: [
+          {
+            id: "backprop", title: "역전파, 만져보며 이해하기",
+            file: "programs/역전파, 만져보며 이해하기.html",
+            type: "실험", session: "", pages: "320~343쪽",
+            summary: "직선 하나인 신경세포의 손실 그릇에서 미분을 민감도로 보고, 톱니바퀴로 연쇄 규칙을 익혀 경사 하강법으로 내려간 뒤, 직선으로 못 푸는 XOR를 시그모이드 2층 신경망과 역전파로 한 걸음씩 푸는 7단계",
+            concepts: ["역전파", "연쇄 규칙", "미분", "손실 함수", "경사 하강법", "시그모이드", "XOR", "은닉층", "선형 회귀"]
+          }
+        ]
+      },
       { no: 11, title: "기계의 눈", page: 354, programs: [] },
       { no: 12, title: "미지의 땅", page: 391, programs: [] }
     ]
