@@ -330,6 +330,54 @@ td.l{text-align:left}
     </div>
   </details>
 </section>
+<section>
+  <h2>출력값을 시그모이드에 넣는 이유</h2>
+  <p>5탭 신경망은 마지막에 <span class="m">ŷ = σ(z<sub>2</sub>)</span>로 출력을 한 번 더 시그모이드에 넣어요. 왜 가중합 <span class="m">z</span>를 그대로 출력하지 않을까요?</p>
+  <span class="eq">z = w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub> + b &nbsp;→&nbsp; ŷ = σ(z)</span>
+  <details class="think"><summary><b>먼저 생각해 보기</b>출력층에서 z = 2가 나왔고 정답은 1(동그라미)이에요. 시그모이드 없이 ŷ = z = 2로 손실을 구하면?</summary>
+    <p><span class="m">e = 1 − 2 = −1</span>, <span class="m">L = 1</span>. 동그라미라고 제대로 맞혔는데도 꽤 큰 벌을 받아요. ‘너무 확신했다’는 이유로요. 아래 실험에서 확인해 보세요.</p>
+  </details>
+
+  <h3>① 0과 1 사이로 → 확률처럼 읽기</h3>
+  <p><span class="m">z</span>는 −∞부터 +∞까지 아무 값이나 될 수 있어서, 2라는 숫자만으로는 ‘얼마나 동그라미 같은지’ 말하기 어려워요. 시그모이드를 거치면 늘 0과 1 사이가 되어 <b>동그라미일 확률</b>처럼 읽을 수 있어요.</p>
+  <div class="calc">
+    <div class="row"><span class="lbl">① 지수</span>e<sup>−2</sup> ≈ 0.1353</div>
+    <div class="row"><span class="lbl">② 분모</span>1 + e<sup>−2</sup> ≈ 1.1353</div>
+    <div class="row"><span class="lbl">③ 함수값</span>σ(2) = <span class="F">1|1.1353</span> ≈ <span class="hi">0.8808</span></div>
+    <div class="row"><span class="lbl">④ 해석</span><span class="txt">동그라미일 확률 약 88%</span></div>
+  </div>
+  <p>그리고 <span class="m">σ(0) = 0.5</span>예요. 그래서 ‘<span class="m">ŷ &gt; 0.5</span>이면 동그라미’는 퍼셉트론의 ‘<span class="m">z &gt; 0</span>이면 동그라미’와 똑같은 판정이에요. 판정 기준은 그대로 두고 <b>확신의 정도</b>만 덧붙인 셈이에요.</p>
+
+  <h3>② 정답(0 또는 1)과 범위가 맞아야 손실이 제대로 생겨요</h3>
+  <p class="small">정답 y와 z를 바꿔 가며 두 손실 곡선을 비교해 보세요.</p>
+  <p class="seglabel">정답 y</p>
+  <div class="seg" id="ySeg4"><button data-v="1" class="on">1 (동그라미)</button><button data-v="0">0 (세모)</button></div>
+  <canvas id="cOut4"></canvas>
+  <div class="legend"><span><span class="sw dash" style="color:#8a909a"></span>시그모이드 없이 (y − z)<sup>2</sup></span><span style="color:var(--pos)"><span class="sw" style="background:var(--pos)"></span>시그모이드 거쳐 (y − σ(z))<sup>2</sup></span></div>
+  <div class="slider"><label><span>출력층 가중합 z</span><b id="lZo4"></b></label><input type="range" id="rZo4" min="-6" max="6" step="0.1" value="2"></div>
+  <div class="calc" id="calcO4"></div>
+  <div class="status" id="sO4"></div>
+
+  <h3>③ 학습에 필요한 미분값</h3>
+  <p>역전파는 <span class="m">z</span>에서의 기울기가 필요해요. 연쇄 규칙으로 배율 두 개를 곱해요.</p>
+  <span class="eq"><span class="F">∂L|∂z</span> = <span class="F">∂L|∂ŷ</span> · <span class="F">dŷ|dz</span> = −2e · σ(1 − σ)</span>
+  <div class="calc">
+    <div class="row"><span class="lbl">① 오류</span>e = 1 − 0.8808 = 0.1192</div>
+    <div class="row"><span class="lbl">② σ′</span>σ(1 − σ) = 0.8808 × 0.1192 = 0.1050</div>
+    <div class="row"><span class="lbl">③ 곱</span><span class="F">∂L|∂z</span> = −2 × 0.1192 × 0.1050 ≈ <span class="bk">−0.0250</span></div>
+  </div>
+  <p>음수이니 경사 하강법은 <span class="m">z</span>를 <b>늘려요</b>(더 확신하는 쪽). <span class="m">σ(1 − σ)</span>는 순전파 때 구한 <span class="m">ŷ</span>로 곱셈 한 번이면 끝. 이 값이 바로 5탭의 <span class="m">δ<sub>2</sub></span>예요.</p>
+  <div class="key"><b>출력층 시그모이드의 세 가지 역할</b>
+    <ol>
+      <li>출력을 0~1로 바꿔 <b>확률</b>로 읽게 해요. 판정(<span class="m">z &gt; 0</span>)은 그대로.</li>
+      <li>정답 0, 1과 같은 범위라서 <b>맞힐수록 손실이 줄기만</b> 해요. 시그모이드가 없으면 확신한 정답도 벌을 받아요.</li>
+      <li>미분 가능하고 도함수가 <span class="m">σ(1 − σ)</span>라서 역전파 계산이 싸요.</li>
+    </ol>
+  </div>
+  <details class="think"><summary><b>먼저 생각해 보기</b>정답이 1인데 z = −5로 크게 틀렸다면 기울기는 클까?</summary>
+    <p><span class="m">σ(−5) ≈ 0.0067</span>, <span class="m">σ′ ≈ 0.0066</span>이라 <span class="m"><span class="F">∂L|∂z</span> = −2 × 0.9933 × 0.0066 ≈ −0.0132</span>. 맞힌 경우(z = 2)의 −0.0250보다 <b>작아요</b>. 많이 틀렸는데 오히려 덜 고쳐요. 양 끝에서 <span class="m">σ′</span>가 0에 가깝기 때문이에요. 그래서 분류 출력층에는 보통 교차 엔트로피 손실을 함께 쓰는데, 그러면 <span class="m">σ′</span>가 약분되어 <span class="m"><span class="F">∂L|∂z</span> = ŷ − y ≈ −0.9933</span>으로 커져요(7탭 Q4).</p>
+  </details>
+</section>
 <div class="navrow"><button data-go="gd">← 이전</button><button data-go="bp">다음: 역전파 한 걸음씩 →</button></div>
 </div>
 
@@ -448,7 +496,7 @@ td.l{text-align:left}
     <div><b>2.</b> 기울기 <span class="m">[−2xe, −2e]</span>는 오르막 방향. 반대로 <span class="m">α</span>만큼 걷는다. 데이터가 여럿이면 평균.</div>
     <div><b>3.</b> 가중치의 기울기는 언제나 <b>(오류 신호) × (들어온 입력)</b>.</div>
     <div><b>4.</b> XOR처럼 선형 분리가 안 되면 층이 둘 이상 필요하고, 그 층들이 의미 있으려면 활성화 함수가 <b>비선형</b>이어야 한다.</div>
-    <div><b>5.</b> 계단 함수는 미분이 안 되니 시그모이드. 도함수가 자기 자신으로 표현되어 계산이 싸다.</div>
+    <div><b>5.</b> 계단 함수는 미분이 안 되니 시그모이드. 도함수가 자기 자신으로 표현되어 계산이 싸다. 출력층에 쓰면 0~1의 확률로 읽을 수 있고, 정답(0, 1)과 범위가 맞아 확신한 정답이 벌받지 않는다.</div>
     <div><b>6.</b> 역전파 = 연쇄 규칙을 출력에서 입력 쪽으로 차례로 적용. 앞서 곱한 값(δ)을 재사용하므로 층·신경세포가 몇 개든 같은 방식(342쪽).</div>
     <div><b>7.</b> 갱신은 모든 기울기를 구한 뒤 한꺼번에. 역전파에는 옛 가중치가 필요하다.</div>
   </div>
@@ -744,6 +792,41 @@ function drawT4(){
 ['A4','B4','C4'].forEach((k,i)=>$('r'+k).oninput=function(){ T4[['a','b','c'][i]]=+this.value; T4.two=false; drawT4(); });
 $('rZ4').oninput=function(){ T4.z=+this.value; drawT4(); };
 $('bTwo4').onclick=()=>{ T4.two=!T4.two; drawT4(); };
+// 출력층 시그모이드
+const T4o={z:2,y:1};
+function drawOut4(){
+  const y=T4o.y, z=T4o.z, TOP=2.2, {ctx,W,H}=fit($('cOut4'),0.55);
+  const zx=v=>PAD+(v+6)/12*(W-2*PAD), yy=v=>PAD+(TOP-v)/TOP*(H-2*PAD-12);
+  ctx.strokeStyle='rgba(31,35,40,.3)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD,yy(0)); ctx.lineTo(W-PAD,yy(0)); ctx.moveTo(zx(0),PAD); ctx.lineTo(zx(0),yy(0)); ctx.stroke();
+  ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(PAD,yy(1)); ctx.lineTo(W-PAD,yy(1)); ctx.stroke(); ctx.setLineDash([]);
+  txt(ctx,zx(0)-4,yy(1),'1','#5b6370','11px Times New Roman','right');
+  txt(ctx,W-PAD,yy(0)+11,'z',INK,'italic 13px Times New Roman','right'); txt(ctx,zx(0)+6,PAD+2,'L',INK,'italic 13px Times New Roman');
+  txt(ctx,zx(0),yy(0)+11,'경계 (σ = 0.5)','#5b6370','10px Noto Sans KR','center');
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,yy(0)+1); ctx.clip();
+  const plot=(fn,col,dash)=>{ ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.setLineDash(dash?[6,4]:[]); ctx.beginPath(); for(let k=0;k<=240;k++){ const v=-6+k*0.05, L=Math.min(fn(v),TOP*3); k?ctx.lineTo(zx(v),yy(L)):ctx.moveTo(zx(v),yy(L)); } ctx.stroke(); ctx.setLineDash([]); };
+  plot(v=>(y-v)**2,'#8a909a',true); plot(v=>(y-sig(v))**2,POS,false);
+  ctx.restore();
+  const s=sig(z), ds=s*(1-s), eR=y-z, LR=eR*eR, gR=-2*eR, eS=y-s, LS=eS*eS, gS=-2*eS*ds;
+  ctx.strokeStyle='rgba(31,35,40,.25)'; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(zx(z),PAD); ctx.lineTo(zx(z),yy(0)); ctx.stroke(); ctx.setLineDash([]);
+  if(LR<=TOP) dot(ctx,zx(z),yy(LR),5,'#8a909a'); else txt(ctx,zx(z)+(z>0?-6:6),PAD+4,'L = '+f(LR,1)+' ↑','#5b6370','600 11px Noto Sans KR',z>0?'right':'left');
+  dot(ctx,zx(z),yy(LS),5,POS); ring(ctx,zx(z),yy(LS),5,'#fff',1.5);
+  $('lZo4').textContent=f(z,1);
+  const want=y===1?1:-1, against=Math.abs(gR)>1e-6&&-Math.sign(gR)!==want, right=(y===1&&z>0.05)||(y===0&&z<-0.05);
+  const dir=g=>Math.abs(g)<5e-5?'거의 움직이지 않아요':g>0?'z를 <b>줄여요</b>':'z를 <b>늘려요</b>';
+  $('calcO4').innerHTML=
+    `<div class="row"><span class="lbl">σ(z)</span>${FR('1','1 + e<sup>'+(z>=0?'−':'')+f(Math.abs(z),1)+'</sup>')} = <span class="hi">${f(s,4)}</span> <span class="txt">(동그라미일 확률 약 ${Math.round(s*100)}%)</span></div>`+
+    `<div class="row sep"><span class="lbl">σ 없이</span>ŷ = z = ${f(z,1)}, &nbsp;e = ${f(y,0)} − ${pr(z,1)} = ${f(eR,2)}, &nbsp;L = <b>${f(LR,4)}</b></div>`+
+    `<div class="row"><span class="lbl"></span>${PD('L','z')} = −2e = <span class="${against?'warn':''}">${f(gR,4)}</span> <span class="txt">→ 경사 하강법은 ${dir(gR)}</span></div>`+
+    `<div class="row sep"><span class="lbl">σ 거쳐</span>ŷ = ${f(s,4)}, &nbsp;e = ${f(y,0)} − ${f(s,4)} = ${f(eS,4)}, &nbsp;L = <b>${f(LS,4)}</b></div>`+
+    `<div class="row"><span class="lbl"></span>${PD('L','z')} = −2e · σ(1 − σ) = −2 · ${pr(eS,4)} · ${f(ds,4)} = <span class="bk">${f(gS,4)}</span> <span class="txt">→ ${dir(gS)}</span></div>`;
+  const st=$('sO4');
+  if(against){ st.className='status bad'; st.innerHTML= y===1 ? `z = ${f(z,1)}은 동그라미라고 확신한 <b>맞는</b> 답인데, 시그모이드 없이는 손실 ${f(LR,2)}을 받고 z를 1로 <b>되돌리라는</b> 기울기가 나와요. 시그모이드를 거치면 손실 ${f(LS,4)}, 기울기도 더 확신하는 쪽(늘리는 쪽)이에요.` : `z = ${f(z,1)}은 세모라고 <b>맞힌</b> 답인데, 시그모이드 없이는 z를 0, 즉 <b>반반인 경계</b>로 끌어당겨요. 시그모이드를 거치면 더 확실한 세모 쪽(줄이는 쪽)으로 가요.`; }
+  else if(Math.abs(z)<0.05){ st.className='status'; st.innerHTML='z = 0, σ = 0.5. 동그라미인지 세모인지 반반인 경계예요.'; }
+  else if(!right&&Math.abs(z)>=3){ st.className='status'; st.innerHTML=`크게 틀렸어요. 그런데 σ′ = ${f(ds,4)}로 아주 작아서 시그모이드 쪽 기울기(${f(gS,4)})도 작아요. 많이 틀릴수록 오히려 느리게 고쳐요. 아래 질문을 보세요.`; }
+  else { st.className='status good'; st.innerHTML= right ? `맞힌 답이에요. 아직은 두 방식이 같은 방향이지만 z를 더 키워 보세요. 회색 곡선은 z = 1을 지나면 다시 올라가요.` : `틀린 답이에요. 두 방식 모두 z를 정답 쪽으로 밀어요. 차이는 정답 쪽으로 넘어간 뒤에 생겨요.`; }
+}
+$('rZo4').oninput=function(){ T4o.z=+this.value; drawOut4(); };
+segBind('ySeg4',v=>{ T4o.y=+v; drawOut4(); });
 
 // ================= TAB 5 =================
 const B={stage:0, used:null, prevL:null};
@@ -901,7 +984,7 @@ $('bMany6').onclick=()=>{ let okc=0, stuck=0; const eps=[];
 };
 
 // ================= 탭 =================
-const DRAW={line:drawT1,chain:drawT2,gd:drawT3,xor:drawT4,bp:drawT5,lab:drawT6,summary:()=>{}};
+const DRAW={line:drawT1,chain:drawT2,gd:drawT3,xor:()=>{ drawT4(); drawOut4(); },bp:drawT5,lab:drawT6,summary:()=>{}};
 let cur='line';
 function show(t,scroll){
   if(!DRAW[t]) t='line';
